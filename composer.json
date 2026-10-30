@@ -2,7 +2,7 @@
     "name": "maxcxam/larsadmin",
     "description": "An admin panel for Laravel, built with Inertia and Vue 3.",
     "type": "library",
-    "license": "GPL-3.0-only",
+    "license": "MIT",
     "keywords": ["laravel", "admin", "admin-panel", "inertia", "vue"],
     "homepage": "https://github.com/maxcxam/larsadmin",
     "authors": [

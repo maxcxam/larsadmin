@@ -283,9 +283,15 @@ its translation.
 
 See [CHANGELOG.md](CHANGELOG.md).
 
+## Security
+
+Please do not report vulnerabilities in public issues. Use GitHub private vulnerability reporting
+as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
-Larsadmin is open-source software licensed under the [GNU General Public License v3.0](LICENSE).
+Larsadmin is open-source software licensed under the [MIT License](LICENSE) since version 1.0.2.
+Versions 1.0.0 and 1.0.1 were released under GPL-3.0-only.
 
 Larsadmin is an independent project and is not affiliated with, sponsored or endorsed by Laravel
 Holdings Inc. or Laravel Nova. Laravel and Nova are trademarks of their respective owners.
