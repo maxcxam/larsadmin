@@ -21,6 +21,12 @@ jobs:
         # testbench/pest majors instead of failing on the locked/default ones.
         php: ['8.3', '8.4', '8.5']
         laravel: ['12.*', '13.*']
+        # Coverage runs in exactly one cell (pcov, fails below 90% line coverage);
+        # every other cell runs the plain suite with coverage: none.
+        include:
+          - php: '8.4'
+            laravel: '13.*'
+            coverage: true
 
     name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
 
@@ -30,7 +36,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          coverage: none
+          coverage: ${{ matrix.coverage && 'pcov' || 'none' }}
 
       - name: Install dependencies
         run: |
@@ -38,7 +44,12 @@ jobs:
           composer update --prefer-dist --no-interaction --no-progress --with-all-dependencies
 
       - name: Run tests
+        if: ${{ !matrix.coverage }}
         run: vendor/bin/pest
+
+      - name: Run tests with coverage (min 90%)
+        if: ${{ matrix.coverage }}
+        run: vendor/bin/pest --coverage --min=90
 
   frontend:
     runs-on: ubuntu-latest
