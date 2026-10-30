@@ -1,0 +1,47 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Maxcxam\Larsadmin\Actions\Action;
+use Maxcxam\Larsadmin\Actions\ActionFields;
+use Maxcxam\Larsadmin\Actions\ActionResponse;
+
+class {{ class }} extends Action
+{
+    /**
+     * Whether the action is dangerous (red confirm button).
+     */
+    public bool $destructive = {{ destructive }};
+
+    /**
+     * The label shown in the UI (translated via __()).
+     */
+    public function name(): string
+    {
+        return __('{{ class }}');
+    }
+
+    /**
+     * Fields collected in the confirmation modal.
+     *
+     * @return array<int, \Maxcxam\Larsadmin\Fields\Field>
+     */
+    public function fields(Request $request): array
+    {
+        return [];
+    }
+
+    /**
+     * Handle the action for a chunk of authorized records (runs in a transaction).
+     */
+    public function handle(ActionFields $fields, Collection $models): ?ActionResponse
+    {
+        foreach ($models as $model) {
+            //
+        }
+
+        return ActionResponse::message(__('Done.'));
+    }
+}

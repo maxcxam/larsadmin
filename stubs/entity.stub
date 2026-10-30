@@ -1,0 +1,49 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Entity;
+use Maxcxam\Larsadmin\Fields\ID;
+
+class {{ class }} extends Entity
+{
+    /**
+     * The model the entity corresponds to.
+     *
+     * @var class-string<\{{ model }}>
+     */
+    public static string $model = \{{ model }}::class;
+
+    /**
+     * The plural label shown in the navigation and headings (translated via __()).
+     */
+    public static ?string $label = null;
+
+    /**
+     * The singular label of a record (translated via __()).
+     */
+    public static ?string $singularLabel = null;
+
+    /**
+     * The attribute used as the record's display title.
+     */
+    public static string $title = 'id';
+
+    /**
+     * The columns that should be searched.
+     *
+     * @var array<int, string>
+     */
+    public static array $search = ['id'];
+
+    /**
+     * Get the fields displayed by the entity.
+     */
+    public function fields(Request $request): array
+    {
+        return [
+            ID::make()->sortable(),
+        ];
+    }
+}

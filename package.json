@@ -1,0 +1,20 @@
+{
+    "name": "larsadmin",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite build --watch --mode development",
+        "build": "vite build",
+        "test": "vitest run",
+        "i18n": "node scripts/i18n.mjs"
+    },
+    "devDependencies": {
+        "@inertiajs/vue3": "^3.9.1",
+        "@tailwindcss/vite": "^4.3.3",
+        "@vitejs/plugin-vue": "^6.0.10",
+        "tailwindcss": "^4.3.3",
+        "vite": "^8.3.5",
+        "vitest": "^5.0.5",
+        "vue": "^3.5.44"
+    }
+}

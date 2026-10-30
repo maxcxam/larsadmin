@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\Facades\Gate;
+use Maxcxam\Larsadmin\LarsadminApplicationServiceProvider;
+
+class LarsadminServiceProvider extends LarsadminApplicationServiceProvider
+{
+    /*
+     * WARNING: while APP_ENV=local (and "larsadmin.allow_local" is true) EVERY
+     * authenticated user may access the panel, regardless of the gate below.
+     * Never run a shared or internet-reachable instance with APP_ENV=local, or
+     * set LARSADMIN_ALLOW_LOCAL=false to always enforce the gate.
+     */
+
+    /**
+     * Register the gate that determines who can access the panel in non-local environments.
+     */
+    protected function gate(): void
+    {
+        Gate::define('viewLarsadmin', function ($user) {
+            return in_array($user->email, [
+                //
+            ]);
+        });
+    }
+}

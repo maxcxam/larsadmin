@@ -1,0 +1,13 @@
+<?php
+
+namespace Maxcxam\Larsadmin\Tests\Fixtures;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+
+class Note extends Model
+{
+    use HasUuids;
+
+    protected $guarded = [];
+}
