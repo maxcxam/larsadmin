@@ -352,4 +352,4 @@ GET /admin/api/search?search=київ
 - Рушій Scout `database` не екранує `%` і `_` у терміні, тож вони працюють як шаблони `LIKE` (SECS-3).
   SQL-шлях їх екранує.
 
-Далі: [Розширення](10-extending.md).
+Далі: [Журнал аудиту](17-audit-log.md).

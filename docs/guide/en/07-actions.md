@@ -226,6 +226,15 @@ MarkLive::make()
     ->canRun(fn (Request $request, ?Model $post) => $post === null || $post->status !== 'live');
 ```
 
+## Audit log
+
+When the [audit log](17-audit-log.md) is on, an action run writes one entry per handled record, sharing
+a `batch_id`. The field diff is taken by reading the records again after `handle()`, in the chunk's
+transaction; calls to `Entity::save()` and `Entity::deleteRecord()` inside `handle()` for the chunk's own
+records write no entries of their own, while saves of other records are recorded with the shared
+`batch_id`. The values of the action's fields are stored too: `Password` fields and fields with
+`->sensitive()` are masked. See [Audit log: actions](17-audit-log.md#actions).
+
 ## Files in actions
 
 `File` and `Image` fields are not supported in action `fields()`: the first call to the action's

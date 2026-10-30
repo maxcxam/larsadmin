@@ -171,6 +171,30 @@ class OwnPost extends Entity
 Scout-індекс не знає про `canSee`: не кладіть чутливі поля в `toSearchableArray()` або вимкніть Scout
 для Entity через `usesScout(): false`. Див. [Глобальний пошук](16-search.md#авторизація).
 
+## Журнал аудиту
+
+Журнал аудиту має власний gate `viewLarsadminAudit`, якого пакет **не визначає**: доки застосунок його не
+визначить, журнал не бачить ніхто (fail closed). `allow_local` на нього не діє.
+
+```php
+protected function gate(): void
+{
+    Gate::define('viewLarsadmin', fn ($user) => in_array($user->email, ['admin@example.com']));
+
+    Gate::define('viewLarsadminAudit', fn ($user) => $user->is_admin);
+}
+```
+
+- Сторінка «Журнал аудиту» показує записи лише тих Entity, на яких користувач має `viewAny`.
+- Історія запису додатково вимагає, щоб запис був у межах `detailQuery()` і користувач мав на нього `view`.
+- Зміни полів, прихованих від глядача через `canSee`, не показуються.
+- **Сторінка «Журнал аудиту» не обмежується за рядками:** вона не перевіряє `indexQuery()` і `view` для
+  кожного запису журналу, тож власник gate бачить усі записи журналу кожної Entity, на якій має
+  `viewAny`. Gate це межа довіри: у multi-tenant застосунках давайте його лише тим, хто може бачити дані
+  всіх орендарів.
+
+Див. [Журнал аудиту](17-audit-log.md#хто-бачить-журнал).
+
 ## Контрольний список
 
 - Закрийте gate `viewLarsadmin` на реальні умови, вимкніть `allow_local` поза розробкою.
@@ -178,4 +202,6 @@ Scout-індекс не знає про `canSee`: не кладіть чутли
 - Додайте `indexQuery`, якщо користувач бачить лише частину рядків.
 - Для Entity з `$globallySearchable` і Laravel Scout перевірте, що `toSearchableArray()` не містить
   полів, прихованих `canSee`.
+- Якщо журнал аудиту ввімкнено, дайте gate `viewLarsadminAudit` лише тим, кому можна бачити історію всіх
+  записів доступних їм Entity.
 - Не запускайте публічні сервери з `APP_ENV=local`.
