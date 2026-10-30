@@ -1,0 +1,67 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # All six combinations resolve; composer picks the dev tooling per combo
+        # (verified with `composer show -a`):
+        #   PHP 8.3          -> Pest 4 / pest-plugin-laravel 4 (Pest 5 needs PHP ^8.4)
+        #   PHP 8.4, 8.5     -> Pest 5 / pest-plugin-laravel 5 (both accept Laravel 12 and 13)
+        #   Laravel 12.*     -> orchestra/testbench 10 (requires laravel/framework ^12)
+        #   Laravel 13.*     -> orchestra/testbench 11 (requires laravel/framework ^13)
+        # The pin below plus --with-all-dependencies lets composer switch
+        # testbench/pest majors instead of failing on the locked/default ones.
+        php: ['8.3', '8.4', '8.5']
+        laravel: ['12.*', '13.*']
+
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" --no-update --no-interaction
+          composer update --prefer-dist --no-interaction --no-progress --with-all-dependencies
+
+      - name: Run tests
+        run: vendor/bin/pest
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    name: Frontend (Node 22)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check that dist/ is up to date
+        run: git diff --exit-code dist

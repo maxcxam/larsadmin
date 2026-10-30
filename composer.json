@@ -1,15 +1,20 @@
 {
     "name": "maxcxam/larsadmin",
-    "description": "A Nova-style administration panel for Laravel, built with Inertia and Vue 3.",
+    "description": "An admin panel for Laravel, built with Inertia and Vue 3.",
     "type": "library",
-    "license": "MIT",
+    "license": "GPL-3.0-only",
     "keywords": ["laravel", "admin", "admin-panel", "inertia", "vue"],
+    "homepage": "https://github.com/maxcxam/larsadmin",
     "authors": [
         {
             "name": "Maksym Rudenko",
             "email": "maxcxam1979@gmail.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/maxcxam/larsadmin/issues",
+        "source": "https://github.com/maxcxam/larsadmin"
+    },
     "require": {
         "php": "^8.3",
         "inertiajs/inertia-laravel": "^3.0",
