@@ -75,6 +75,7 @@ class Category extends Entity
 | `$globallySearchable` | `bool`, `false` | Брати участь у глобальному пошуку (Ctrl/⌘+K), див. [Глобальний пошук](16-search.md) |
 | `$globalSearchLimit` | `?int`, `null` | Результатів у глобальному пошуку; `null` бере `larsadmin.search.limit` (5), межі 1..20 |
 | `$subtitle` | `?string`, `null` | Атрибут другого рядка результату глобального пошуку (колонка або `relation.attribute` одного рівня) |
+| `$auditable` | `bool`, `true` | Записувати зміни Entity в журнал аудиту, коли журнал увімкнено; `false` вимикає, див. [Журнал аудиту](17-audit-log.md#вимкнення-для-entity) |
 
 Зв'язки, які потрібні полям (наприклад, `BelongsTo`), завантажуються автоматично. `$with` потрібен
 лише для додаткових зв'язків, скажімо, якщо `$title` вказує на `author.name`.

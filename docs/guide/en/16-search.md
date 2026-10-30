@@ -353,4 +353,4 @@ after another.
 - Scout's `database` engine does not escape `%` and `_` in the term, so they act as `LIKE` wildcards
   (SECS-3). The SQL path escapes them.
 
-Next: [Extending](10-extending.md).
+Next: [Audit log](17-audit-log.md).

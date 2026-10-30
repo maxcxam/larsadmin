@@ -177,6 +177,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Audit Log
+    |--------------------------------------------------------------------------
+    |
+    | Changes made through the panel (create, update, delete, actions, attach, detach) are written to the
+    | "table" in the same database transaction as the change. Publish and run the migration first:
+    | php artisan vendor:publish --tag=larsadmin-migrations && php artisan migrate.
+    | Entities opt out with `public static bool $auditable = false`; fields with ->sensitive() (and every
+    | Password field, $hidden attribute and encrypted cast) are recorded as "changed" without values.
+    | "connection" null uses the default connection: on another connection than the entity's model the
+    | entry is written after the commit, without atomicity. Values longer than "max_value_length" characters
+    | are truncated. "retention_days" is used by `php artisan larsadmin:prune-audit` (null keeps everything).
+    | Viewing requires the "viewLarsadminAudit" gate; "throttle" limits the audit routes to that many
+    | requests per minute per user (null disables it).
+    |
+    */
+
+    'audit' => [
+        'enabled' => env('LARSADMIN_AUDIT', false),
+        'table' => 'larsadmin_audit_entries',
+        'connection' => env('LARSADMIN_AUDIT_CONNECTION'),
+        'retention_days' => 90,
+        'store_ip' => true,
+        'store_user_agent' => true,
+        'max_value_length' => 1000,
+        'per_page' => 25,
+        'throttle' => 60,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Files
     |--------------------------------------------------------------------------
     |

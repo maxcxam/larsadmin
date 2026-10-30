@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Maxcxam\Larsadmin\Http\Controllers\ActionController;
 use Maxcxam\Larsadmin\Http\Controllers\AttachController;
+use Maxcxam\Larsadmin\Http\Controllers\AuditController;
 use Maxcxam\Larsadmin\Http\Controllers\DashboardController;
 use Maxcxam\Larsadmin\Http\Controllers\EntityController;
 use Maxcxam\Larsadmin\Http\Controllers\FileController;
@@ -29,6 +30,9 @@ Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
 
     Route::get('api/entities/{entity}/fields/{field}/options', [RelatableController::class, 'index'])->name('api.options');
     Route::get('api/entities/{entity}/{id}/related/{field}', [RelatedController::class, 'index'])->name('api.related');
+    Route::get('api/entities/{entity}/{id}/audit', [AuditController::class, 'record'])->middleware('throttle:larsadmin-audit')->name('api.audit');
+
+    Route::get('audit', [AuditController::class, 'index'])->middleware('throttle:larsadmin-audit')->name('audit.index');
 
     Route::get('files/{entity}/{id}/{field}/{token}', [FileController::class, 'show'])
         ->where('token', '[a-f0-9]{32}')

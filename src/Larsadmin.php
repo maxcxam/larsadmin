@@ -5,6 +5,7 @@ namespace Maxcxam\Larsadmin;
 use Closure;
 use DateTimeZone;
 use Exception;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -391,11 +392,58 @@ class Larsadmin
     }
 
     /**
+     * The callback that resolves the actor label stored with audit entries.
+     */
+    protected static ?Closure $auditActorLabelUsing = null;
+
+    /**
+     * Whether the audit log is enabled (config "larsadmin.audit.enabled").
+     */
+    public static function auditEnabled(): bool
+    {
+        return (bool) config('larsadmin.audit.enabled', false);
+    }
+
+    /**
+     * Customize the actor label snapshot stored with each entry: fn (Authenticatable $user): ?string.
+     * Default: $user->name, else $user->email, else "#{id}". Null resets.
+     */
+    public static function auditActorLabelUsing(?Closure $callback): void
+    {
+        static::$auditActorLabelUsing = $callback;
+    }
+
+    /**
+     * The actor label of an audit entry for the user.
+     *
+     * @internal
+     */
+    public static function auditActorLabel(Authenticatable $user): ?string
+    {
+        if (static::$auditActorLabelUsing !== null) {
+            $label = (static::$auditActorLabelUsing)($user);
+
+            return is_scalar($label) && (string) $label !== '' ? (string) $label : null;
+        }
+
+        foreach (['name', 'email'] as $attribute) {
+            $value = $user->{$attribute} ?? null;
+
+            if (is_scalar($value) && (string) $value !== '') {
+                return (string) $value;
+            }
+        }
+
+        return '#'.$user->getAuthIdentifier();
+    }
+
+    /**
      * Reset the static state, e.g. between tests or Octane requests.
      */
     public static function flushState(): void
     {
         static::$authUsing = null;
+        static::$auditActorLabelUsing = null;
         static::$localeUsing = null;
         static::$dashboards = [];
         static::$timezoneUsing = null;

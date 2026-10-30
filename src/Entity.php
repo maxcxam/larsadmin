@@ -11,6 +11,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Maxcxam\Larsadmin\Actions\Action;
+use Maxcxam\Larsadmin\Audit\AuditActor;
+use Maxcxam\Larsadmin\Audit\AuditRecorder;
+use Maxcxam\Larsadmin\Audit\Snapshot;
 use Maxcxam\Larsadmin\Fields\Field;
 use Maxcxam\Larsadmin\Fields\File;
 use Maxcxam\Larsadmin\Files\FileJournal;
@@ -88,6 +91,12 @@ abstract class Entity
     public static ?string $subtitle = null;
 
     /**
+     * Whether changes made through the panel are written to the audit log, when the log is enabled
+     * (config "larsadmin.audit.enabled"). Opt-out per entity.
+     */
+    public static bool $auditable = true;
+
+    /**
      * @var Collection<int, Field>|null
      */
     protected ?Collection $fieldPrototypes = null;
@@ -117,6 +126,14 @@ abstract class Entity
     public static function newModel(): Model
     {
         return new static::$model;
+    }
+
+    /**
+     * Whether the audit log records this entity in the current configuration.
+     */
+    public static function audited(): bool
+    {
+        return Larsadmin::auditEnabled() && static::$auditable;
     }
 
     /**
@@ -471,6 +488,11 @@ abstract class Entity
         $journal = (new FileJournal)->withContext(['entity' => static::class]);
         $connection = $this->record->getConnection();
 
+        // Taken before fill(): BelongsTo still has its old key, File fields their old files.
+        $recorder = $this->larsadminAuditRecorder();
+        $event = $this->record->exists ? 'updated' : 'created';
+        $before = $recorder === null ? null : ($event === 'updated' ? Snapshot::capture($this, $request) : Snapshot::empty());
+
         try {
             $callbacks = $this->editableFields($request, $context)
                 ->map(fn (Field $field) => $field instanceof File
@@ -479,12 +501,20 @@ abstract class Entity
                 ->filter()
                 ->values();
 
-            return $connection->transaction(function () use ($callbacks, $journal, $connection) {
+            return $connection->transaction(function () use ($request, $callbacks, $journal, $connection, $recorder, $event, $before) {
                 // Registered first, so it runs before any after-commit callback that may throw.
                 $connection->afterCommit(fn () => $journal->forgetCreated());
 
-                $this->record->save();
+                $saved = $this->record->save();
                 $callbacks->each(fn (Closure $callback) => $callback($this->record));
+
+                if ($recorder !== null && $before !== null && $saved !== false) {
+                    $changes = $before->diff(Snapshot::capture($this, $request));
+
+                    if ($changes !== [] || $event === 'created') {
+                        $recorder->record($event, static::class, $this->record, $changes, [], AuditActor::fromRequest($request));
+                    }
+                }
 
                 $journal->withContext(['key' => $this->record->getKey()]);
                 $connection->afterCommit(fn () => $journal->purgeObsolete());
@@ -508,10 +538,18 @@ abstract class Entity
         $journal = (new FileJournal)->withContext(['entity' => static::class, 'key' => $this->record->getKey()]);
         $connection = $this->record->getConnection();
 
-        $connection->transaction(function () use ($request, $journal, $connection) {
-            $this->record->delete();
+        $recorder = $this->larsadminAuditRecorder();
+        $before = $recorder !== null ? Snapshot::capture($this, $request) : null;
 
-            if ($this->isSoftDeleted()) {
+        $connection->transaction(function () use ($request, $journal, $connection, $recorder, $before) {
+            $deleted = $this->record->delete();
+            $soft = $this->isSoftDeleted();
+
+            if ($recorder !== null && $before !== null && $deleted !== false) {
+                $recorder->record('deleted', static::class, $this->record, $before->diff(Snapshot::empty()), $soft ? ['soft' => true] : [], AuditActor::fromRequest($request));
+            }
+
+            if ($soft) {
                 return;
             }
 
@@ -521,6 +559,37 @@ abstract class Entity
 
             $connection->afterCommit(fn () => $journal->purgeObsolete());
         });
+    }
+
+    /**
+     * The recorder when this record's changes are audited now: null when the entity is not audited, or
+     * while an action handles this very record (its action entry covers the change). Private, so it
+     * cannot clash with members of host entities.
+     */
+    private function larsadminAuditRecorder(): ?AuditRecorder
+    {
+        if (! static::audited()) {
+            return null;
+        }
+
+        $recorder = app(AuditRecorder::class);
+
+        return $recorder->covers(static::class, $this->record) ? null : $recorder;
+    }
+
+    /**
+     * The fields whose attributes the audit log records: every non-panel field, whatever its
+     * visibility (the viewer's canSee is applied when the log is read), keyed by attribute.
+     *
+     * @internal Not part of the public API.
+     *
+     * @return Collection<string, Field>
+     */
+    public function auditedFields(Request $request): Collection
+    {
+        return $this->fieldPrototypes($request)
+            ->reject(fn (Field $field) => $field->isRelation())
+            ->keyBy(fn (Field $field) => $field->attribute);
     }
 
     /**

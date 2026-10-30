@@ -88,6 +88,11 @@ abstract class Field implements JsonSerializable
     public bool $hideByDefault = false;
 
     /**
+     * Whether the audit log records only that the field changed, never its values.
+     */
+    private bool $sensitive = false;
+
+    /**
      * Closures that decide visibility per context (true = shown), replacing the static flag.
      *
      * @var array<string, Closure>
@@ -509,6 +514,22 @@ abstract class Field implements JsonSerializable
             'truncate' => $this->truncate,
             'hideByDefault' => $this->hideByDefault,
         ];
+    }
+
+    /**
+     * Never write the field's values to the audit log: only the fact that it changed is recorded.
+     * Password fields are always sensitive.
+     */
+    public function sensitive(bool $sensitive = true): static
+    {
+        $this->sensitive = $sensitive;
+
+        return $this;
+    }
+
+    public function isSensitive(): bool
+    {
+        return $this->sensitive;
     }
 
     public function help(string $help): static

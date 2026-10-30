@@ -26,7 +26,12 @@ php artisan larsadmin:install
 2. publishes the assets (`larsadmin-assets`) to `public/vendor/larsadmin`, overwriting existing files;
 3. publishes the service provider (`larsadmin-provider`) to `app/Providers/LarsadminServiceProvider.php`
    and adds it to `bootstrap/providers.php`;
-4. copies `lang/uk/validation.php`, **only if that file does not exist yet** (an existing file is left untouched).
+4. publishes the audit log migration (`larsadmin-migrations`) to `database/migrations`;
+5. copies `lang/uk/validation.php`, **only if that file does not exist yet** (an existing file is left untouched).
+
+The migration is not run: the audit log is off by default. To turn it on, run `php artisan migrate`,
+define the `viewLarsadminAudit` gate and set `LARSADMIN_AUDIT=true` (see
+[Audit log](17-audit-log.md#quick-start)).
 
 The panel is then available at `/admin` (see the `path` key below).
 
@@ -51,6 +56,7 @@ Report vulnerabilities privately, not in public issues: see [SECURITY.md](../../
 | `larsadmin-assets` (also `laravel-assets`) | `public/vendor/larsadmin` |
 | `larsadmin-lang` | `lang/vendor/larsadmin` |
 | `larsadmin-provider` | `app/Providers/LarsadminServiceProvider.php` |
+| `larsadmin-migrations` | `database/migrations` (the audit log table migration) |
 
 ```bash
 php artisan vendor:publish --tag=larsadmin-lang
@@ -73,6 +79,7 @@ translations (see [Localization](08-i18n.md)).
 | `larsadmin:trend {name} [--force]` | create a Trend metric in `app/Larsadmin/Metrics` |
 | `larsadmin:partition {name} [--force]` | create a Partition metric in `app/Larsadmin/Metrics` |
 | `larsadmin:progress {name} [--force]` | create a Progress metric in `app/Larsadmin/Metrics` |
+| `larsadmin:prune-audit [--days=]` | delete audit log entries older than `audit.retention_days` (90 days) ([Audit log](17-audit-log.md#pruning)) |
 
 ## Configuration (`config/larsadmin.php`)
 
@@ -92,6 +99,9 @@ translations (see [Localization](08-i18n.md)).
 | `allow_without_policy` | | `true` | Models without a policy: `true` allows, `false` denies |
 | `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | With `APP_ENV=local`, let users into the panel without the `viewLarsadmin` gate |
 | `actions.max_all` | | `1000` | Maximum number of records for an action run on "all matching" records; more fails validation with 422 |
+| `audit.enabled` | `LARSADMIN_AUDIT` | `false` | Turns the audit log on ([Audit log](17-audit-log.md#configuration)) |
+| `audit.connection` | `LARSADMIN_AUDIT_CONNECTION` | `null` | Database connection of the log |
+| `audit.*` | | `retention_days` 90, `max_value_length` 1000, `per_page` 25, `throttle` 60 | Table, storing the IP and user agent, pruning; see [Audit log](17-audit-log.md#configuration) |
 
 > **Warning.** When `allow_local` is `true` and `APP_ENV=local`, **every authenticated user** gets
 > into the panel. Do not run shared or public servers with `APP_ENV=local`, or set

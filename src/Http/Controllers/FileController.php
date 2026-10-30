@@ -39,7 +39,7 @@ class FileController
             ->scope('detail')
             ->builder()
             ->where($model->getQualifiedKeyName(), $integerKey ? (int) $id : $id)
-            ->firstOrFail();
+            ->first() ?? abort(404);
 
         $instance = $entity::make($record);
 

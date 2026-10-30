@@ -5,6 +5,8 @@ namespace Maxcxam\Larsadmin\Http\Controllers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Audit\AuditActor;
+use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Events\Attached;
 use Maxcxam\Larsadmin\Events\Detached;
@@ -35,8 +37,10 @@ class AttachController
 
         abort_unless($panel->authorizedToAttach($request, $parent, $related), 403);
 
-        $parent->getConnection()->transaction(function () use ($panel, $parent, $related, $request) {
+        $parent->getConnection()->transaction(function () use ($parentEntity, $panel, $parent, $related, $request) {
             $panel->relation($parent)->syncWithoutDetaching([$related->getKey()]);
+
+            $this->audit($request, 'attached', $parentEntity, $parent, $panel, $related);
 
             event(new Attached($parent, $panel->attribute, $related, $request->user()));
         });
@@ -56,13 +60,33 @@ class AttachController
 
         abort_unless($panel->authorizedToDetach($request, $parent, $related), 403);
 
-        $parent->getConnection()->transaction(function () use ($panel, $parent, $related, $request) {
+        $parent->getConnection()->transaction(function () use ($parentEntity, $panel, $parent, $related, $request) {
             $panel->relation($parent)->detach([$related->getKey()]);
+
+            $this->audit($request, 'detached', $parentEntity, $parent, $panel, $related);
 
             event(new Detached($parent, $panel->attribute, $related, $request->user()));
         });
 
         return $this->back($parentEntity, $parent, 'detached');
+    }
+
+    /**
+     * Write the attach/detach entry on the parent record, inside the transaction (the parent entity decides).
+     *
+     * @param  class-string<Entity>  $parentEntity
+     */
+    protected function audit(Request $request, string $event, string $parentEntity, Model $parent, BelongsToMany $panel, Model $related): void
+    {
+        if (! $parentEntity::audited()) {
+            return;
+        }
+
+        app(AuditRecorder::class)->record($event, $parentEntity, $parent, null, [
+            'field' => $panel->attribute,
+            'related_entity' => $panel->relatedEntity()::uriKey(),
+            'related_id' => (string) $related->getKey(),
+        ], AuditActor::fromRequest($request));
     }
 
     /**

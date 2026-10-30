@@ -40,6 +40,9 @@ abstract class TestCase extends Orchestra
 
     protected function defineDatabaseMigrations(): void
     {
+        // The package's publishable migrations (audit log table), loaded in tests only.
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');

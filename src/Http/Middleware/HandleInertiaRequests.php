@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Inertia\Middleware;
 use Inertia\Ssr\DisablesSsr;
 use Inertia\Ssr\Gateway;
+use Maxcxam\Larsadmin\Http\Controllers\AuditController;
 use Maxcxam\Larsadmin\Larsadmin;
 use Maxcxam\Larsadmin\Search\GlobalSearch;
 
@@ -69,6 +70,10 @@ class HandleInertiaRequests extends Middleware
                 'download' => fn () => $request->session()->get('larsadmin.download'),
                 // Null hides the search trigger and hotkey: no opt-in entity the user may list.
                 'search' => fn () => $user && Larsadmin::check($request) ? GlobalSearch::clientConfig($request) : null,
+                // Null hides the "Audit log" menu item: the log is disabled or the user lacks "viewLarsadminAudit".
+                'audit' => fn () => $user && Larsadmin::auditEnabled() && Larsadmin::check($request) && AuditController::allowed($request)
+                    ? ['url' => route('larsadmin.audit.index', [], false)]
+                    : null,
                 'translations' => Inertia::once(fn () => trans('larsadmin::ui'))->as('larsadmin.translations.'.$locale),
             ],
             'user' => $user ? [

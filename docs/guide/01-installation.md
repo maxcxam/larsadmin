@@ -26,7 +26,12 @@ php artisan larsadmin:install
 2. публікує асети (`larsadmin-assets`) у `public/vendor/larsadmin` з перезаписом;
 3. публікує сервіс-провайдер (`larsadmin-provider`) в `app/Providers/LarsadminServiceProvider.php`
    і додає його в `bootstrap/providers.php`;
-4. копіює `lang/uk/validation.php`, **лише якщо такого файлу ще немає** (існуючий не змінюється).
+4. публікує міграцію журналу аудиту (`larsadmin-migrations`) у `database/migrations`;
+5. копіює `lang/uk/validation.php`, **лише якщо такого файлу ще немає** (існуючий не змінюється).
+
+Міграцію не виконано: журнал аудиту вимкнено за замовчуванням. Щоб увімкнути його, виконайте
+`php artisan migrate`, визначте gate `viewLarsadminAudit` і задайте `LARSADMIN_AUDIT=true`
+(див. [Журнал аудиту](17-audit-log.md#швидкий-старт)).
 
 Після цього панель доступна за адресою `/admin` (див. ключ `path` нижче).
 
@@ -51,6 +56,7 @@ php artisan larsadmin:publish
 | `larsadmin-assets` (також `laravel-assets`) | `public/vendor/larsadmin` |
 | `larsadmin-lang` | `lang/vendor/larsadmin` |
 | `larsadmin-provider` | `app/Providers/LarsadminServiceProvider.php` |
+| `larsadmin-migrations` | `database/migrations` (міграція таблиці журналу аудиту) |
 
 ```bash
 php artisan vendor:publish --tag=larsadmin-lang
@@ -73,6 +79,7 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `larsadmin:trend {name} [--force]` | створити метрику Trend в `app/Larsadmin/Metrics` |
 | `larsadmin:partition {name} [--force]` | створити метрику Partition в `app/Larsadmin/Metrics` |
 | `larsadmin:progress {name} [--force]` | створити метрику Progress в `app/Larsadmin/Metrics` |
+| `larsadmin:prune-audit [--days=]` | видалити записи журналу аудиту, старші за `audit.retention_days` (90 днів) ([Журнал аудиту](17-audit-log.md#очищення)) |
 
 ## Конфігурація (`config/larsadmin.php`)
 
@@ -92,6 +99,9 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `allow_without_policy` | | `true` | Моделі без політики: `true` дозволяє, `false` забороняє |
 | `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | У `APP_ENV=local` пускати в панель без gate `viewLarsadmin` |
 | `actions.max_all` | | `1000` | Максимум записів для дії з вибором «усі знайдені»; більше дає помилку валідації 422 |
+| `audit.enabled` | `LARSADMIN_AUDIT` | `false` | Вмикає журнал аудиту ([Журнал аудиту](17-audit-log.md#конфігурація)) |
+| `audit.connection` | `LARSADMIN_AUDIT_CONNECTION` | `null` | З'єднання БД журналу |
+| `audit.*` | | `retention_days` 90, `max_value_length` 1000, `per_page` 25, `throttle` 60 | Таблиця, зберігання IP і User-Agent, очищення; див. [Журнал аудиту](17-audit-log.md#конфігурація) |
 
 > **Увага.** Коли `allow_local` дорівнює `true` і `APP_ENV=local`, **кожен автентифікований
 > користувач** потрапляє в панель. Не запускайте спільні чи публічні сервери з `APP_ENV=local`,

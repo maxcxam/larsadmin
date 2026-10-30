@@ -18,6 +18,9 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
   private disks including S3, signed re-authorized links for private files, deletion of replaced files.
 - **Global search**: a Ctrl/⌘+K command palette across the Entities that opt in, over their `$search`
   columns or through Laravel Scout, limited to what policies and `indexQuery()` let the user see.
+- **Audit log** (opt-in): who changed what through the panel, with "before → after" values per field,
+  written in the same transaction as the change; masking of sensitive fields, a history panel on each
+  record and an "Audit log" page behind its own gate, retention with `larsadmin:prune-audit`.
 - **Relations**: `BelongsTo` (searchable), `HasMany` and `BelongsToMany` panels with attach/detach.
 - **Field blocks**: group form and detail fields into panels (one or two columns, collapsible) and tabs.
 - **Filters**: select, boolean and date range filters, plus your own.
@@ -47,8 +50,9 @@ php artisan larsadmin:install
 ```
 
 `larsadmin:install` publishes `config/larsadmin.php`, the assets (`public/vendor/larsadmin`) and
-`app/Providers/LarsadminServiceProvider.php` (registered in `bootstrap/providers.php`), and copies
-`lang/uk/validation.php` if your app does not have one yet.
+`app/Providers/LarsadminServiceProvider.php` (registered in `bootstrap/providers.php`), publishes the
+audit log migration, and copies `lang/uk/validation.php` if your app does not have one yet. The audit
+log stays off until you run the migration and enable it (see the [audit log guide](docs/guide/en/17-audit-log.md#quick-start)).
 
 The panel lives at `/admin`. After updating the package, refresh the assets:
 
@@ -226,6 +230,9 @@ protected function dashboards(): array
 | `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | Skip the gate when `APP_ENV=local` |
 | `actions.max_all` | | `1000` | Limit for "run on all matching records" |
 | `search.*` | | `limit` 5, `min_length` 2, `throttle` 60 | Global search; see the [search guide](docs/guide/en/16-search.md#configuration) |
+| `audit.enabled` | `LARSADMIN_AUDIT` | `false` | Turn the audit log on (publish and run the migration first) |
+| `audit.connection` | `LARSADMIN_AUDIT_CONNECTION` | `null` | Database connection of the audit log |
+| `audit.*` | | `retention_days` 90, `store_ip` / `store_user_agent` `true`, `max_value_length` 1000, `per_page` 25, `throttle` 60 | Audit log; see the [audit log guide](docs/guide/en/17-audit-log.md#configuration) |
 
 ## Authorization
 
@@ -246,6 +253,10 @@ protected function dashboards(): array
   policy are allowed while `allow_without_policy` is `true`.
 - **Row scoping.** `indexQuery()` and `detailQuery()` limit what a user sees; records outside them
   answer 404.
+- **Audit log.** Reading the log needs the `viewLarsadminAudit` gate, which the package never defines:
+  nobody sees the log until you define it (`allow_local` does not apply). The global "Audit log" page
+  is not row-scoped: a holder of the gate sees every entry of each Entity they have `viewAny` on, also
+  outside their `indexQuery()`.
 
 ## Localization
 
@@ -285,6 +296,7 @@ its translation.
 | [14. Dashboards](docs/guide/en/14-dashboards.md) | dashboards, home page, entity cards |
 | [15. Files and images](docs/guide/en/15-files.md) | File and Image fields, disks, private files, pruning |
 | [16. Global search](docs/guide/en/16-search.md) | Ctrl/⌘+K palette, opt-in, subtitles, Laravel Scout, authorization |
+| [17. Audit log](docs/guide/en/17-audit-log.md) | enabling, what is recorded, masking, gate, history UI, pruning, `AuditRecorded` |
 
 ## Changelog
 

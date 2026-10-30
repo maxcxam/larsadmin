@@ -17,6 +17,7 @@ The backend is built on plain PHP classes that you already extend:
 | Dashboard | `Maxcxam\Larsadmin\Dashboards\Dashboard` | [Dashboards](14-dashboards.md) |
 | Deleting a record with files | `Entity::deleteRecord(Request)` in your actions | [Files and images](15-files.md#deleting-records) |
 | Global search through Scout | `Entity::usesScout()`, `Entity::scoutQuery()` | [Global search](16-search.md#laravel-scout) |
+| Reacting to audit log entries | the `Maxcxam\Larsadmin\Events\AuditRecorded` event | [Audit log](17-audit-log.md#the-auditrecorded-event) |
 | Field | `Maxcxam\Larsadmin\Fields\Field` | below |
 
 A custom field class works on the server (rules, filling, serialization), but it must set `$component`

@@ -130,7 +130,25 @@ class EntityController
             'entity' => $entity::serializeMeta($request),
             'record' => $record,
             'actions' => ActionRegistry::serialize($entity, $request),
+            'audit' => fn () => $this->auditProp($request, $instance),
         ]);
+    }
+
+    /**
+     * The record's history panel ({url}), or null: the log is disabled, the entity opts out, the user
+     * lacks "viewLarsadminAudit" or the key is not a safe path segment.
+     *
+     * @return array{url: string}|null
+     */
+    protected function auditProp(Request $request, Entity $instance): ?array
+    {
+        if (! $instance::audited() || ! AuditController::allowed($request)) {
+            return null;
+        }
+
+        $key = $instance::pathSegment($instance->record->getKey());
+
+        return $key === null ? null : ['url' => route('larsadmin.api.audit', [$instance::uriKey(), $key], false)];
     }
 
     /**
@@ -254,7 +272,7 @@ class EntityController
             ->withEagerLoads($context)
             ->builder()
             ->where($model->getQualifiedKeyName(), $this->hasIntegerKey($model) ? (int) $id : $id)
-            ->firstOrFail();
+            ->first() ?? abort(404);
     }
 
     protected function hasIntegerKey(Model $model): bool

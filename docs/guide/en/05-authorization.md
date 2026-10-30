@@ -174,6 +174,30 @@ The global search (Ctrl/⌘+K) follows the same rules as the Entity list:
 A Scout index knows nothing about `canSee`: keep sensitive fields out of `toSearchableArray()` or turn
 Scout off for the Entity with `usesScout(): false`. See [Global search](16-search.md#authorization).
 
+## Audit log
+
+The audit log has its own `viewLarsadminAudit` gate, which the package does **not** define: until the
+application defines it, nobody sees the log (fail closed). `allow_local` does not apply to it.
+
+```php
+protected function gate(): void
+{
+    Gate::define('viewLarsadmin', fn ($user) => in_array($user->email, ['admin@example.com']));
+
+    Gate::define('viewLarsadminAudit', fn ($user) => $user->is_admin);
+}
+```
+
+- The "Audit log" page shows entries only of the Entities the user has `viewAny` on.
+- A record's history also requires the record to be within `detailQuery()` and the user to have `view`
+  on it.
+- Changes to fields hidden from the viewer with `canSee` are not shown.
+- **The "Audit log" page is not row-scoped:** it does not check `indexQuery()` and `view` for each entry,
+  so a holder of the gate sees every entry of each Entity they have `viewAny` on. The gate is the trust
+  boundary: in multi-tenant applications, grant it only to those who may see the data of every tenant.
+
+See [Audit log](17-audit-log.md#who-can-see-the-log).
+
 ## Checklist
 
 - Restrict the `viewLarsadmin` gate to real conditions; turn `allow_local` off outside development.
@@ -181,4 +205,6 @@ Scout off for the Entity with `usesScout(): false`. See [Global search](16-searc
 - Add `indexQuery` if a user may see only some of the rows.
 - For Entities with `$globallySearchable` and Laravel Scout, check that `toSearchableArray()` holds no
   fields hidden with `canSee`.
+- When the audit log is on, grant the `viewLarsadminAudit` gate only to those who may see the history of
+  every record of the Entities they can reach.
 - Do not run public servers with `APP_ENV=local`.

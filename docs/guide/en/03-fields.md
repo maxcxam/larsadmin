@@ -81,6 +81,7 @@ Select::make('Статус', 'status')->options(fn () => Status::pluck('label', 
 | `resolveUsing(callable)` | changes the value the form sees: `fn ($raw, $record, $attribute)` |
 | `displayUsing(callable)` | changes what index/detail display: `fn ($raw, $record, $attribute)` |
 | `fillUsing(callable)` | fully replaces how the value is written: `fn ($request, $record, $attribute)` |
+| `sensitive(bool $sensitive = true)` | the audit log records only that the field changed, without its values; forms and pages are not affected. `Password` is always masked; also mark fields with a decrypting accessor and JSON columns holding secrets ([Audit log](17-audit-log.md#masking-sensitive-fields)) |
 
 `fillUsing` may return a closure `fn (Model $record)`. It runs **after the record is saved**, in the same
 transaction (handy for dependent data).

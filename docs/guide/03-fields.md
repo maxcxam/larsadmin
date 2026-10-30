@@ -80,6 +80,7 @@ Select::make('Статус', 'status')->options(fn () => Status::pluck('label', 
 | `resolveUsing(callable)` | змінює значення, яке бачить форма: `fn ($raw, $record, $attribute)` |
 | `displayUsing(callable)` | змінює відображення на index/detail: `fn ($raw, $record, $attribute)` |
 | `fillUsing(callable)` | повністю замінює запис значення: `fn ($request, $record, $attribute)` |
+| `sensitive(bool $sensitive = true)` | журнал аудиту записує лише факт зміни поля, без значень; на форми й перегляд не впливає. `Password` маскується завжди; позначайте й поля з accessor-ом, що розшифровує значення, і JSON-колонки із секретами ([Журнал аудиту](17-audit-log.md#маскування-чутливих-полів)) |
 
 `fillUsing` може повернути замикання `fn (Model $record)`. Воно виконається **після збереження**
 запису в тій самій транзакції (зручно для залежних даних).

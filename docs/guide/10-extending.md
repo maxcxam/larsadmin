@@ -17,6 +17,7 @@
 | Дашборд | `Maxcxam\Larsadmin\Dashboards\Dashboard` | [Дашборди](14-dashboards.md) |
 | Видалення запису з файлами | `Entity::deleteRecord(Request)` у власних діях | [Файли й зображення](15-files.md#видалення-записів) |
 | Глобальний пошук через Scout | `Entity::usesScout()`, `Entity::scoutQuery()` | [Глобальний пошук](16-search.md#laravel-scout) |
+| Реакція на записи журналу аудиту | подія `Maxcxam\Larsadmin\Events\AuditRecorded` | [Журнал аудиту](17-audit-log.md#подія-auditrecorded) |
 | Поле | `Maxcxam\Larsadmin\Fields\Field` | нижче |
 
 Власний клас поля працює на сервері (правила, заповнення, серіалізація), але має вказати

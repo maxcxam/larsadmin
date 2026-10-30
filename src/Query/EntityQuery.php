@@ -305,7 +305,7 @@ final class EntityQuery
 
     /**
      * Resolve one record in the current scope by its route key. A malformed
-     * key for an integer-keyed model is a 404, never a query.
+     * key for an integer-keyed model is a 404, never a query; the 404 never names the model class.
      */
     public function findOrFail(string $id): Model
     {
@@ -316,7 +316,7 @@ final class EntityQuery
             abort(404);
         }
 
-        return $this->query->where($model->getQualifiedKeyName(), $integerKey ? (int) $id : $id)->firstOrFail();
+        return $this->query->where($model->getQualifiedKeyName(), $integerKey ? (int) $id : $id)->first() ?? abort(404);
     }
 
     public function builder(): Builder

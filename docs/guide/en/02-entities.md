@@ -75,6 +75,7 @@ class Category extends Entity
 | `$globallySearchable` | `bool`, `false` | Take part in the global search (Ctrl/⌘+K), see [Global search](16-search.md) |
 | `$globalSearchLimit` | `?int`, `null` | Results in the global search; `null` uses `larsadmin.search.limit` (5), clamped to 1..20 |
 | `$subtitle` | `?string`, `null` | Attribute of the global search result's second line (a column or a one-level `relation.attribute`) |
+| `$auditable` | `bool`, `true` | Record the Entity's changes in the audit log when the log is on; `false` opts out, see [Audit log](17-audit-log.md#opting-an-entity-out) |
 
 Relations that fields need (for example, `BelongsTo`) are loaded automatically. You only need `$with`
 for extra relations, say, when `$title` points to `author.name`.
