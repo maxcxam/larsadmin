@@ -40,6 +40,9 @@ php artisan larsadmin:publish
 `larsadmin:publish` publishes the config (an existing file is overwritten only with `--force`) and always
 overwrites the assets.
 
+Security fixes ship as patch versions of the latest 1.x release, so keep the package up to date.
+Report vulnerabilities privately, not in public issues: see [SECURITY.md](../../../SECURITY.md).
+
 ## Publish tags
 
 | Tag | Destination |

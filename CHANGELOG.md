@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-30
+
+### Added
+
+- **Політика безпеки.** `SECURITY.md`: підтримувані версії та приватне повідомлення про вразливості
+  через GitHub private vulnerability reporting.
+- **Покриття тестами в CI.** Покриття PHP-коду вимірюється (pcov, PHP 8.4 / Laravel 13); збірка
+  падає, якщо воно нижче 90 % (зараз 95,8 %).
+
+### Changed
+
+- **Ліцензія.** Пакет тепер розповсюджується за ліцензією MIT. Версії 1.0.0 і 1.0.1 лишаються
+  під GPL-3.0-only.
+
 ## [1.0.1] - 2026-10-30
 
 ### Added
@@ -182,6 +196,7 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/maxcxam/larsadmin/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/maxcxam/larsadmin/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/maxcxam/larsadmin/releases/tag/v1.0.0
