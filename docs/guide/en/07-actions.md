@@ -226,6 +226,13 @@ MarkLive::make()
     ->canRun(fn (Request $request, ?Model $post) => $post === null || $post->status !== 'live');
 ```
 
+## Files in actions
+
+`File` and `Image` fields are not supported in action `fields()`: the first call to the action's
+fields throws `LogicException`. An action that deletes records with files must call
+`Entity::deleteRecord()` instead of `$model->delete()`, otherwise the files stay on the disk. See
+[Files and images](15-files.md#deleting-records).
+
 ## `BelongsTo` fields in the modal
 
 A `BelongsTo` field can be used in an action's `fields()`. Its options come from the

@@ -15,6 +15,7 @@ The backend is built on plain PHP classes that you already extend:
 | Filter | `Maxcxam\Larsadmin\Filters\Filter` | [Filters](06-filters.md) |
 | Metric | `Maxcxam\Larsadmin\Metrics\Value`, `Trend`, `Partition`, `Progress` | [Metrics](13-metrics.md) |
 | Dashboard | `Maxcxam\Larsadmin\Dashboards\Dashboard` | [Dashboards](14-dashboards.md) |
+| Deleting a record with files | `Entity::deleteRecord(Request)` in your actions | [Files and images](15-files.md#deleting-records) |
 | Field | `Maxcxam\Larsadmin\Fields\Field` | below |
 
 A custom field class works on the server (rules, filling, serialization), but it must set `$component`
@@ -35,6 +36,15 @@ class Slug extends Text
 
 The protected methods of `Field` (`resolveValue`, `formatForDisplay`, `fillValue`, `typeRules`) are
 meant for subclasses, but are formally not part of the stable API.
+
+### Custom array fields and forms with files
+
+A form that contains a `File` or `Image` field is sent as `multipart/form-data` (see
+[Files and images](15-files.md)). Such a request does not carry empty arrays at all: if the user
+cleared a custom field whose value is an array, the field's key is missing, and `fill()` keeps the
+old value. In a JSON form without file fields the same field receives `[]`. Built-in fields are not
+affected. If your field takes an array, either send a presence flag with it (like the `present` key
+of file fields) or treat a missing key as an empty array.
 
 ## Internal component registry
 
@@ -61,7 +71,7 @@ Keys of the built-in components:
 
 | Type | Keys |
 | --- | --- |
-| Fields | `id-field`, `text-field`, `textarea-field`, `number-field`, `boolean-field`, `select-field`, `date-field`, `datetime-field`, `password-field`, `belongs-to-field`, `has-many-field`, `belongs-to-many-field` |
+| Fields | `id-field`, `text-field`, `textarea-field`, `number-field`, `boolean-field`, `select-field`, `date-field`, `datetime-field`, `password-field`, `file-field`, `image-field`, `belongs-to-field`, `has-many-field`, `belongs-to-many-field` |
 | Filters | `select-filter`, `boolean-filter`, `date-range-filter` |
 | Cards | `value-metric`, `trend-metric`, `partition-metric`, `progress-metric` |
 

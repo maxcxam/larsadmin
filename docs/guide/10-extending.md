@@ -15,6 +15,7 @@
 | Фільтр | `Maxcxam\Larsadmin\Filters\Filter` | [Фільтри](06-filters.md) |
 | Метрика | `Maxcxam\Larsadmin\Metrics\Value`, `Trend`, `Partition`, `Progress` | [Метрики](13-metrics.md) |
 | Дашборд | `Maxcxam\Larsadmin\Dashboards\Dashboard` | [Дашборди](14-dashboards.md) |
+| Видалення запису з файлами | `Entity::deleteRecord(Request)` у власних діях | [Файли й зображення](15-files.md#видалення-записів) |
 | Поле | `Maxcxam\Larsadmin\Fields\Field` | нижче |
 
 Власний клас поля працює на сервері (правила, заповнення, серіалізація), але має вказати
@@ -35,6 +36,15 @@ class Slug extends Text
 
 Захищені методи `Field` (`resolveValue`, `formatForDisplay`, `fillValue`, `typeRules`) призначені для
 спадкоємців, але формально не належать до стабільного API.
+
+### Власні поля з масивом і форми з файлами
+
+Форма, у якій є поле `File` чи `Image`, надсилається як `multipart/form-data` (див.
+[Файли й зображення](15-files.md)). У такому запиті порожній масив не передається зовсім: якщо
+користувач очистив власне поле, значення якого масив, ключ поля відсутній, і `fill()` лишає старе
+значення. У JSON-формі без полів файлів те саме поле отримує `[]`. Вбудовані поля це не зачіпає.
+Якщо ваше поле приймає масив, або надсилайте разом з ним прапорець присутності (як `present` у полів
+файлів), або вважайте відсутній ключ порожнім масивом.
 
 ## Внутрішній реєстр компонентів
 
@@ -60,7 +70,7 @@ registerField(component, { display, form, panel })
 
 | Тип | Ключі |
 | --- | --- |
-| Поля | `id-field`, `text-field`, `textarea-field`, `number-field`, `boolean-field`, `select-field`, `date-field`, `datetime-field`, `password-field`, `belongs-to-field`, `has-many-field`, `belongs-to-many-field` |
+| Поля | `id-field`, `text-field`, `textarea-field`, `number-field`, `boolean-field`, `select-field`, `date-field`, `datetime-field`, `password-field`, `file-field`, `image-field`, `belongs-to-field`, `has-many-field`, `belongs-to-many-field` |
 | Фільтри | `select-filter`, `boolean-filter`, `date-range-filter` |
 | Картки | `value-metric`, `trend-metric`, `partition-metric`, `progress-metric` |
 

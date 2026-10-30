@@ -28,6 +28,8 @@ Text::make('Назва', 'name')->sortable()->rules('required', 'max:255'),
 | `DateTime` | `datetime-field` | форма віддає `Y-m-d\TH:i:s`; успадковує `displayFormat()` |
 | `Password` | `password-field` | лише на формах; хеш ніколи не надсилається в браузер; змінюється, тільки якщо введено новий (`Hash::make`) |
 | `Select` | `select-field` | `options(array\|Closure)`, мапа `значення => підпис` |
+| `File` | `file-field` | завантаження файлу на диск; `multiple()`, приватні файли з підписаними посиланнями, див. [Файли й зображення](15-files.md) |
+| `Image` | `image-field` | як `File`, лише растрові зображення, з мініатюрами; див. [Файли й зображення](15-files.md) |
 | `BelongsTo`, `HasMany`, `BelongsToMany` | | див. [Зв'язки](04-relations.md) |
 
 Формат відображення дат за замовчуванням береться з перекладу `larsadmin::ui.formats.date` та
@@ -239,6 +241,7 @@ Text::make('Слаг', 'slug')->rules('required', 'max:255', 'unique:categories,
 | `Date`, `DateTime` | `date` |
 | `Select` | `Rule::in(...)` по ключах опцій |
 | `BelongsTo` | `required` (або `nullable`) і перевірка `RelatableExists` |
+| `File`, `Image` | правила для кожного завантаженого файлу, див. [Файли й зображення](15-files.md#валідація-й-обмеження) |
 
 Для `Number`, `Boolean`, `Date`, `Select` правило `nullable` додається, лише якщо викликано
 `nullable()`. Тож `Date::make(...)` без `nullable()` вимагає значення навіть без явного `required`.
