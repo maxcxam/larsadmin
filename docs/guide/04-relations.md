@@ -1,4 +1,5 @@
 # 04. Зв'язки
+🇬🇧 [English](en/04-relations.md)
 
 Три поля працюють зі зв'язками Eloquent:
 
@@ -89,7 +90,7 @@ BelongsTo::make('Автор', 'author', User::class)
 
 - Приєднання: `POST {path}/entities/{entity}/{id}/attach/{field}` з полем `related`.
   Використовується `syncWithoutDetaching`, повторне приєднання того ж запису дає помилку
-  валідації «вже приєднано».
+  валідації «Цей запис уже прикріплено.».
 - Від'єднання: `DELETE {path}/entities/{entity}/{id}/attach/{field}/{relatedId}`.
 - Варіанти вибору виключають уже приєднані записи.
 

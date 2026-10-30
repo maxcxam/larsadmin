@@ -1,4 +1,5 @@
 # 03. Поля
+🇬🇧 [English](en/03-fields.md)
 
 Поля повертає метод `Entity::fields(Request $request): array`. Усі поля створюються через
 `Field::make(...)` і налаштовуються ланцюжком методів.

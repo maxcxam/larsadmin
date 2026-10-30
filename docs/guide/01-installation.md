@@ -1,4 +1,5 @@
 # 01. Встановлення
+🇬🇧 [English](en/01-installation.md)
 
 ## Вимоги
 
