@@ -211,15 +211,25 @@ it('copies the uk validation file only when the host has none', function () {
     }
 });
 
-it('ships a uk validation file with the same structure as the framework en file', function () {
+it('ships a uk validation file that covers every key of the framework en file', function () {
     $en = require dirname((new ReflectionClass(Translator::class))->getFileName()).'/lang/en/validation.php';
     $uk = require __DIR__.'/../../stubs/lang/uk/validation.php';
 
-    expect(array_keys($uk))->toEqual(array_keys($en));
+    // Every supported Laravel version must be fully translated; keys of a newer version (e.g. Laravel 13's
+    // array_keys / base64 on Laravel 12) are allowed, the translator ignores rules it does not have.
+    $missing = function (array $framework, array $shipped, string $prefix = '') use (&$missing): array {
+        $keys = [];
 
-    foreach ($en as $key => $value) {
-        if (is_array($value)) {
-            expect(array_keys($uk[$key]))->toEqual(array_keys($value));
+        foreach ($framework as $key => $value) {
+            if (! array_key_exists($key, $shipped)) {
+                $keys[] = $prefix.$key;
+            } elseif (is_array($value)) {
+                $keys = [...$keys, ...(is_array($shipped[$key]) ? $missing($value, $shipped[$key], "{$prefix}{$key}.") : ["{$prefix}{$key}"])];
+            }
         }
-    }
+
+        return $keys;
+    };
+
+    expect($missing($en, $uk))->toBe([]);
 });
