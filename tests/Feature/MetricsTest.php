@@ -10,8 +10,14 @@ use Maxcxam\Larsadmin\Larsadmin;
 use Maxcxam\Larsadmin\Metrics\Card;
 use Maxcxam\Larsadmin\Metrics\Cards;
 use Maxcxam\Larsadmin\Metrics\EntitySource;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
 use Maxcxam\Larsadmin\Metrics\Range;
 use Maxcxam\Larsadmin\Metrics\Results\PartitionResult;
+use Maxcxam\Larsadmin\Metrics\Results\TrendResult;
+use Maxcxam\Larsadmin\Metrics\Results\ValueResult;
+use Maxcxam\Larsadmin\Metrics\Trend;
+use Maxcxam\Larsadmin\Metrics\Value;
+use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\AllowAllMetricPolicy;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\AllRangesValue;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\CardsDashboard;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\CustomMetric;
@@ -22,6 +28,7 @@ use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\PostsByStatus;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\PostsProgress;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\PostsTrend;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\PostsValue;
+use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\TenantMetricPost;
 use Maxcxam\Larsadmin\Tests\Fixtures\Metrics\TestMetrics;
 use Maxcxam\Larsadmin\Tests\Fixtures\Post;
 use Maxcxam\Larsadmin\Tests\Fixtures\Security\DenyAllPolicy;
@@ -65,6 +72,7 @@ afterEach(function () {
     CarbonImmutable::setTestNow();
     TestMetrics::reset();
     MetricPost::$cardList = [];
+    TenantMetricPost::$tenant = 'live';
 });
 
 function metricUrl(string $key, string $query = ''): string
@@ -148,6 +156,22 @@ it('returns null and no change for an empty average and a zero previous period',
         ->toMatchArray(['value' => 1, 'previous' => 0, 'change' => null]);
 });
 
+it('sends a zero value as no data unless allowZeroResult is set', function () {
+    $zero = fn () => (new ValueResult(0))->previous(4);
+
+    expect($zero()->toArray())->toMatchArray(['value' => null, 'previous' => 4, 'change' => null, 'zeroResult' => false])
+        ->and($zero()->allowZeroResult()->toArray())->toMatchArray(['value' => 0, 'previous' => 4, 'change' => -100.0, 'zeroResult' => true])
+        ->and((new ValueResult(0.0))->toArray()['value'])->toBeNull()
+        ->and((new ValueResult(null))->allowZeroResult()->toArray()['value'])->toBeNull()
+        ->and((new ValueResult(-2))->toArray()['value'])->toBe(-2);
+
+    // Over the endpoint: no posts in the range is "no data" for a plain count.
+    useCards(PostsValue::make());
+    DB::table('posts')->delete();
+
+    expect(metricJson('posts-value', 'range=30')['result'])->toMatchArray(['value' => null, 'zeroResult' => false]);
+});
+
 it('supports an explicit date column', function () {
     useCards(AllRangesValue::make());
     DB::table('posts')->update(['published_at' => '2026-10-19 10:00:00']);
@@ -162,24 +186,24 @@ it('honours every range with calendar aligned boundaries', function () {
 
     [$current, $previous] = Range::bounds(7, $now);
     expect($current[0]->toDateTimeString())->toBe('2026-11-12 00:00:00')
-        ->and($current[1]->toDateTimeString())->toBe('2026-11-18 15:30:00')
+        ->and($current[1]->toDateTimeString())->toBe('2026-11-18 15:30:01')
         ->and($previous[0]->toDateTimeString())->toBe('2026-11-05 00:00:00')
-        ->and($previous[1]->toDateTimeString())->toBe('2026-11-11 15:30:00');
+        ->and($previous[1]->toDateTimeString())->toBe('2026-11-11 15:30:01');
 
     [$current, $previous] = Range::bounds('TODAY', $now);
     expect($current[0]->toDateTimeString())->toBe('2026-11-18 00:00:00')
         ->and($previous[0]->toDateTimeString())->toBe('2026-11-17 00:00:00')
-        ->and($previous[1]->toDateTimeString())->toBe('2026-11-17 15:30:00');
+        ->and($previous[1]->toDateTimeString())->toBe('2026-11-17 15:30:01');
 
     [$current, $previous] = Range::bounds('MTD', $now);
     expect($current[0]->toDateTimeString())->toBe('2026-11-01 00:00:00')
         ->and($previous[0]->toDateTimeString())->toBe('2026-10-01 00:00:00')
-        ->and($previous[1]->toDateTimeString())->toBe('2026-10-18 15:30:00');
+        ->and($previous[1]->toDateTimeString())->toBe('2026-10-18 15:30:01');
 
     [$current, $previous] = Range::bounds('QTD', $now);
     expect($current[0]->toDateTimeString())->toBe('2026-10-01 00:00:00')
         ->and($previous[0]->toDateTimeString())->toBe('2026-07-01 00:00:00')
-        ->and($previous[1]->toDateTimeString())->toBe('2026-08-18 15:30:00');
+        ->and($previous[1]->toDateTimeString())->toBe('2026-08-18 15:30:01');
 
     [$current, $previous] = Range::bounds('YTD', $now);
     expect($current[0]->toDateTimeString())->toBe('2026-01-01 00:00:00')
@@ -194,8 +218,25 @@ it('never lets the previous period reach into the current one', function () {
     // 31st of March vs a 28 day February.
     [$current, $previous] = Range::bounds('MTD', CarbonImmutable::parse('2026-03-31 23:00:00', 'UTC'));
 
+    // Half-open periods: the previous one ends exactly where the current one starts.
     expect($previous[0]->toDateTimeString())->toBe('2026-02-01 00:00:00')
-        ->and($previous[1]->lessThan($current[0]))->toBeTrue();
+        ->and($previous[1]->equalTo($current[0]))->toBeTrue();
+});
+
+it('counts rows at the midnight boundary in exactly one period, sub-second timestamps included', function () {
+    CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-03-31 23:00:00', 'UTC'));
+    DB::table('posts')->delete();
+
+    foreach (['2026-02-28 23:59:59.500', '2026-03-01 00:00:00', '2026-03-30 23:59:59.900', '2026-03-31 00:00:00', '2026-03-31 23:00:00.400', '2026-03-31 23:00:01'] as $at) {
+        DB::table('posts')->insert(['title' => 'x', 'status' => 'live', 'created_at' => $at]);
+    }
+
+    useCards(AllRangesValue::make(), PostsProgress::make());
+
+    // An inclusive "<= 23:59:59" previous end used to drop the .5 row; the current second (23:00:00.4) counts.
+    expect(metricJson('posts-value', 'range=MTD')['result'])->toMatchArray(['value' => 4, 'previous' => 1])
+        ->and(metricJson('posts-value', 'range=TODAY')['result'])->toMatchArray(['value' => 2, 'previous' => 0])
+        ->and(metricJson('posts-progress', 'range=TODAY')['result']['value'])->toBe(2);
 });
 
 it('applies the TODAY, MTD, YTD and ALL ranges to the query', function () {
@@ -290,6 +331,63 @@ it('can headline the sum or the latest value of a trend', function () {
         ->and($sum['points'])->toHaveCount(30);
 });
 
+it('refuses to headline the sum of an average, min or max trend', function (string $function) {
+    TestMetrics::$function = $function;
+    TestMetrics::$column = 'views';
+    $metric = PostsTrend::make();
+    $result = $metric->calculate($metric->metricRequest(Request::create('/'), 30));
+
+    expect($result->showLatestValue()->toArray()['valueKind'])->toBe('latest')
+        ->and(fn () => $result->showSumValue())->toThrow(LogicException::class);
+})->with(['avg', 'min', 'max']);
+
+it('derives the default trend ranges from the unit, labelled with plurals', function (string $unit, string $locale, array $expected) {
+    app()->setLocale($locale);
+    $trend = new class extends Trend
+    {
+        public function withUnit(string $unit): static
+        {
+            $this->unit = $unit;
+
+            return $this;
+        }
+
+        public function calculate(MetricRequest $request): TrendResult
+        {
+            return $this->countByDays($request, Post::class);
+        }
+    };
+
+    $json = $trend->withUnit($unit)->jsonSerialize();
+
+    expect(array_column($json['ranges'], 'label', 'value'))->toBe($expected)
+        ->and($json['defaultRange'])->toBe(array_key_first($expected));
+})->with([
+    'day uk' => ['day', 'uk', [7 => '7 днів', 30 => '30 днів', 90 => '90 днів']],
+    'week uk' => ['week', 'uk', [4 => '4 тижні', 12 => '12 тижнів', 26 => '26 тижнів']],
+    'month uk' => ['month', 'uk', [3 => '3 місяці', 6 => '6 місяців', 12 => '12 місяців']],
+    'week en' => ['week', 'en', [4 => '4 weeks', 12 => '12 weeks', 26 => '26 weeks']],
+    'month en' => ['month', 'en', [3 => '3 months', 6 => '6 months', 12 => '12 months']],
+]);
+
+it('rejects calendar range keys on a trend instead of drawing 30 buckets', function () {
+    $trend = new class extends Trend
+    {
+        public function ranges(): array
+        {
+            return [7 => '7', 'MTD' => 'Month to date'];
+        }
+
+        public function calculate(MetricRequest $request): TrendResult
+        {
+            return $this->countByDays($request, Post::class);
+        }
+    };
+
+    expect(fn () => $trend->jsonSerialize())->toThrow(InvalidArgumentException::class, 'MTD')
+        ->and(fn () => $trend->metricRequest(Request::create('/'), 'MTD'))->toThrow(InvalidArgumentException::class);
+});
+
 // --- Partition -------------------------------------------------------------
 
 it('returns the partition payload ordered by size', function () {
@@ -305,9 +403,42 @@ it('returns the partition payload ordered by size', function () {
                 ['key' => 'archived', 'label' => 'archived', 'value' => 1, 'color' => null],
             ],
             'total' => 7,
+            'additive' => true,
             'format' => [],
         ],
     ]);
+});
+
+it('sends no total for a non additive partition', function (?string $function, bool $additive, ?int $total) {
+    TestMetrics::$function = $function;
+    TestMetrics::$column = 'views';
+    useCards(PostsByStatus::make());
+
+    expect(metricJson('posts-by-status')['result'])->toMatchArray(['additive' => $additive, 'total' => $total]);
+})->with([
+    'count' => [null, true, 7],
+    'sum' => ['sum', true, 1180],
+    'average' => ['average', false, null],
+]);
+
+it('normalizes boolean and null group keys without collisions', function () {
+    // pdo_pgsql returns booleans as PHP bools; MySQL and SQLite return 1 / 0.
+    expect(array_map(PartitionResult::key(...), [true, false, null, 1, 0, '1', '0', '', 'live', 2.5]))
+        ->toBe(['1', '0', '', '1', '0', '1', '0', '', 'live', '2.5']);
+});
+
+it('labels a boolean cast group as yes / no by default', function () {
+    app()->setLocale('uk');
+    DB::table('posts')->limit(2)->update(['published' => true]);
+    TestMetrics::$groupBy = 'published';
+    useCards(PostsByStatus::make());
+
+    expect(array_column(metricJson('posts-by-status')['result']['slices'], 'label', 'key'))
+        ->toBe(['0' => 'Ні', '1' => 'Так']);
+
+    $result = new PartitionResult([PartitionResult::key(false) => 2, PartitionResult::key(null) => 1]);
+    expect(array_column($result->booleanLabels('On', 'Off')->toArray()['slices'], 'label', 'key'))
+        ->toBe(['0' => 'Off', '' => 'Без значення']);
 });
 
 it('limits partition slices, collects the rest into Other and applies labels and colors', function () {
@@ -720,10 +851,14 @@ it('caches through the configured store and ignores non positive ttl', function 
     metricJson('posts-value');
     metricJson('posts-value');
 
+    $key = 'larsadmin:metric:'.hash('sha256', json_encode([
+        'dashboard:cards-dashboard', PostsValue::class, 'posts-value', 30, 'UTC', app()->getLocale(),
+        config('auth.defaults.guard'), [User::class, $this->admin->getKey()], null, [],
+    ]));
+
     expect(TestMetrics::$calls)->toBe(1)
-        ->and(Cache::store('metrics_test')->get('larsadmin:metric:'.md5(implode('|', [
-            'dashboard:cards-dashboard', 'posts-value', '30', 'UTC', app()->getLocale(), (string) $this->admin->getKey(),
-        ])))['value'])->toBe(3);
+        ->and(Cache::store('metrics_test')->get($key))->toMatchArray(['entities' => []])
+        ->and(Cache::store('metrics_test')->get($key)['result']['value'])->toBe(3);
 
     TestMetrics::$ttl = 0;
     metricJson('posts-value');
@@ -743,3 +878,154 @@ it('does not cache a denied calculation', function () {
     $this->getJson(metricUrl('posts-value'))->assertOk();
     expect(TestMetrics::$calls)->toBe(2);
 });
+
+it('checks viewAny of the Entity sources again on a cache hit', function () {
+    Cache::flush();
+    TestMetrics::$ttl = 600;
+    TestMetrics::$source = MetricPost::class;
+    useCards(PostsValue::make());
+
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(3);
+
+    // Revoked: 403 although the number is cached (the dashboard endpoint has no viewAny of its own).
+    Gate::policy(Post::class, DenyAllPolicy::class);
+    $this->getJson(metricUrl('posts-value', 'range=30'))->assertForbidden()->assertJsonStructure(['message']);
+
+    // Granted again: served from the cache.
+    Gate::policy(Post::class, AllowAllMetricPolicy::class);
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(3)
+        ->and(TestMetrics::$calls)->toBe(1);
+});
+
+it('checks every Entity source of a scoped() metric on a cache hit', function () {
+    Cache::flush();
+    TestMetrics::$ttl = 600;
+    TestMetrics::$source = MetricPost::class;
+    TestMetrics::$constraint = fn (Builder $query) => $query->where('status', 'live');
+    MetricPost::$cardList = [PostsValue::make()];
+    useCards(PostsValue::make());
+
+    metricJson('posts-value');
+    Gate::policy(Post::class, DenyAllPolicy::class);
+
+    $this->getJson(metricUrl('posts-value'))->assertForbidden();
+    $this->getJson(entityMetricUrl('metric-posts', 'posts-value'))->assertForbidden();
+    expect(TestMetrics::$calls)->toBe(1);
+});
+
+it('keys the cache by the global cache scope, e.g. the current tenant', function () {
+    Cache::flush();
+    TestMetrics::$ttl = 600;
+    TestMetrics::$source = TenantMetricPost::class;
+    Larsadmin::entities([TenantMetricPost::class]);
+    Larsadmin::metricCacheScopeUsing(fn (Request $request, $metric) => ['tenant' => TenantMetricPost::$tenant, 'metric' => $metric->uriKey()]);
+    useCards(PostsValue::make());
+
+    TenantMetricPost::$tenant = 'live';
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(2);
+
+    // Same user, other tenant: a fresh value, not the previous tenant's number.
+    TenantMetricPost::$tenant = 'draft';
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(1);
+
+    TenantMetricPost::$tenant = 'live';
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(2)
+        ->and(TestMetrics::$calls)->toBe(2);
+});
+
+it('keys the cache by the cacheKeyParts of the metric', function () {
+    Cache::flush();
+    TestMetrics::$ttl = 600;
+    TestMetrics::$source = TenantMetricPost::class;
+    TestMetrics::$cacheKeyParts = fn (MetricRequest $request) => [TenantMetricPost::$tenant];
+    Larsadmin::entities([TenantMetricPost::class]);
+    useCards(PostsValue::make());
+
+    TenantMetricPost::$tenant = 'live';
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(2);
+
+    TenantMetricPost::$tenant = 'draft';
+    expect(metricJson('posts-value', 'range=30')['result']['value'])->toBe(1)
+        ->and(TestMetrics::$calls)->toBe(2);
+});
+
+it('resets the metric cache scope with flushState', function () {
+    Larsadmin::metricCacheScopeUsing(fn () => 'tenant');
+    expect(Larsadmin::metricCacheScope(Request::create('/'), PostsValue::make()))->toBe('tenant');
+
+    Larsadmin::flushState();
+    expect(Larsadmin::metricCacheScope(Request::create('/'), PostsValue::make()))->toBeNull();
+});
+
+// --- Rate limiting -----------------------------------------------------------
+
+it('rate limits the metric endpoints per user with the configured limit', function () {
+    config(['larsadmin.metrics.throttle' => 3]);
+    useCards(PostsValue::make());
+    MetricPost::$cardList = [PostsValue::make()];
+
+    $this->getJson(metricUrl('posts-value'))->assertOk();
+    $this->getJson(entityMetricUrl('metric-posts', 'posts-value'))->assertOk();
+    $this->getJson(metricUrl('posts-value'))->assertOk();
+    $this->getJson(metricUrl('posts-value'))->assertTooManyRequests();
+    $this->getJson(entityMetricUrl('metric-posts', 'posts-value'))->assertTooManyRequests();
+
+    // Another user has an own budget.
+    $this->actingAs(User::create(['name' => 'O', 'email' => 'o@example.com', 'password' => 'x']));
+    $this->getJson(metricUrl('posts-value'))->assertOk();
+});
+
+it('does not rate limit the metric endpoints when the throttle is null', function () {
+    config(['larsadmin.metrics.throttle' => null]);
+    useCards(PostsValue::make());
+
+    foreach (range(1, 5) as $i) {
+        $this->getJson(metricUrl('posts-value'))->assertOk();
+    }
+
+    expect(config('larsadmin.metrics'))->toHaveKey('throttle');
+});
+
+// --- Duplicate cards ---------------------------------------------------------
+
+it('rejects two cards with the same uriKey on one owner', function () {
+    useCards(PostsValue::make(), PostsValue::make()->canSee(fn () => false));
+
+    expect(fn () => Cards::visible(Request::create('/'), test()->dashboard->cards(Request::create('/'))))
+        ->toThrow(InvalidArgumentException::class, 'posts-value')
+        ->and(fn () => $this->withoutExceptionHandling()->get('/admin/dashboards/cards-dashboard'))
+        ->toThrow(InvalidArgumentException::class);
+});
+
+it('labels a NULL partition group "None" by default, like labelsFrom()', function () {
+    app()->setLocale('uk');
+    $result = new PartitionResult([PartitionResult::key(null) => 2, 'live' => 1]);
+
+    expect(array_column($result->toArray()['slices'], 'label', 'key'))->toBe(['' => 'Без значення', 'live' => 'live'])
+        ->and(array_column($result->label(fn (string $key) => $key === '' ? 'Нічого' : $key)->toArray()['slices'], 'label', 'key'))
+        ->toBe(['' => 'Нічого', 'live' => 'live']);
+
+    app()->setLocale('en');
+    expect((new PartitionResult(['' => 1]))->toArray()['slices'][0]['label'])->toBe('None');
+});
+
+it('labels day ranges without a dedicated key with plural forms', function (string $locale, array $expected) {
+    app()->setLocale($locale);
+    $metric = new class extends Value
+    {
+        public function ranges(): array
+        {
+            return $this->labelled([1, 14, 21, 30]);
+        }
+
+        public function calculate(MetricRequest $request): ValueResult
+        {
+            return $this->result(1);
+        }
+    };
+
+    expect($metric->ranges())->toBe($expected);
+})->with([
+    'uk' => ['uk', [1 => '1 день', 14 => '14 днів', 21 => '21 день', 30 => '30 днів']],
+    'en' => ['en', [1 => '1 day', 14 => '14 days', 21 => '21 days', 30 => '30 days']],
+]);

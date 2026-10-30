@@ -180,6 +180,7 @@ const actionBtn = 'inline-flex rounded-md p-1.5 text-fg-muted hover:bg-neutral-m
                                 v-if="inlineActions.length"
                                 :actions="inlineActions"
                                 :runnable="record.actions ?? []"
+                                :title="record.title != null ? String(record.title) : ''"
                                 @run="emit('run-action', $event, record)"
                             />
                             <slot name="row-actions" :record="record" :action-class="actionBtn" />

@@ -91,9 +91,12 @@ abstract class Partition extends Metric
         $values = [];
 
         foreach ($rows as $row) {
-            $values[(string) $row->larsadmin_key] = MetricResult::number($row->larsadmin_aggregate) ?? 0;
+            $values[PartitionResult::key($row->larsadmin_key)] = MetricResult::number($row->larsadmin_aggregate) ?? 0;
         }
 
-        return new PartitionResult($values, in_array($function, ['count', 'sum'], true));
+        $result = new PartitionResult($values, in_array($function, ['count', 'sum'], true));
+
+        // A boolean cast groups into '1' / '0' (and '' for NULL): label them yes / no by default.
+        return $source->castsToBoolean($groupBy) ? $result->booleanLabels() : $result;
     }
 }

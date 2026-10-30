@@ -7,8 +7,10 @@ use DateTimeZone;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Maxcxam\Larsadmin\Dashboards\Dashboard;
 use Maxcxam\Larsadmin\Dashboards\Main;
+use Maxcxam\Larsadmin\Metrics\Metric;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
 
@@ -202,12 +204,35 @@ class Larsadmin
 
     /**
      * Register the dashboards of the panel (replacing earlier ones); the order is the menu order.
+     * A class string is instantiated with make().
      *
-     * @param  array<int, Dashboard>  $dashboards
+     * @param  array<int, Dashboard|class-string<Dashboard>>  $dashboards
+     *
+     * @throws InvalidArgumentException for anything that is not a dashboard, or a uriKey used twice
      */
     public static function dashboards(array $dashboards): void
     {
-        static::$dashboards = array_values(array_filter($dashboards, fn ($dashboard) => $dashboard instanceof Dashboard));
+        $registered = [];
+
+        foreach ($dashboards as $dashboard) {
+            if (is_string($dashboard) && is_subclass_of($dashboard, Dashboard::class)) {
+                $dashboard = $dashboard::make();
+            }
+
+            if (! $dashboard instanceof Dashboard) {
+                $given = is_object($dashboard) ? $dashboard::class : get_debug_type($dashboard).(is_string($dashboard) ? " [{$dashboard}]" : '');
+
+                throw new InvalidArgumentException("Larsadmin dashboards must be Dashboard instances or classes; got {$given}.");
+            }
+
+            if (isset($registered[$dashboard->uriKey()])) {
+                throw new InvalidArgumentException("Two dashboards use the uriKey [{$dashboard->uriKey()}]; override uriKey() on one of them.");
+            }
+
+            $registered[$dashboard->uriKey()] = $dashboard;
+        }
+
+        static::$dashboards = array_values($registered);
     }
 
     /**
@@ -283,6 +308,29 @@ class Larsadmin
     }
 
     /**
+     * The callback whose result is added to the cache key of every cached metric.
+     */
+    protected static ?Closure $metricCacheScopeUsing = null;
+
+    /**
+     * Register the request context every cached metric depends on, e.g. the current tenant or team:
+     * fn (Request $request, Metric $metric): mixed (JSON encodable). Its result is part of the cache key,
+     * so a user switching tenant never sees the previous tenant's cached numbers.
+     */
+    public static function metricCacheScopeUsing(?Closure $callback): void
+    {
+        static::$metricCacheScopeUsing = $callback;
+    }
+
+    /**
+     * The global cache scope of a metric (null without a callback).
+     */
+    public static function metricCacheScope(Request $request, Metric $metric): mixed
+    {
+        return static::$metricCacheScopeUsing ? (static::$metricCacheScopeUsing)($request, $metric) : null;
+    }
+
+    /**
      * Resolve the timezone metrics are aligned to: callback, then config, then the app timezone.
      * Unknown identifiers are skipped.
      */
@@ -317,6 +365,7 @@ class Larsadmin
         static::$localeUsing = null;
         static::$dashboards = [];
         static::$timezoneUsing = null;
+        static::$metricCacheScopeUsing = null;
         static::$entities = [];
         static::$hashes = [];
     }

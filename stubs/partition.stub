@@ -16,6 +16,8 @@ class {{ class }} extends Partition
      */
     public function calculate(MetricRequest $request): PartitionResult
     {
+        // SECURITY: unscoped — replace with your Entity class (e.g. \App\Larsadmin\Post::class):
+        // this placeholder counts EVERY user for everyone who can see the card.
         // Placeholder: verified vs. unverified users, so the card works on a fresh app. Usually you
         // group your Entity (scoped) by a column with a few distinct values, e.g.
         // $this->count($request, Post::class, 'status'), and label a foreign key such as
@@ -29,7 +31,8 @@ class {{ class }} extends Partition
     }
 
     /**
-     * Cache the result per user, timezone, locale and range (null: no cache).
+     * Cache the result (null: no cache). It is cached per user only: return anything else the result
+     * depends on (current team, tenant, role...) from cacheKeyParts().
      */
     public function cacheFor(): ?int
     {

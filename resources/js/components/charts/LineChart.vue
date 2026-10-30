@@ -6,10 +6,13 @@ import { areaPath, labelIndices, linePath, nearestIndex, valueDomain } from './g
 const props = defineProps({
     points: { type: Array, required: true }, // [{ label, value }]
     format: { type: Function, default: (v) => String(v) },
+    // Y-axis ticks; a compact formatter keeps long (currency) values inside the axis column
+    tickFormat: { type: Function, default: null },
     title: { type: String, default: '' },
 })
 
 const { t } = useI18n()
+const tickLabel = (value) => (props.tickFormat ?? props.format)(value)
 const uid = useId()
 const active = ref(null)
 const plot = ref(null)
@@ -61,14 +64,14 @@ const summary = computed(() => (activePoint.value ? `${activePoint.value.label}:
 
 <template>
     <div class="flex gap-2">
-        <div class="relative h-44 w-12 shrink-0 text-right text-xs text-fg-muted" aria-hidden="true">
+        <div class="relative h-44 w-16 shrink-0 text-right text-xs text-fg-muted" aria-hidden="true">
             <span
-                v-for="tick in domain.ticks"
-                :key="tick"
-                class="absolute right-0 -translate-y-1/2 tabular-nums"
-                :style="{ top: `${yPct(tick)}%` }"
+                v-for="value in domain.ticks"
+                :key="value"
+                class="absolute right-0 max-w-16 -translate-y-1/2 truncate tabular-nums"
+                :style="{ top: `${yPct(value)}%` }"
             >
-                {{ format(tick) }}
+                {{ tickLabel(value) }}
             </span>
         </div>
 

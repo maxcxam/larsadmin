@@ -4,6 +4,7 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import { useLarsadmin } from '../composables/useLarsadmin'
 import { useI18n } from '../composables/useI18n'
 import { useDownload } from '../composables/useDownload'
+import { isDashboardActive } from './navigation'
 import IconAlert from '../components/icons/IconAlert.vue'
 import IconCheck from '../components/icons/IconCheck.vue'
 import IconDatabase from '../components/icons/IconDatabase.vue'
@@ -34,14 +35,9 @@ const groups = computed(() => {
 })
 
 const dashboards = computed(() => page.props.dashboards ?? [])
-const pagePath = computed(() => page.url.split(/[?#]/)[0])
-const dashboardActive = (dashboard, index) => {
-    if (page.component !== 'Dashboard') return false
-
-    const path = (dashboard.url ?? '').split(/[?#]/)[0]
-
-    return pagePath.value === path || (index === 0 && pagePath.value === url())
-}
+const dashboardActive = (dashboard) => isDashboardActive(dashboard, page)
+// Single entry (or none): the plain home link; with an entry, highlight it only when that dashboard is shown.
+const homeActive = computed(() => (dashboards.value.length ? dashboardActive(dashboards.value[0]) : page.component === 'Dashboard'))
 
 const isActive = (href) => page.url === href || page.url.startsWith(`${href}/`) || page.url.startsWith(`${href}?`)
 
@@ -123,11 +119,11 @@ const linkActive =
                     <div v-if="dashboards.length > 1" class="pl-2">
                         <h2 class="mb-1 px-3 text-xs font-semibold text-fg-muted">{{ t('dashboards') }}</h2>
                         <Link
-                            v-for="(dashboard, index) in dashboards"
+                            v-for="dashboard in dashboards"
                             :key="dashboard.uriKey"
                             :href="dashboard.url"
-                            :class="[linkBase, dashboardActive(dashboard, index) ? linkActive : '']"
-                            :aria-current="dashboardActive(dashboard, index) ? 'page' : undefined"
+                            :class="[linkBase, dashboardActive(dashboard) ? linkActive : '']"
+                            :aria-current="dashboardActive(dashboard) ? 'page' : undefined"
                         >
                             <IconHome class="text-fg-muted" />
                             {{ dashboard.name }}
@@ -135,7 +131,11 @@ const linkActive =
                     </div>
 
                     <div v-else class="pl-2">
-                        <Link :href="url()" :class="[linkBase, page.component === 'Dashboard' ? linkActive : '']">
+                        <Link
+                            :href="dashboards[0]?.url ?? url()"
+                            :class="[linkBase, homeActive ? linkActive : '']"
+                            :aria-current="homeActive ? 'page' : undefined"
+                        >
                             <IconHome class="text-fg-muted" />
                             {{ dashboards[0]?.name ?? t('dashboard') }}
                         </Link>

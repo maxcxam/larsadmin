@@ -95,7 +95,7 @@ return [
 
     // Blocks, row actions
     'row_actions' => 'Row actions',
-    'action_unavailable' => 'Action is not available for this record',
+    'row_actions_for' => 'Actions for “:title”',
     'expand' => 'Expand',
     'collapse' => 'Collapse',
     'tab_errors' => ':count error|:count errors',
@@ -105,7 +105,8 @@ return [
     'metric_range' => 'Range',
     'metric_error' => 'Could not load the data.',
     'metric_forbidden' => 'You do not have access to this data.',
-    'metric_compare' => 'Compared to the previous period',
+    'metric_help' => 'About this metric',
+    'unknown_card' => 'Unknown card component: :component',
     'no_data' => 'No data',
     'change_up' => 'Up :value%',
     'change_down' => 'Down :value%',

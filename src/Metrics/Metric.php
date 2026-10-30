@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Closure;
 use DateInterval;
 use DateTimeInterface;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as BaseBuilder;
 use Illuminate\Http\Request;
@@ -53,12 +54,30 @@ abstract class Metric extends Card
     }
 
     /**
-     * How long the result is cached per owner, uriKey, range, timezone, locale and user; null disables caching.
-     * Cached numbers go stale until they expire, so keep it short for anything users act on.
+     * How long the result is cached; null disables caching. Cached numbers go stale until they expire,
+     * so keep it short for anything users act on.
+     *
+     * The key holds the owner, the metric class and uriKey, the range, timezone and locale, the guard and
+     * the user (class + id), Larsadmin::metricCacheScopeUsing() and cacheKeyParts(): results are cached
+     * per user and those scope parts only. When calculate() depends on anything else (current team or
+     * tenant, role, session, subdomain...), return it from cacheKeyParts() or the global callback, or a
+     * user is served another scope's numbers. On a cache hit the viewAny of every Entity source the
+     * calculation used is checked again (403 when revoked); canSee() runs on every request as usual.
      */
     public function cacheFor(): DateInterval|DateTimeInterface|int|null
     {
         return null;
+    }
+
+    /**
+     * Extra request context the result depends on (tenant, team, role...), added to the cache key.
+     * Must be JSON encodable.
+     *
+     * @return array<mixed>
+     */
+    public function cacheKeyParts(MetricRequest $request): array
+    {
+        return [];
     }
 
     /**
@@ -84,6 +103,8 @@ abstract class Metric extends Card
 
     /**
      * Validate the range, serve the cached result when caching is on, otherwise calculate.
+     *
+     * @throws AuthorizationException when an Entity source of a cached result is no longer viewable
      */
     public function resolve(MetricRequest $request): MetricResult
     {
@@ -99,8 +120,19 @@ abstract class Metric extends Card
             return $this->calculate($request);
         }
 
-        $payload = Cache::store(config('larsadmin.metrics.cache_store'))
-            ->remember($this->cacheKey($request), $ttl, fn () => $this->calculate($request)->toArray());
+        $store = Cache::store(config('larsadmin.metrics.cache_store'));
+        $key = $this->cacheKey($request);
+        $cached = $store->get($key);
+
+        // Authorization is never cached: the Entity sources of a cached result are checked again first.
+        if (is_array($cached) && is_array($cached['entities'] ?? null) && is_array($cached['result'] ?? null)) {
+            $this->authorizeEntities($request, $cached['entities']);
+
+            return new CachedResult($cached['result']);
+        }
+
+        $payload = $this->calculate($request)->toArray();
+        $store->put($key, ['entities' => $request->entities(), 'result' => $payload], $ttl);
 
         return new CachedResult($payload);
     }
@@ -137,7 +169,7 @@ abstract class Metric extends Card
     }
 
     /**
-     * Label the given range keys: translated for the known ones, "N days" otherwise.
+     * Label the given range keys: translated for the known ones, "N days" (plural-aware, metrics.buckets.day) otherwise.
      *
      * @param  list<int|string>  $keys
      * @return array<int|string, string>
@@ -151,7 +183,7 @@ abstract class Metric extends Card
 
             $labels[$key] = trans()->has($translation)
                 ? __($translation)
-                : (is_int($key) ? __(':count days', ['count' => $key]) : (string) $key);
+                : (is_int($key) ? trans_choice('larsadmin::metrics.buckets.day', $key, ['count' => $key]) : (string) $key);
         }
 
         return $labels;
@@ -171,18 +203,41 @@ abstract class Metric extends Card
         return EntitySource::make($entity, $constraint);
     }
 
+    /**
+     * The cache key (sha256): see cacheFor() for what it holds.
+     */
     protected function cacheKey(MetricRequest $request): string
     {
         $user = $request->request->user(Larsadmin::guard());
 
-        return 'larsadmin:metric:'.md5(implode('|', [
+        return 'larsadmin:metric:'.hash('sha256', json_encode([
             $request->owner,
+            static::class,
             $this->uriKey(),
-            (string) $request->range,
+            $request->range,
             $request->timezone,
             app()->getLocale(),
-            $user === null ? 'guest' : (string) $user->getAuthIdentifier(),
-        ]));
+            Larsadmin::guard() ?? config('auth.defaults.guard'),
+            $user === null ? null : [$user::class, $user->getAuthIdentifier()],
+            Larsadmin::metricCacheScope($request->request, $this),
+            $this->cacheKeyParts($request),
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Check viewAny again for the Entity sources a cached result was computed from.
+     *
+     * @param  array<mixed>  $entities
+     *
+     * @throws AuthorizationException when one is no longer viewable (or no longer an Entity)
+     */
+    protected function authorizeEntities(MetricRequest $request, array $entities): void
+    {
+        foreach ($entities as $entity) {
+            if (! is_string($entity) || ! is_subclass_of($entity, Entity::class) || ! $entity::authorizedToViewAny($request->request)) {
+                throw new AuthorizationException;
+            }
+        }
     }
 
     /**

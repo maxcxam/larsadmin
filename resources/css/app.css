@@ -6,7 +6,22 @@
 /*
  * Design tokens (Primer-inspired).
  * Theme: <html data-theme="light|dark">; no attribute = follow the OS (prefers-color-scheme).
+ * Dark tokens are written once: the `theme-dark` variant expands them to both
+ * :root[data-theme="dark"] (forced) and the prefers-color-scheme media query (system theme).
+ * Chart colours keep >= 3:1 against both canvases (WCAG 1.4.11).
  */
+@custom-variant theme-dark {
+    &[data-theme="dark"] {
+        @slot;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        &:not([data-theme="light"]) {
+            @slot;
+        }
+    }
+}
+
 :root {
     color-scheme: light;
 
@@ -36,54 +51,15 @@
     --la-shadow: 0 8px 24px #1f23281a;
 
     --la-chart-1: #2a78d6;
-    --la-chart-2: #eb6834;
-    --la-chart-3: #1baf7a;
-    --la-chart-4: #eda100;
-    --la-chart-5: #e87ba4;
+    --la-chart-2: #d4541f;
+    --la-chart-3: #13875d;
+    --la-chart-4: #a86f00;
+    --la-chart-5: #c2457a;
     --la-chart-6: #008300;
     --la-chart-7: #6250d6;
     --la-chart-8: #e34948;
-}
 
-:root[data-theme="dark"] {
-    color-scheme: dark;
-
-    --la-fg-default: #f0f6fc;
-    --la-fg-muted: #9198a1;
-    --la-fg-subtle: #656c76;
-    --la-canvas-default: #0d1117;
-    --la-canvas-subtle: #151b23;
-    --la-canvas-inset: #010409;
-    --la-border-default: #3d444d;
-    --la-border-muted: #3d444db3;
-    --la-accent-fg: #4493f8;
-    --la-accent-emphasis: #1f6feb;
-    --la-accent-subtle: #388bfd1a;
-    --la-success-fg: #3fb950;
-    --la-success-emphasis: #238636;
-    --la-success-emphasis-hover: #2ea043;
-    --la-success-subtle: #2ea04326;
-    --la-danger-fg: #f85149;
-    --la-danger-emphasis: #da3633;
-    --la-danger-subtle: #f851491a;
-    --la-neutral-muted: #656c7633;
-    --la-header-bg: #010409;
-    --la-header-fg: #f0f6fc;
-    --la-overlay: #010409b3;
-    --la-shadow: 0 8px 24px #010409cc;
-
-    --la-chart-1: #3987e5;
-    --la-chart-2: #d95926;
-    --la-chart-3: #199e70;
-    --la-chart-4: #c98500;
-    --la-chart-5: #d55181;
-    --la-chart-6: #008300;
-    --la-chart-7: #9085e9;
-    --la-chart-8: #e66767;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
+    @variant theme-dark {
         color-scheme: dark;
 
         --la-fg-default: #f0f6fc;
@@ -111,13 +87,13 @@
         --la-shadow: 0 8px 24px #010409cc;
 
         --la-chart-1: #3987e5;
-        --la-chart-2: #d95926;
-        --la-chart-3: #199e70;
-        --la-chart-4: #c98500;
-        --la-chart-5: #d55181;
-        --la-chart-6: #008300;
+        --la-chart-2: #e8703f;
+        --la-chart-3: #1fb583;
+        --la-chart-4: #d69a00;
+        --la-chart-5: #e0699a;
+        --la-chart-6: #3fa33f;
         --la-chart-7: #9085e9;
-        --la-chart-8: #e66767;
+        --la-chart-8: #ec7a7a;
     }
 }
 

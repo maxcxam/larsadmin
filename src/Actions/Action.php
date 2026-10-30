@@ -332,7 +332,8 @@ abstract class Action
     }
 
     /**
-     * Show the action only in the per-row menu of the index.
+     * Show the action only in the per-row menu of the index. It then runs on exactly one record:
+     * the endpoint rejects 'all' and more than one id with 422 (see runsOnSingleRecord()).
      */
     public function onlyInline(): static
     {
@@ -351,6 +352,10 @@ abstract class Action
         return $this;
     }
 
+    /**
+     * Show the action only on the detail page (and in the row menu when showInline()). It then runs
+     * on exactly one record: the endpoint rejects 'all' and more than one id with 422.
+     */
     public function onlyOnDetail(): static
     {
         $this->showOnIndex = false;
@@ -364,6 +369,16 @@ abstract class Action
         $this->showInline = $inline;
 
         return $this;
+    }
+
+    /**
+     * Whether the action may only run on one record: it is not offered in the index toolbar (the only
+     * menu that selects several or all records), only per row or on the detail page. Visibility is
+     * still UX for the other flags; handle() must cope with any number of authorized records otherwise.
+     */
+    public function runsOnSingleRecord(): bool
+    {
+        return ! $this->standalone && ! $this->showOnIndex;
     }
 
     /**

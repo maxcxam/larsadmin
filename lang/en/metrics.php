@@ -15,4 +15,12 @@ return [
     ],
     'other' => 'Other',
     'none' => 'None',
+    'yes' => 'Yes',
+    'no' => 'No',
+    // Default trend ranges: the number of buckets of the trend's unit.
+    'buckets' => [
+        'day' => ':count day|:count days',
+        'week' => ':count week|:count weeks',
+        'month' => ':count month|:count months',
+    ],
 ];

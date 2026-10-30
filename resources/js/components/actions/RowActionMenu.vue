@@ -2,13 +2,17 @@
 import { computed, nextTick, onBeforeUnmount, ref, useId } from 'vue'
 import { useI18n } from '../../composables/useI18n'
 import IconKebab from '../icons/IconKebab.vue'
+import { menuPlacement } from './menuPlacement'
 
 // Per-row "⋯" menu (ADR-010). `actions` are the entity's inline actions, `runnable` the uriKeys the server
 // says the user may run on this row. Same keyboard model as ActionMenu. The panel is teleported to <body>
-// with fixed positioning because the table wrapper scrolls horizontally and would clip it.
+// with fixed positioning because the table wrapper scrolls horizontally and would clip it. Actions the user
+// cannot run on this row are hidden (the detail ActionMenu does the same).
 const props = defineProps({
     actions: { type: Array, default: () => [] },
     runnable: { type: Array, default: () => [] },
+    // Record title, so each row's trigger has a distinct accessible name
+    title: { type: String, default: '' },
 })
 
 const emit = defineEmits(['run'])
@@ -20,6 +24,7 @@ const button = ref(null)
 const menu = ref(null)
 const items = ref([])
 const position = ref({ top: 0, right: 0 })
+const label = computed(() => (props.title ? t('row_actions_for', { title: props.title }) : t('row_actions')))
 
 const available = computed(() => props.actions.filter((a) => props.runnable.includes(a.uriKey)))
 // Destructive items go last, separated
@@ -30,10 +35,13 @@ const separatorAt = computed(() => {
     return normal > 0 && normal < ordered.value.length ? normal : -1
 })
 
+// Opens below the trigger; flips upwards once measured when it would cross the viewport bottom.
 function place() {
     const rect = button.value.getBoundingClientRect()
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    const { up, ...style } = menuPlacement(rect, menu.value?.offsetHeight ?? 0, viewport)
 
-    position.value = { top: rect.bottom + 4, right: Math.max(window.innerWidth - rect.right, 8) }
+    position.value = style
 }
 
 function onOutside(event) {
@@ -47,6 +55,7 @@ async function show() {
     window.addEventListener('resize', onViewportChange)
     window.addEventListener('scroll', onViewportChange, true)
     await nextTick()
+    place()
     items.value[0]?.focus()
 }
 
@@ -113,8 +122,8 @@ onBeforeUnmount(() => {
             aria-haspopup="menu"
             :aria-expanded="open"
             :aria-controls="open ? menuId : undefined"
-            :title="t('row_actions')"
-            :aria-label="t('row_actions')"
+            :title="label"
+            :aria-label="label"
             @click="open ? close() : show()"
             @keydown="onButtonKeydown"
         >
@@ -127,9 +136,9 @@ onBeforeUnmount(() => {
                 :id="menuId"
                 ref="menu"
                 role="menu"
-                :aria-label="t('row_actions')"
-                class="fixed z-50 w-56 rounded-md border border-default bg-canvas py-1 text-sm text-fg shadow-overlay"
-                :style="{ top: `${position.top}px`, right: `${position.right}px` }"
+                :aria-label="label"
+                class="fixed z-50 max-h-[60vh] w-56 overflow-auto rounded-md border border-default bg-canvas py-1 text-sm text-fg shadow-overlay"
+                :style="Object.fromEntries(Object.entries(position).map(([side, px]) => [side, `${px}px`]))"
                 @keydown="onMenuKeydown"
             >
                 <template v-for="(action, index) in ordered" :key="action.uriKey">

@@ -30,9 +30,37 @@ final class PartitionResult extends MetricResult
 
     /**
      * @param  array<string, int|float>  $values  group key => aggregate, largest first
-     * @param  bool  $additive  whether slices beyond the limit may be summed into "Other" (not for average/min/max)
+     * @param  bool  $additive  whether slices add up (count/sum): only then is the rest summed into "Other" and a
+     *                          total sent; average/min/max send "additive": false and a null total
      */
     public function __construct(protected array $values, protected bool $additive = true) {}
+
+    /**
+     * The group key of a database value: booleans (PostgreSQL returns them as PHP bools) become '1' / '0',
+     * like the 1 / 0 of MySQL and SQLite, and NULL becomes '' without colliding with false.
+     */
+    public static function key(mixed $value): string
+    {
+        return match (true) {
+            $value === null => '',
+            is_bool($value) => $value ? '1' : '0',
+            default => (string) $value,
+        };
+    }
+
+    /**
+     * Label the '1' / '0' keys of a boolean group as yes / no (translated by default) and '' as "None".
+     * Applied automatically when the grouped column has a boolean cast. Replaces label() and labelsFrom().
+     */
+    public function booleanLabels(?string $yes = null, ?string $no = null): static
+    {
+        return $this->label(fn (string $key): string => match ($key) {
+            '1' => $yes ?? __('larsadmin::metrics.yes'),
+            '0' => $no ?? __('larsadmin::metrics.no'),
+            '' => __('larsadmin::metrics.none'),
+            default => $key,
+        });
+    }
 
     /**
      * Format the group key into a slice label. The key is always a string: '' for a NULL group.
@@ -113,7 +141,7 @@ final class PartitionResult extends MetricResult
 
             $slices[] = [
                 'key' => $key,
-                'label' => $label !== null ? (string) $label($key) : ($key === '' ? __('larsadmin::ui.no_data') : $key),
+                'label' => $label !== null ? (string) $label($key) : ($key === '' ? __('larsadmin::metrics.none') : $key),
                 'value' => $value,
                 'color' => $this->colors[$key] ?? null,
             ];
@@ -133,7 +161,9 @@ final class PartitionResult extends MetricResult
         return [
             'type' => 'partition',
             'slices' => $slices,
-            'total' => array_sum(array_column($slices, 'value')),
+            // A sum of averages (or minimums) means nothing: no total, and the UI shows no shares.
+            'total' => $this->additive ? array_sum(array_column($slices, 'value')) : null,
+            'additive' => $this->additive,
             'format' => $this->formatObject(),
         ];
     }

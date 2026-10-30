@@ -15,4 +15,12 @@ return [
     ],
     'other' => 'Інше',
     'none' => 'Без значення',
+    'yes' => 'Так',
+    'no' => 'Ні',
+    // Default trend ranges: the number of buckets of the trend's unit.
+    'buckets' => [
+        'day' => ':count день|:count дні|:count днів',
+        'week' => ':count тиждень|:count тижні|:count тижнів',
+        'month' => ':count місяць|:count місяці|:count місяців',
+    ],
 ];

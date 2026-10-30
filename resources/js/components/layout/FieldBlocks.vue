@@ -20,9 +20,10 @@ const nodes = computed(() => normalizeLayout(props.layout, props.fields))
 const byAttribute = computed(() => new Map(props.fields.map((field) => [field.attribute, field])))
 const fieldsOf = (attributes) => attributes.map((attribute) => byAttribute.value.get(attribute)).filter(Boolean)
 
-// Collapsed state per panel key; seeded from the server default, then owned by the user.
+// Collapsed state per panel key; seeded from the server default, then owned by the user. A panel without a
+// name has no header to toggle it from, so it is never collapsed.
 const collapsedState = reactive({})
-const isCollapsed = (panel) => panel.collapsible && (collapsedState[panel.key] ?? panel.collapsed)
+const isCollapsed = (panel) => !!(panel.collapsible && panel.name) && (collapsedState[panel.key] ?? panel.collapsed)
 const toggle = (panel) => (collapsedState[panel.key] = !isCollapsed(panel))
 
 const activeTab = ref({})
@@ -45,8 +46,10 @@ function onTabKeydown(event, tabs, index) {
 }
 
 // A failed submit reveals the first problem: expand panels with errors, switch tabs to the first erroneous one.
+// Keyed on the errors object itself (a new one per submit) as well as its keys, so a resubmit that returns the
+// same errors expands a panel the user collapsed in between.
 watch(
-    () => Object.keys(props.errors ?? {}).join('|'),
+    [() => props.errors, () => Object.keys(props.errors ?? {}).join('|')],
     () => {
         for (const node of nodes.value) {
             if (node.type === 'tabs') {

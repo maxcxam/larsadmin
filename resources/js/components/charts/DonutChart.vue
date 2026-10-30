@@ -2,12 +2,15 @@
 import { computed, ref, useId } from 'vue'
 import { useI18n } from '../../composables/useI18n'
 import { formatNumber } from '../../composables/useNumberFormat'
+import { seriesColor } from './colors'
 import { donutSegments } from './geometry'
 
 const props = defineProps({
     slices: { type: Array, required: true }, // [{ label, value, color }]
     format: { type: Function, default: (v) => String(v) },
     title: { type: String, default: '' },
+    // false for average/min/max partitions: slices do not add up, so no centre total and no shares
+    additive: { type: Boolean, default: true },
 })
 
 const { t, locale } = useI18n()
@@ -16,11 +19,13 @@ const hovered = ref(null)
 
 const RADIUS = 100 / (2 * Math.PI)
 
-const colorOf = (slice, i) => slice.color || `var(--la-chart-${(i % 8) + 1})`
+const colorOf = (slice, i) => seriesColor(slice?.color, i)
 const total = computed(() => props.slices.reduce((sum, s) => sum + (Number(s.value) > 0 ? Number(s.value) : 0), 0))
 const segments = computed(() => donutSegments(props.slices.map((s) => Number(s.value))))
 const share = (value) => formatNumber(total.value ? Number(value) / total.value : 0, { format: { style: 'percent', maximumFractionDigits: 1 } }, locale.value)
 const current = computed(() => (hovered.value === null ? null : props.slices[hovered.value]))
+// Centre text: the hovered slice, else the total (additive only)
+const centre = computed(() => (current.value ? current.value.value : props.additive ? total.value : null))
 </script>
 
 <template>
@@ -47,28 +52,26 @@ const current = computed(() => (hovered.value === null ? null : props.slices[hov
                     @mouseleave="hovered = null"
                 />
             </svg>
-            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-                <span class="text-lg leading-tight font-semibold tabular-nums">{{ format(current ? current.value : total) }}</span>
+            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center" aria-hidden="true">
+                <span v-if="centre !== null" class="text-lg leading-tight font-semibold tabular-nums">{{ format(centre) }}</span>
                 <span v-if="current" class="line-clamp-2 text-xs text-fg-muted">{{ current.label }}</span>
             </div>
         </div>
 
-        <ul class="min-w-0 flex-1 space-y-1 self-stretch text-sm">
+        <!-- Visual legend; screen readers get the same data once, from the table below -->
+        <ul class="min-w-0 flex-1 space-y-1 self-stretch text-sm" aria-hidden="true">
             <li
                 v-for="(slice, i) in slices"
                 :key="i"
                 class="flex items-center gap-2 rounded px-1 py-0.5"
                 :class="hovered === i ? 'bg-neutral-muted' : ''"
-                tabindex="0"
                 @mouseenter="hovered = i"
                 @mouseleave="hovered = null"
-                @focus="hovered = i"
-                @blur="hovered = null"
             >
                 <span class="size-2.5 shrink-0 rounded-sm" :style="{ background: colorOf(slice, i) }" aria-hidden="true" />
                 <span class="min-w-0 flex-1 truncate" :title="slice.label">{{ slice.label }}</span>
                 <span class="tabular-nums">{{ format(slice.value) }}</span>
-                <span class="w-12 text-right text-xs text-fg-muted tabular-nums">{{ share(slice.value) }}</span>
+                <span v-if="additive" class="w-12 text-right text-xs text-fg-muted tabular-nums">{{ share(slice.value) }}</span>
             </li>
         </ul>
 
@@ -77,7 +80,7 @@ const current = computed(() => (hovered.value === null ? null : props.slices[hov
             <tbody>
                 <tr v-for="(slice, i) in slices" :key="i">
                     <th scope="row">{{ slice.label }}</th>
-                    <td>{{ format(slice.value) }} ({{ share(slice.value) }})</td>
+                    <td>{{ format(slice.value) }}<template v-if="additive"> ({{ share(slice.value) }})</template></td>
                 </tr>
             </tbody>
         </table>

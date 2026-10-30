@@ -29,6 +29,9 @@ final class TestMetrics
 
     public static string $groupBy = 'status';
 
+    /** The cache key parts PostsValue returns: fn (MetricRequest): array. */
+    public static ?Closure $cacheKeyParts = null;
+
     public static function reset(): void
     {
         self::$source = null;
@@ -40,5 +43,6 @@ final class TestMetrics
         self::$denied = false;
         self::$constraint = null;
         self::$groupBy = 'status';
+        self::$cacheKeyParts = null;
     }
 }

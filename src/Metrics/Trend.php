@@ -24,13 +24,59 @@ abstract class Trend extends Metric
     public string $component = 'trend-metric';
 
     /**
-     * The number of buckets to show.
+     * The unit of the default ranges: 'day' (7/30/90 days), 'week' (4/12/26 weeks) or 'month' (3/6/12 months).
+     * Set it to the unit calculate() uses (countByWeeks() => 'week'), or override ranges().
+     */
+    protected string $unit = 'day';
+
+    /**
+     * The number of buckets to show (int keys only: 'MTD' and the like are rejected, a trend has no
+     * calendar ranges).
      *
-     * @return array<int|string, string>
+     * @return array<int, string>
      */
     public function ranges(): array
     {
-        return $this->labelled([7, 30, 90]);
+        return $this->bucketRanges(match ($this->unit) {
+            'day' => [7, 30, 90],
+            'week' => [4, 12, 26],
+            'month' => [3, 6, 12],
+            default => throw new InvalidArgumentException("Unknown trend unit [{$this->unit}]; use day, week or month."),
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        $this->assertBucketRanges();
+
+        return parent::jsonSerialize();
+    }
+
+    protected function normalizeRange(mixed $range): int|string|null
+    {
+        $this->assertBucketRanges();
+
+        return parent::normalizeRange($range);
+    }
+
+    /**
+     * Label bucket counts in the trend's unit: "12 weeks".
+     *
+     * @param  list<int>  $counts
+     * @return array<int, string>
+     */
+    protected function bucketRanges(array $counts): array
+    {
+        $labels = [];
+
+        foreach ($counts as $count) {
+            $labels[$count] = trans_choice("larsadmin::metrics.buckets.{$this->unit}", $count, ['count' => $count]);
+        }
+
+        return $labels;
     }
 
     abstract public function calculate(MetricRequest $request): TrendResult;
@@ -183,7 +229,19 @@ abstract class Trend extends Metric
             ];
         }
 
-        return new TrendResult($unit, $points);
+        return new TrendResult($unit, $points, in_array($function, ['count', 'sum'], true));
+    }
+
+    /**
+     * @throws InvalidArgumentException when ranges() has a key that is not a bucket count
+     */
+    private function assertBucketRanges(): void
+    {
+        foreach (array_keys($this->ranges()) as $key) {
+            if (! is_int($key)) {
+                throw new InvalidArgumentException('Trend ranges are bucket counts; ['.$key.'] in '.static::class.'::ranges() is not.');
+            }
+        }
     }
 
     private function bucketCount(MetricRequest $request): int

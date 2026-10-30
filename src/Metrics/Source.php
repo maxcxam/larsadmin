@@ -7,6 +7,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as BaseBuilder;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Query\EntityQuery;
@@ -65,6 +66,8 @@ final class Source
      */
     private static function entityQuery(MetricRequest $request, string $entity): Builder
     {
+        $request->useEntity($entity);
+
         if (! $entity::authorizedToViewAny($request->request)) {
             throw new AuthorizationException;
         }
@@ -119,7 +122,8 @@ final class Source
     }
 
     /**
-     * A fresh query limited to [start, end] of the date column (inclusive); unconstrained when $bounds is null.
+     * A fresh query limited to [start, end) of the date column (half-open, like the trend buckets, so
+     * sub-second timestamps never fall between two periods); unconstrained when $bounds is null.
      *
      * @param  array{0: CarbonInterface, 1: CarbonInterface}|null  $bounds
      */
@@ -128,9 +132,19 @@ final class Source
         $query = $this->query();
 
         if ($bounds !== null) {
-            $query->whereBetween($this->dateColumn($dateColumn), [$this->date($bounds[0]), $this->date($bounds[1])]);
+            $column = $this->dateColumn($dateColumn);
+
+            $query->where($column, '>=', $this->date($bounds[0]))->where($column, '<', $this->date($bounds[1]));
         }
 
         return $query;
+    }
+
+    /**
+     * Whether the model casts the (optionally qualified) column to a boolean.
+     */
+    public function castsToBoolean(string $column): bool
+    {
+        return $this->model?->hasCast(Str::afterLast($column, '.'), ['bool', 'boolean']) ?? false;
     }
 }

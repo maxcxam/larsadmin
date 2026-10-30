@@ -3,6 +3,7 @@ import { useI18n } from '../../composables/useI18n'
 import { formatNumber } from '../../composables/useNumberFormat'
 import DonutChart from '../charts/DonutChart.vue'
 import MetricCard from './MetricCard.vue'
+import { isAdditive, partitionEmpty } from './partition'
 
 defineProps({ card: { type: Object, required: true } })
 
@@ -12,9 +13,9 @@ const fmt = (r) => (value) => formatNumber(value, { format: r.format, prefix: r.
 </script>
 
 <template>
-    <MetricCard :card="card" skeleton-class="h-40" :empty="(r) => !r.slices?.length || !r.total">
+    <MetricCard :card="card" skeleton-class="h-40" :empty="partitionEmpty">
         <template #default="{ result }">
-            <DonutChart :slices="result.slices" :format="fmt(result)" :title="card.name" />
+            <DonutChart :slices="result.slices" :additive="isAdditive(result)" :format="fmt(result)" :title="card.name" />
         </template>
     </MetricCard>
 </template>

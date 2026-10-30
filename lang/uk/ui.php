@@ -95,7 +95,7 @@ return [
 
     // Blocks, row actions
     'row_actions' => 'Дії для запису',
-    'action_unavailable' => 'Дія недоступна для цього запису',
+    'row_actions_for' => 'Дії для «:title»',
     'expand' => 'Розгорнути',
     'collapse' => 'Згорнути',
     'tab_errors' => ':count помилка|:count помилки|:count помилок',
@@ -105,7 +105,8 @@ return [
     'metric_range' => 'Період',
     'metric_error' => 'Не вдалося завантажити дані.',
     'metric_forbidden' => 'Немає доступу до цих даних.',
-    'metric_compare' => 'Порівняно з попереднім періодом',
+    'metric_help' => 'Довідка',
+    'unknown_card' => 'Невідомий компонент картки: :component',
     'no_data' => 'Немає даних',
     'change_up' => 'Зросло на :value%',
     'change_down' => 'Зменшилося на :value%',

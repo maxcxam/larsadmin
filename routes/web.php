@@ -20,8 +20,8 @@ Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
     Route::get('/', [DashboardController::class, 'home'])->name('dashboard');
     Route::get('dashboards/{dashboard}', [DashboardController::class, 'show'])->name('dashboards.show');
 
-    Route::get('api/dashboards/{dashboard}/metrics/{metric}', [MetricController::class, 'dashboard'])->name('api.dashboard-metric');
-    Route::get('api/entities/{entity}/metrics/{metric}', [MetricController::class, 'entity'])->name('api.entity-metric');
+    Route::get('api/dashboards/{dashboard}/metrics/{metric}', [MetricController::class, 'dashboard'])->middleware('throttle:larsadmin-metrics')->name('api.dashboard-metric');
+    Route::get('api/entities/{entity}/metrics/{metric}', [MetricController::class, 'entity'])->middleware('throttle:larsadmin-metrics')->name('api.entity-metric');
 
     Route::get('api/entities/{entity}/fields/{field}/options', [RelatableController::class, 'index'])->name('api.options');
     Route::get('api/entities/{entity}/{id}/related/{field}', [RelatedController::class, 'index'])->name('api.related');

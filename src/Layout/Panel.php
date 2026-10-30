@@ -45,23 +45,35 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Let the user collapse the panel; it needs a name, the toggle's label.
+     *
+     * @throws InvalidArgumentException when the panel has no name
+     */
     public function collapsible(bool $collapsible = true): self
     {
+        if ($collapsible) {
+            $this->assertNamed();
+        }
+
         $this->collapsible = $collapsible;
 
         return $this;
     }
 
     /**
-     * Start collapsed (implies collapsible).
+     * Start collapsed (implies collapsible, so it needs a name too).
+     *
+     * @throws InvalidArgumentException when the panel has no name
      */
     public function collapsed(bool $collapsed = true): self
     {
-        $this->collapsed = $collapsed;
-
         if ($collapsed) {
+            $this->assertNamed();
             $this->collapsible = true;
         }
+
+        $this->collapsed = $collapsed;
 
         return $this;
     }
@@ -85,6 +97,16 @@ final class Panel
     public function fields(): array
     {
         return $this->items;
+    }
+
+    /**
+     * A collapsed panel without a name could never be opened again (there is no toggle to click).
+     */
+    private function assertNamed(): void
+    {
+        if (trim($this->name) === '') {
+            throw new InvalidArgumentException('A collapsible panel needs a name: it labels the toggle.');
+        }
     }
 
     /**

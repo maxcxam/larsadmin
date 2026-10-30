@@ -10,17 +10,25 @@ use Maxcxam\Larsadmin\Metrics\Trend;
 class {{ class }} extends Trend
 {
     /**
+     * The unit of the default ranges: 'day', 'week' or 'month'; keep it in line with calculate().
+     */
+    protected string $unit = 'day';
+
+    /**
      * Calculate the trend; the range is the number of buckets. Pass an Entity class to scope the rows
      * by its indexQuery() and viewAny (narrow it with $this->scoped()); a model class or builder is NOT restricted.
      */
     public function calculate(MetricRequest $request): TrendResult
     {
+        // SECURITY: unscoped — replace with your Entity class (e.g. \App\Larsadmin\Post::class):
+        // this placeholder counts EVERY user for everyone who can see the card.
         // Placeholder: count your Entity (scoped) or model instead of User, by created_at or a given date column.
         return $this->countByDays($request, User::class)->showSumValue();
     }
 
     /**
-     * Cache the result per user, timezone, locale and range (null: no cache).
+     * Cache the result (null: no cache). It is cached per user only: return anything else the result
+     * depends on (current team, tenant, role...) from cacheKeyParts().
      */
     public function cacheFor(): ?int
     {

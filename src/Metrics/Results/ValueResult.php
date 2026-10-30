@@ -25,7 +25,8 @@ final class ValueResult extends MetricResult
     }
 
     /**
-     * Treat 0 as a real result instead of "no data".
+     * Show 0 as a real result. Without it a value of exactly 0 is sent as null, which the card shows
+     * as "no data" (Nova semantics); turn it on for counts where 0 is meaningful.
      */
     public function allowZeroResult(bool $allow = true): static
     {
@@ -48,11 +49,14 @@ final class ValueResult extends MetricResult
 
     public function toArray(): array
     {
+        // A 0 without allowZeroResult() is "no data", and so has no change either.
+        $value = $this->value !== null && $this->value == 0 && ! $this->allowZero ? null : $this->value;
+
         return [
             'type' => 'value',
-            'value' => $this->value,
+            'value' => $value,
             'previous' => $this->previous,
-            'change' => $this->change(),
+            'change' => $value === null ? null : $this->change(),
             'zeroResult' => $this->allowZero,
             'format' => $this->formatObject(),
             'prefix' => $this->prefix,

@@ -78,12 +78,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | "cache_store" is the cache store used by metrics that opt in with
-    | cacheFor(); null uses the default store. Results are cached per user.
+    | cacheFor(); null uses the default store. Results are cached per user
+    | (plus Metric::cacheKeyParts() and Larsadmin::metricCacheScopeUsing()).
+    | "throttle" limits the metric endpoints to that many requests per minute
+    | per user (per IP for guests); null disables the limit.
     |
     */
 
     'metrics' => [
         'cache_store' => null,
+        'throttle' => 120,
     ],
 
     /*

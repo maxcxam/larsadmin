@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useI18n } from '../../composables/useI18n'
 import { useJsonResource } from '../../composables/useJsonResource'
 import { withParams } from '../../composables/useLarsadmin'
@@ -20,8 +20,6 @@ const uid = useId()
 const ranges = computed(() => props.card.ranges ?? [])
 const range = ref(props.card.defaultRange ?? ranges.value[0]?.value ?? null)
 const result = ref(null)
-const loaded = ref(false)
-const helpOpen = ref(false)
 
 async function fetchData() {
     const body = await load(withParams(props.card.endpoint, { range: range.value }))
@@ -35,7 +33,6 @@ async function fetchData() {
     }
 
     result.value = body.result ?? null
-    loaded.value = true
 }
 
 onMounted(fetchData)
@@ -44,6 +41,30 @@ watch(range, fetchData)
 const busy = computed(() => status.value === 'loading')
 const showSkeleton = computed(() => busy.value && !result.value)
 const isEmpty = computed(() => result.value && props.empty(result.value))
+
+// Help tooltip (WCAG 1.4.13): opens on hover or focus, stays open while the pointer is over the trigger or the
+// tooltip itself, closes on Escape. The text is the button's description, so it is announced once.
+const hovering = ref(false)
+const focused = ref(false)
+const dismissed = ref(false)
+const helpOpen = computed(() => (hovering.value || focused.value) && !dismissed.value)
+
+function onHelpEnter() {
+    hovering.value = true
+    dismissed.value = false
+}
+
+function onHelpFocus() {
+    focused.value = true
+    dismissed.value = false
+}
+
+function onEscape(event) {
+    if (event.key === 'Escape' && helpOpen.value) dismissed.value = true
+}
+
+watch(helpOpen, (open) => (open ? document.addEventListener('keydown', onEscape) : document.removeEventListener('keydown', onEscape)))
+onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
 </script>
 
 <template>
@@ -51,27 +72,26 @@ const isEmpty = computed(() => result.value && props.empty(result.value))
         <header class="flex items-center gap-2 px-4 pt-3">
             <h2 :id="`${uid}-h`" class="min-w-0 flex-1 truncate text-sm font-semibold" :title="card.name">{{ card.name }}</h2>
 
-            <span v-if="card.helpText" class="relative">
+            <span v-if="card.helpText" class="relative flex" @mouseenter="onHelpEnter" @mouseleave="hovering = false">
                 <button
                     type="button"
                     class="flex size-5 items-center justify-center rounded-full border border-default text-xs text-fg-muted hover:bg-neutral-muted"
-                    :aria-label="card.helpText"
-                    :aria-describedby="helpOpen ? `${uid}-help` : undefined"
-                    @mouseenter="helpOpen = true"
-                    @mouseleave="helpOpen = false"
-                    @focus="helpOpen = true"
-                    @blur="helpOpen = false"
-                    @keydown.esc="helpOpen = false"
+                    :aria-label="t('metric_help')"
+                    :aria-describedby="`${uid}-help`"
+                    @focus="onHelpFocus"
+                    @blur="focused = false"
                 >
                     ?
                 </button>
-                <span
-                    v-if="helpOpen"
-                    :id="`${uid}-help`"
-                    role="tooltip"
-                    class="absolute top-full right-0 z-20 mt-1 w-56 rounded-md border border-default bg-canvas px-2 py-1 text-xs font-normal shadow-overlay"
-                >
-                    {{ card.helpText }}
+                <!-- pt-1 instead of a margin: no gap, so the pointer can move onto the tooltip without closing it -->
+                <span v-show="helpOpen" class="absolute top-full right-0 z-20 w-56 pt-1">
+                    <span
+                        :id="`${uid}-help`"
+                        role="tooltip"
+                        class="block rounded-md border border-default bg-canvas px-2 py-1 text-xs font-normal shadow-overlay"
+                    >
+                        {{ card.helpText }}
+                    </span>
                 </span>
             </span>
 

@@ -170,13 +170,29 @@ it('resets dashboards and the timezone callback with flushState', function () {
         ->and(Larsadmin::timezone(Request::create('/')))->toBe(config('app.timezone'));
 });
 
-it('ignores non dashboards passed to the registry', function () {
-    Larsadmin::dashboards([SalesDashboard::make(), 'nope', new stdClass]);
+it('instantiates dashboards registered as class strings', function () {
+    Larsadmin::dashboards([SalesDashboard::class, Main::make()]);
 
-    expect(Larsadmin::registeredDashboards())->toHaveCount(1);
+    expect(Larsadmin::registeredDashboards()[0])->toBeInstanceOf(SalesDashboard::class)
+        ->and(collect(Larsadmin::registeredDashboards())->map->uriKey()->all())->toBe(['sales-dashboard', 'main']);
+
+    $this->get('/admin/dashboards/sales-dashboard')->assertOk();
 });
+
+it('rejects non dashboards passed to the registry', function (mixed $dashboard) {
+    Larsadmin::dashboards([SalesDashboard::make(), $dashboard]);
+})->with([
+    'unknown class string' => ['nope'],
+    'other class string' => [stdClass::class],
+    'object' => [new stdClass],
+])->throws(InvalidArgumentException::class);
+
+it('rejects two dashboards with the same uriKey', function () {
+    Larsadmin::dashboards([SalesDashboard::make(), SalesDashboard::class]);
+})->throws(InvalidArgumentException::class, 'sales-dashboard');
 
 it('ships the metrics config defaults', function () {
     expect(config('larsadmin.metrics.cache_store'))->toBeNull()
+        ->and(config('larsadmin.metrics.throttle'))->toBe(120)
         ->and(config('larsadmin.timezone'))->toBeNull();
 });

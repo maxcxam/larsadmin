@@ -179,3 +179,40 @@ it('keeps the run-time authorization authoritative', function () {
         ->post('/admin/entities/action-posts/actions/mark-live', ['resources' => [$post->id]])
         ->assertForbidden();
 });
+
+it('runs actions not offered in the index toolbar on exactly one record', function (Closure $configure) {
+    $a = rowPost('A');
+    $b = rowPost('B');
+    ActionPost::$actions = [$configure(ClosureAction::make())];
+    $url = '/admin/entities/action-posts/actions/mark-live';
+
+    $this->from('/admin/entities/action-posts')->post($url, ['resources' => 'all'])
+        ->assertSessionHasErrors(['resources' => __('larsadmin::actions.single')]);
+    $this->from('/admin/entities/action-posts')->post($url, ['resources' => [$a->id, $b->id]])
+        ->assertSessionHasErrors('resources');
+    $this->postJson($url, ['resources' => [$a->id, $b->id]])->assertUnprocessable()->assertJsonValidationErrors('resources');
+
+    expect(ActionPost::$calls)->toBe([]);
+
+    $this->from('/admin/entities/action-posts')->post($url, ['resources' => [$a->id]])->assertSessionHasNoErrors();
+    expect(ActionPost::$calls)->toHaveCount(1)->and(ActionPost::$calls[0]['ids'])->toBe([$a->id]);
+})->with([
+    'onlyInline' => [fn (ClosureAction $action) => $action->onlyInline()],
+    'onlyOnDetail' => [fn (ClosureAction $action) => $action->onlyOnDetail()],
+]);
+
+it('keeps bulk runs for actions offered in the index toolbar', function () {
+    $a = rowPost('A');
+    $b = rowPost('B');
+    ActionPost::$actions = [ClosureAction::make()->showInline()];
+
+    expect(ClosureAction::make()->showInline()->runsOnSingleRecord())->toBeFalse()
+        ->and(ClosureAction::make()->onlyInline()->runsOnSingleRecord())->toBeTrue()
+        ->and(ClosureAction::make()->onlyInline()->standalone()->runsOnSingleRecord())->toBeFalse();
+
+    $this->from('/admin/entities/action-posts')
+        ->post('/admin/entities/action-posts/actions/mark-live', ['resources' => [$a->id, $b->id]])
+        ->assertSessionHasNoErrors();
+
+    expect(ActionPost::$calls[0]['ids'])->toEqualCanonicalizing([$a->id, $b->id]);
+});

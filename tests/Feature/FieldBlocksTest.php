@@ -187,6 +187,18 @@ it('treats collapsed as collapsible', function () {
     expect(Panel::make('P', [])->collapsed()->toNode('p0', []))->toMatchArray(['collapsible' => true, 'collapsed' => true]);
 });
 
+it('rejects a collapsible panel without a name, which could never be opened', function (Closure $make) {
+    expect($make)->toThrow(InvalidArgumentException::class, 'name');
+})->with([
+    'collapsible' => [fn () => Panel::make('', [])->collapsible()],
+    'collapsed' => [fn () => Panel::make('  ', [])->collapsed()],
+]);
+
+it('keeps an unnamed panel that is not collapsible', function () {
+    expect(Panel::make('', [])->collapsible(false)->collapsed(false)->toNode('p0', []))
+        ->toMatchArray(['name' => '', 'collapsible' => false, 'collapsed' => false]);
+});
+
 it('keeps the index row shape without a layout', function () {
     blockFields(fn () => mixedFields());
     blockPost();

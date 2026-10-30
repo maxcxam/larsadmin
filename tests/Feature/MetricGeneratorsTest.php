@@ -31,6 +31,8 @@ it('generates each metric class into App\\Larsadmin\\Metrics', function (string 
         ->toContain("class {$name} extends ".class_basename($parent))
         ->toContain('public function calculate(MetricRequest $request)')
         ->toContain('// Placeholder:')
+        ->toContain('// SECURITY: unscoped — replace with your Entity class')
+        ->toContain('cacheKeyParts()')
         ->toContain('$this->scoped(')
         ->not->toContain('{{');
 
@@ -56,12 +58,15 @@ it('generates a dashboard class into App\\Larsadmin\\Dashboards', function () {
         ->and(File::get($path))
         ->toContain('namespace App\Larsadmin\Dashboards;')
         ->toContain('class GenSalesDashboard extends Dashboard')
-        ->toContain('public function cards(Request $request): array');
+        ->toContain('public function cards(Request $request): array')
+        ->not->toContain('function name()');
 
     require_once $path;
     $dashboard = GenSalesDashboard::make();
 
+    // The name is the humanized class name of the base class, not "GenSalesDashboard".
     expect($dashboard)->toBeInstanceOf(Dashboard::class)
+        ->and($dashboard->name())->toBe('Gen Sales Dashboard')
         ->and($dashboard->uriKey())->toBe('gen-sales-dashboard')
         ->and($dashboard->cards(Request::create('/')))->toBe([])
         ->and($dashboard->authorizedToSee(Request::create('/')))->toBeTrue();

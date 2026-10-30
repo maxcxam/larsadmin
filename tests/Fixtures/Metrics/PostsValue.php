@@ -32,4 +32,9 @@ class PostsValue extends Value
     {
         return TestMetrics::$ttl;
     }
+
+    public function cacheKeyParts(MetricRequest $request): array
+    {
+        return TestMetrics::$cacheKeyParts === null ? [] : (TestMetrics::$cacheKeyParts)($request);
+    }
 }

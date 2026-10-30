@@ -23,10 +23,11 @@ const root = ref(null)
 const button = ref(null)
 const items = ref([])
 
-const visible = computed(() => props.actions.filter((a) => (props.context === 'detail' ? a.showOnDetail : a.showOnIndex)))
-// Standalone actions need no selection; the rest require at least one selected row (index only)
+// Detail: actions the user cannot run on this record are hidden, like the per-row menu (CR11-17).
 const isRunnable = (a) => props.context !== 'detail' || a.standalone || props.runnable === null || props.runnable.includes(a.uriKey)
-const isEnabled = (a) => isRunnable(a) && (props.context === 'detail' || a.standalone || props.selectedCount > 0)
+const visible = computed(() => props.actions.filter((a) => (props.context === 'detail' ? a.showOnDetail : a.showOnIndex) && isRunnable(a)))
+// Standalone actions need no selection; the rest require at least one selected row (index only)
+const isEnabled = (a) => props.context === 'detail' || a.standalone || props.selectedCount > 0
 const normal = computed(() => visible.value.filter((a) => !a.destructive))
 const destructive = computed(() => visible.value.filter((a) => a.destructive))
 const ordered = computed(() => [...normal.value, ...destructive.value])
@@ -127,7 +128,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onOutside))
                     type="button"
                     role="menuitem"
                     :disabled="!isEnabled(action)"
-                    :title="isRunnable(action) ? undefined : t('action_unavailable')"
                     class="flex w-full items-center px-3 py-1.5 text-left hover:bg-neutral-muted disabled:cursor-not-allowed disabled:text-fg-muted disabled:hover:bg-transparent"
                     :class="action.destructive && isEnabled(action) ? 'text-danger-fg' : ''"
                     @click="choose(action)"

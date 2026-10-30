@@ -151,7 +151,14 @@ class ActionController
             }],
         ]);
 
-        return $request->input('resources');
+        $resources = $request->input('resources');
+
+        // Only offered per row / on a detail page: never more than the one record those menus send.
+        if ($action->runsOnSingleRecord() && ($resources === 'all' || count($resources) > 1)) {
+            throw ValidationException::withMessages(['resources' => __('larsadmin::actions.single')]);
+        }
+
+        return $resources;
     }
 
     /**
