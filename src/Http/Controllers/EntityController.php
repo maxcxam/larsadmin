@@ -184,7 +184,7 @@ class EntityController
 
         $via = $this->returnTo($request, $instance);
 
-        $instance->record->delete();
+        $instance->deleteRecord($request);
 
         return ($via ? redirect()->route('larsadmin.entities.show', $via) : redirect($this->indexUrl($request, $entity)))
             ->with('larsadmin.toast', ['message' => __('larsadmin::messages.deleted'), 'type' => 'success']);

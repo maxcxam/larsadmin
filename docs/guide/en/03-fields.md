@@ -28,6 +28,8 @@ All classes live in the `Maxcxam\Larsadmin\Fields` namespace.
 | `DateTime` | `datetime-field` | the form sends `Y-m-d\TH:i:s`; inherits `displayFormat()` |
 | `Password` | `password-field` | forms only; the hash is never sent to the browser; changed only when a new value is entered (`Hash::make`) |
 | `Select` | `select-field` | `options(array\|Closure)`, a `value => label` map |
+| `File` | `file-field` | uploads a file to a disk; `multiple()`, private files with signed URLs, see [Files and images](15-files.md) |
+| `Image` | `image-field` | like `File`, raster images only, with thumbnails; see [Files and images](15-files.md) |
 | `BelongsTo`, `HasMany`, `BelongsToMany` | | see [Relations](04-relations.md) |
 
 The default date display format comes from the `larsadmin::ui.formats.date` and
@@ -238,6 +240,7 @@ Rules that follow from the field type are added automatically before your rules:
 | `Date`, `DateTime` | `date` |
 | `Select` | `Rule::in(...)` over the option keys |
 | `BelongsTo` | `required` (or `nullable`) and the `RelatableExists` check |
+| `File`, `Image` | rules for each uploaded file, see [Files and images](15-files.md#validation-and-limits) |
 
 For `Number`, `Boolean`, `Date` and `Select`, the `nullable` rule is added only when `nullable()` is called.
 So `Date::make(...)` without `nullable()` requires a value even without an explicit `required`.

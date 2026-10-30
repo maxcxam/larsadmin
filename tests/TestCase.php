@@ -79,5 +79,17 @@ abstract class TestCase extends Orchestra
             $table->foreignId('tag_id');
             $table->primary(['post_id', 'tag_id']);
         });
+
+        Schema::create('documents', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->string('slug')->nullable()->unique();
+            $table->string('cover')->nullable();
+            $table->string('cover_name')->nullable();
+            $table->json('attachments')->nullable();
+            $table->string('secret')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
     }
 }

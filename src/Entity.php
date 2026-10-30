@@ -5,15 +5,19 @@ namespace Maxcxam\Larsadmin;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Maxcxam\Larsadmin\Actions\Action;
 use Maxcxam\Larsadmin\Fields\Field;
+use Maxcxam\Larsadmin\Fields\File;
+use Maxcxam\Larsadmin\Files\FileJournal;
 use Maxcxam\Larsadmin\Filters\Filter;
 use Maxcxam\Larsadmin\Layout\FieldLayout;
 use Maxcxam\Larsadmin\Support\Like;
+use Throwable;
 
 abstract class Entity
 {
@@ -69,6 +73,11 @@ abstract class Entity
      * @var Collection<int, Field>|null
      */
     protected ?Collection $fieldPrototypes = null;
+
+    /**
+     * Whether the user may view the record, memoized for file URLs (D14).
+     */
+    protected ?bool $viewable = null;
 
     public function __construct(public Model $record) {}
 
@@ -265,6 +274,11 @@ abstract class Entity
                 $field->context = $context;
                 $field->readonly = $field->isReadonlyFor($request, $this->record);
 
+                // File URLs are emitted only when the user may view the record.
+                if ($field instanceof File && $context !== Field::CREATE) {
+                    $field->withUrls($this->viewable ??= $this->authorizedToView($request));
+                }
+
                 $context === Field::CREATE ? $field->resolveDefault($request) : $field->resolve($this->record);
             })
             ->values();
@@ -363,8 +377,7 @@ abstract class Entity
     public function validationAttributes(Request $request, string $context): array
     {
         return $this->editableFields($request, $context)
-            ->mapWithKeys(fn (Field $field) => [$field->attribute => $field->name])
-            ->all();
+            ->reduce(fn (array $names, Field $field) => $names + $field->validationAttributeNames(), []);
     }
 
     /**
@@ -382,20 +395,75 @@ abstract class Entity
 
     /**
      * Fill and save the record, then run the fields' after-save callbacks, in one transaction.
+     *
+     * Uploads are written before the transaction (ADR-017): when filling or the transaction
+     * throws, the files written by this request are deleted; files replaced or removed are
+     * deleted only after the outermost commit.
      */
     public function save(Request $request, string $context): Model
     {
-        $callbacks = $this->editableFields($request, $context)
-            ->map(fn (Field $field) => $field->fill($request, $this->record))
-            ->filter()
-            ->values();
+        $journal = (new FileJournal)->withContext(['entity' => static::class]);
+        $connection = $this->record->getConnection();
 
-        return $this->record->getConnection()->transaction(function () use ($callbacks) {
-            $this->record->save();
-            $callbacks->each(fn (Closure $callback) => $callback($this->record));
+        try {
+            $callbacks = $this->editableFields($request, $context)
+                ->map(fn (Field $field) => $field instanceof File
+                    ? $field->fillInto($request, $this->record, $journal)
+                    : $field->fill($request, $this->record))
+                ->filter()
+                ->values();
 
-            return $this->record;
+            return $connection->transaction(function () use ($callbacks, $journal, $connection) {
+                // Registered first, so it runs before any after-commit callback that may throw.
+                $connection->afterCommit(fn () => $journal->forgetCreated());
+
+                $this->record->save();
+                $callbacks->each(fn (Closure $callback) => $callback($this->record));
+
+                $journal->withContext(['key' => $this->record->getKey()]);
+                $connection->afterCommit(fn () => $journal->purgeObsolete());
+
+                return $this->record;
+            });
+        } catch (Throwable $e) {
+            $journal->discardCreated();
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Delete the record in a transaction and, after the commit, the files of its File fields
+     * (all of them, whatever their visibility; prunable() and "larsadmin.files.prune" decide).
+     * A soft delete keeps the files so the record can be restored. Use it in custom delete actions.
+     */
+    public function deleteRecord(Request $request): void
+    {
+        $journal = (new FileJournal)->withContext(['entity' => static::class, 'key' => $this->record->getKey()]);
+        $connection = $this->record->getConnection();
+
+        $connection->transaction(function () use ($request, $journal, $connection) {
+            $this->record->delete();
+
+            if ($this->isSoftDeleted()) {
+                return;
+            }
+
+            $this->fieldPrototypes($request)
+                ->filter(fn (Field $field) => $field instanceof File)
+                ->each(fn (File $field) => $field->pruneFor($this->record, $journal));
+
+            $connection->afterCommit(fn () => $journal->purgeObsolete());
         });
+    }
+
+    /**
+     * Whether the last delete() only soft deleted the record.
+     */
+    protected function isSoftDeleted(): bool
+    {
+        return in_array(SoftDeletes::class, class_uses_recursive($this->record), true)
+            && ! $this->record->isForceDeleting();
     }
 
     /**
@@ -470,7 +538,7 @@ abstract class Entity
      */
     public function serializeRecord(Request $request, string $context): array
     {
-        $view = $this->authorizedToView($request);
+        $view = $this->viewable = $this->authorizedToView($request);
         $update = $this->authorizedToUpdate($request);
         $delete = $this->authorizedToDelete($request);
 

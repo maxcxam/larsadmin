@@ -138,4 +138,4 @@ public function cards(Request $request): array
 The ranges of all metrics are computed in the panel timezone: `Larsadmin::timezoneUsing()`, then
 `larsadmin.timezone`, then `app.timezone`. See [Metrics](13-metrics.md#timezone).
 
-Next: [Extending](10-extending.md).
+Next: [Files and images](15-files.md).

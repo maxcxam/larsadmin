@@ -151,4 +151,49 @@ return [
         'max_all' => 1000,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Files
+    |--------------------------------------------------------------------------
+    |
+    | Defaults of the File and Image fields. "disk" is private unless its
+    | filesystem config says "visibility" => "public"; private files get signed
+    | URLs that expire after "url_ttl" minutes. Uploads are stored under
+    | "{directory}/{entity}/{attribute}" with random names. "max_size" is in
+    | kilobytes per file, "max_files" caps multiple() fields. With "prune" the
+    | files replaced, removed or belonging to deleted records are deleted after
+    | the database commit. "throttle" limits downloads per minute per user
+    | (null disables it). Extensions in "blocked_extensions" are rejected in
+    | every part of the client file name. The list is a backstop: prefer an
+    | allow-list with ->types([...]) on every field. Markup, script and PHP types
+    | (svg, html, xml, js, php, ...) stay blocked on public disks even when
+    | removed from this list.
+    |
+    */
+
+    'files' => [
+        'disk' => env('LARSADMIN_FILES_DISK', 'local'),
+        'directory' => 'larsadmin',
+        'max_size' => 10240,
+        'max_files' => 10,
+        'prune' => true,
+        'url_ttl' => 30,
+        'throttle' => 600,
+        'blocked_extensions' => [
+            // server-side scripts
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'pht', 'phtm', 'phps', 'phar', 'pgif', 'inc',
+            'cgi', 'pl', 'py', 'rb', 'sh', 'bash', 'zsh', 'asp', 'aspx', 'asa', 'asmx', 'ashx', 'cer', 'config',
+            'jsp', 'jspx', 'cfm', 'cfc', 'shtml', 'shtm', 'stm',
+            // Windows executables and script hosts
+            'exe', 'dll', 'com', 'scr', 'pif', 'msi', 'msp', 'mst', 'msc', 'cpl', 'bat', 'cmd', 'hta', 'chm',
+            'vbs', 'vbe', 'jse', 'wsf', 'wsh', 'ws', 'wsc', 'ps1', 'psm1', 'psd1', 'ps1xml', 'reg', 'inf', 'scf',
+            'lnk', 'url', 'application', 'appref-ms', 'gadget', 'settingcontent-ms', 'jar', 'jnlp',
+            // markup and scripts executed by browsers
+            'html', 'htm', 'xhtml', 'xht', 'xhtm', 'mht', 'mhtml', 'svg', 'svgz', 'xml', 'xsl', 'xslt',
+            'js', 'mjs', 'cjs', 'swf',
+            // server configuration
+            'htaccess', 'htpasswd', 'ini',
+        ],
+    ],
+
 ];

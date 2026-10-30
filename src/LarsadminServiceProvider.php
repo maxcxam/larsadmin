@@ -60,23 +60,14 @@ class LarsadminServiceProvider extends ServiceProvider
 
     /**
      * Register the rate limiters: login 5/min per email + IP and 30/min per IP; the metric endpoints
-     * "larsadmin.metrics.throttle" per minute per user (per IP for guests), unlimited when null.
+     * "larsadmin.metrics.throttle" and the file downloads "larsadmin.files.throttle" per minute per
+     * user (per IP for guests), unlimited when null.
      */
     protected function registerRateLimiting(): void
     {
-        RateLimiter::for('larsadmin-metrics', function (Request $request) {
-            // A config published before the key existed keeps the default.
-            $perMinute = config('larsadmin.metrics.throttle', 120);
-
-            if ($perMinute === null) {
-                return Limit::none();
-            }
-
-            $user = $request->user(Larsadmin::guard());
-
-            return Limit::perMinute(max(1, (int) $perMinute))
-                ->by($user === null ? 'ip:'.$request->ip() : 'user:'.$user::class.':'.$user->getAuthIdentifier());
-        });
+        // A config published before the keys existed keeps the defaults.
+        RateLimiter::for('larsadmin-metrics', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.metrics.throttle', 120)));
+        RateLimiter::for('larsadmin-files', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.files.throttle', 600)));
 
         RateLimiter::for('larsadmin-login', function (Request $request) {
             $email = $request->input('email');
@@ -87,6 +78,21 @@ class LarsadminServiceProvider extends ServiceProvider
                 Limit::perMinute(30)->by((string) $request->ip()),
             ];
         });
+    }
+
+    /**
+     * A per-minute limit per user (per IP for guests); none when null.
+     */
+    protected function perUserLimit(Request $request, mixed $perMinute): Limit
+    {
+        if ($perMinute === null) {
+            return Limit::none();
+        }
+
+        $user = $request->user(Larsadmin::guard());
+
+        return Limit::perMinute(max(1, (int) $perMinute))
+            ->by($user === null ? 'ip:'.$request->ip() : 'user:'.$user::class.':'.$user->getAuthIdentifier());
     }
 
     /**

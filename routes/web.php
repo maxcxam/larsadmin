@@ -5,6 +5,7 @@ use Maxcxam\Larsadmin\Http\Controllers\ActionController;
 use Maxcxam\Larsadmin\Http\Controllers\AttachController;
 use Maxcxam\Larsadmin\Http\Controllers\DashboardController;
 use Maxcxam\Larsadmin\Http\Controllers\EntityController;
+use Maxcxam\Larsadmin\Http\Controllers\FileController;
 use Maxcxam\Larsadmin\Http\Controllers\LocaleController;
 use Maxcxam\Larsadmin\Http\Controllers\LoginController;
 use Maxcxam\Larsadmin\Http\Controllers\MetricController;
@@ -25,6 +26,11 @@ Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
 
     Route::get('api/entities/{entity}/fields/{field}/options', [RelatableController::class, 'index'])->name('api.options');
     Route::get('api/entities/{entity}/{id}/related/{field}', [RelatedController::class, 'index'])->name('api.related');
+
+    Route::get('files/{entity}/{id}/{field}/{token}', [FileController::class, 'show'])
+        ->where('token', '[a-f0-9]{32}')
+        ->middleware(['signed:relative', 'throttle:larsadmin-files'])
+        ->name('files.show');
 
     Route::prefix('entities/{entity}')->name('entities.')->controller(EntityController::class)->group(function () {
         Route::get('/', 'index')->name('index');

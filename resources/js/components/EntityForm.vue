@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { formComponent } from '../fields'
+import { buildSubmission, fieldError, formatSize, isFileField, uploadErrors } from '../fields/files'
 import { useI18n } from '../composables/useI18n'
 import FieldBlocks from './layout/FieldBlocks.vue'
 import IconAlert from './icons/IconAlert.vue'
@@ -19,7 +20,7 @@ const props = defineProps({
     resourceId: { type: [String, Number], default: null },
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const page = usePage()
 
 // ADR-008: keep via* params on store/update so the server can redirect back to the parent.
@@ -39,10 +40,41 @@ const submitUrl = computed(() => {
 const form = useForm(Object.fromEntries(props.fields.map((field) => [field.attribute, field.value])))
 
 function submit() {
-    form.submit(props.method, submitUrl.value, {
+    const { method, multipart } = buildSubmission(props.fields, props.method, null)
+
+    if (!multipart) {
+        form.submit(method, submitUrl.value, {
+            preserveScroll: true,
+        })
+
+        return
+    }
+
+    // Forms with File/Image fields (ADR-014): multipart POST, updates spoofed with _method=PUT (PHP does not
+    // parse multipart bodies of real PUT requests). Wire format per field: {attr}[present|keep|upload].
+    form.transform((data) => buildSubmission(props.fields, props.method, data).data).submit(method, submitUrl.value, {
         preserveScroll: true,
+        forceFormData: true,
+        onHttpException: (response) => {
+            if (response.status !== 413) return
+
+            // post_max_size exceeded: Laravel answers 413 before any package code runs.
+            router.replaceProp('toast', { type: 'error', message: t('files_request_too_large', { max: requestLimit() }) })
+
+            return false
+        },
     })
 }
+
+const multipartForm = computed(() => props.fields.some(isFileField))
+
+function requestLimit() {
+    const limits = props.fields.filter(isFileField).map((field) => field.uploadLimit?.request).filter((limit) => limit > 0)
+
+    return limits.length ? formatSize(Math.min(...limits), locale.value) : '—'
+}
+
+const uploadPercent = computed(() => Math.round(form.progress?.percentage ?? 0))
 </script>
 
 <template>
@@ -61,12 +93,13 @@ function submit() {
                             :is="formComponent(field)"
                             v-model="form[field.attribute]"
                             :field="field"
-                            :invalid="!!form.errors[field.attribute]"
+                            :invalid="!!fieldError(form.errors, field.attribute)"
                             :context="context"
                             :resource-id="resourceId"
+                            v-bind="isFileField(field) ? { uploadErrors: uploadErrors(form.errors, field.attribute) } : {}"
                         />
-                        <p v-if="form.errors[field.attribute]" class="mt-1.5 flex items-center gap-1 text-xs text-danger-fg" role="alert">
-                            <IconAlert />{{ form.errors[field.attribute] }}
+                        <p v-if="fieldError(form.errors, field.attribute)" :id="`${field.attribute}-error`" class="mt-1.5 flex items-center gap-1 text-xs text-danger-fg" role="alert">
+                            <IconAlert />{{ fieldError(form.errors, field.attribute) }}
                         </p>
                         <p v-else-if="field.help" class="mt-1.5 text-xs text-fg-muted">{{ field.help }}</p>
                     </div>
@@ -75,6 +108,17 @@ function submit() {
         </FieldBlocks>
 
         <div class="mt-4 flex items-center justify-end gap-2">
+            <div v-if="multipartForm && form.processing && form.progress" class="mr-auto flex items-center gap-2">
+                <progress
+                    class="h-2 w-40 accent-accent-emphasis"
+                    max="100"
+                    :value="uploadPercent"
+                    :aria-label="t('files_uploading', { percent: uploadPercent })"
+                >
+                    {{ uploadPercent }}%
+                </progress>
+                <span class="text-xs text-fg-muted" aria-hidden="true">{{ t('files_uploading', { percent: uploadPercent }) }}</span>
+            </div>
             <Link :href="cancelHref" class="larsadmin-btn">{{ t('cancel') }}</Link>
             <button type="submit" class="larsadmin-btn-primary" :disabled="form.processing">
                 {{ submitLabel }}

@@ -14,6 +14,8 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
   pagination and row scoping (`indexQuery`, `detailQuery`, `relatableQuery`).
 - **Fields**: `ID`, `Text`, `Textarea`, `Number`, `Boolean`, `Date`, `DateTime`, `Password`, `Select`
   (enums too), with per-context and per-record visibility, read-only rules and validation.
+- **Files and images**: `File` and `Image` fields, one file or several (`multiple()`), public and
+  private disks including S3, signed re-authorized links for private files, deletion of replaced files.
 - **Relations**: `BelongsTo` (searchable), `HasMany` and `BelongsToMany` panels with attach/detach.
 - **Field blocks**: group form and detail fields into panels (one or two columns, collapsible) and tabs.
 - **Filters**: select, boolean and date range filters, plus your own.
@@ -278,6 +280,7 @@ its translation.
 | [12. Field blocks](docs/guide/en/12-layout.md) | panels, tabs, two columns |
 | [13. Metrics](docs/guide/en/13-metrics.md) | Value, Trend, Partition, Progress, scoping, caching |
 | [14. Dashboards](docs/guide/en/14-dashboards.md) | dashboards, home page, entity cards |
+| [15. Files and images](docs/guide/en/15-files.md) | File and Image fields, disks, private files, pruning |
 
 ## Changelog
 

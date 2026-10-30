@@ -11,4 +11,7 @@ return [
     'no' => 'Ні',
     'unauthenticated' => 'Потрібна автентифікація.',
     'forbidden' => 'Доступ заборонено.',
+    'file_required' => 'Поле :attribute є обов\'язковим.',
+    'file_too_many' => ':Attribute: максимальна кількість файлів — :max.',
+    'file_blocked' => ':Attribute: файли типу «:extension» заборонені.',
 ];

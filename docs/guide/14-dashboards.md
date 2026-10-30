@@ -137,4 +137,4 @@ public function cards(Request $request): array
 Періоди всіх метрик рахуються в часовому поясі панелі: `Larsadmin::timezoneUsing()`, далі
 `larsadmin.timezone`, далі `app.timezone`. Див. [Метрики](13-metrics.md#часовий-пояс).
 
-Далі: [Розширення](10-extending.md).
+Далі: [Файли й зображення](15-files.md).

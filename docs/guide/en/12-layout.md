@@ -107,7 +107,8 @@ on, see [Fields](03-fields.md#visibility)) separately for each page and each rec
 with no visible fields left is not shown. A tab set without any tabs disappears too.
 
 Blocks do not affect the list (index): the table columns come from the fields in the order they are
-declared.
+declared. The fields of a panel or tab sit among the columns where the block itself is declared, so to
+move a column earlier, declare the field or the block higher in `fields()`.
 
 ## Validation errors
 

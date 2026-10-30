@@ -225,6 +225,13 @@ MarkLive::make()
     ->canRun(fn (Request $request, ?Model $post) => $post === null || $post->status !== 'live');
 ```
 
+## Файли в діях
+
+Поля `File` і `Image` у `fields()` дії не підтримуються: перший виклик полів дії кидає
+`LogicException`. Дія видалення записів із файлами має викликати `Entity::deleteRecord()` замість
+`$model->delete()`, інакше файли лишаться на диску. Див.
+[Файли й зображення](15-files.md#видалення-записів).
+
 ## Поля `BelongsTo` у модальному вікні
 
 Поле `BelongsTo` можна використовувати в `fields()` дії. Варіанти беруться з ендпоінта
