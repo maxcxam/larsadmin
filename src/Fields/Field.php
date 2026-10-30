@@ -585,6 +585,16 @@ abstract class Field implements JsonSerializable
     }
 
     /**
+     * The validation attribute names of the keys validated by rulesFor(), mapped to the field name.
+     *
+     * @return array<string, string>
+     */
+    public function validationAttributeNames(): array
+    {
+        return [$this->attribute => $this->name];
+    }
+
+    /**
      * Flatten the given rules, exploding "required|max:255" pipe strings.
      *
      * Rule objects and closures are kept intact. A string containing a

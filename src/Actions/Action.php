@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use LogicException;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Fields\Field;
+use Maxcxam\Larsadmin\Fields\File;
 use ReflectionMethod;
 
 /**
@@ -116,14 +118,23 @@ abstract class Action
     }
 
     /**
-     * The unresolved fields, built once and bound to the entity.
+     * The unresolved fields, built once and bound to the entity. File fields are not supported:
+     * actions fill a throw-away model, so stored uploads would be orphaned.
      *
      * @return Collection<int, Field>
      */
     public function fieldPrototypes(Request $request): Collection
     {
         return $this->fieldPrototypes ??= collect($this->fields($request))
-            ->each(fn (Field $field) => $this->entity ? $field->bindTo($request, $this->entity) : null)
+            ->each(function (Field $field) use ($request) {
+                if ($field instanceof File) {
+                    throw new LogicException(sprintf('The action [%s] cannot have the file field [%s]; file fields are not supported in actions.', static::class, $field->attribute));
+                }
+
+                if ($this->entity) {
+                    $field->bindTo($request, $this->entity);
+                }
+            })
             ->values();
     }
 

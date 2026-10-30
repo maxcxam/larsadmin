@@ -9,6 +9,9 @@ import SelectInput from './form/SelectInput.vue'
 import DateInput from './form/DateInput.vue'
 import BelongsToDisplay from './display/BelongsToDisplay.vue'
 import BelongsToInput from './form/BelongsToInput.vue'
+import FileDisplay from './display/FileDisplay.vue'
+import ImageDisplay from './display/ImageDisplay.vue'
+import FileInput from './form/FileInput.vue'
 import RelatedPanel from '../components/RelatedPanel.vue'
 
 // Maps a field's server-side `component` key to the Vue components that render it.
@@ -17,6 +20,8 @@ const displayComponents = {
     'textarea-field': TextareaDisplay,
     'boolean-field': BooleanDisplay,
     'belongs-to-field': BelongsToDisplay,
+    'file-field': FileDisplay,
+    'image-field': ImageDisplay,
 }
 
 const formComponents = {
@@ -29,6 +34,8 @@ const formComponents = {
     'date-field': DateInput,
     'datetime-field': DateInput,
     'belongs-to-field': BelongsToInput,
+    'file-field': FileInput,
+    'image-field': FileInput,
 }
 
 // Detail-page panels (fields with `panel: true`), rendered under the field list.
