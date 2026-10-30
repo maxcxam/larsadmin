@@ -1,4 +1,5 @@
 # 06. Фільтри
+🇬🇧 [English](en/06-filters.md)
 
 Фільтри обмежують список записів Entity. Їхній стан зберігається в рядку запиту:
 `?filters[<key>]=<value>`. Фільтри діють на index, на панелі `HasMany`/`BelongsToMany` та на дії
@@ -85,7 +86,8 @@ php artisan larsadmin:filter StatusFilter
 ```
 
 Опція `--force` перезаписує існуючий клас.
-Клас створюється як `App\Larsadmin\Filters\StatusFilter` (вміст заглушки, яку ви далі правите):
+Клас створюється як `App\Larsadmin\Filters\StatusFilter`. Генератор записує заглушку з `__('{{ class }}')`
+у `name()` і порожнім списком опцій; після редагування клас може виглядати так:
 
 ```php
 namespace App\Larsadmin\Filters;

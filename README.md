@@ -8,9 +8,6 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
 [![Tests](https://github.com/maxcxam/larsadmin/actions/workflows/tests.yml/badge.svg)](https://github.com/maxcxam/larsadmin/actions/workflows/tests.yml)
 [![License](https://img.shields.io/packagist/l/maxcxam/larsadmin.svg)](LICENSE)
 
-> The developer guides are written in **Ukrainian** (the panel's default language). This README covers
-> the essentials in English.
-
 ## Features
 
 - **Entities**: one class per model with fields, search (including `relation.column`), sorting,
@@ -258,28 +255,29 @@ php artisan vendor:publish --tag=larsadmin-lang
 ## Theming
 
 Light, dark and system themes, switchable in the header and on the login page. The choice is kept in
-the browser. There is no public theming API yet; see the theming guide for the design tokens.
+the browser. There is no public theming API yet; see the [theming guide](docs/guide/en/09-theming.md) for the design tokens.
 
 ## Documentation
 
-Full guides (Ukrainian):
+Full guides, in English. The Ukrainian originals are in [`docs/guide/`](docs/guide/); every page links to
+its translation.
 
 | Guide | Topics |
 | --- | --- |
-| [01. Installation](docs/guide/01-installation.md) | requirements, publish tags, config, commands |
-| [02. Entities](docs/guide/02-entities.md) | Entity API, queries, generator |
-| [03. Fields](docs/guide/03-fields.md) | field types, visibility, validation, list columns |
-| [04. Relations](docs/guide/04-relations.md) | BelongsTo, HasMany, BelongsToMany |
-| [05. Authorization](docs/guide/05-authorization.md) | panel gate, policies, row scoping |
-| [06. Filters](docs/guide/06-filters.md) | built-in and custom filters |
-| [07. Actions](docs/guide/07-actions.md) | bulk and row actions, responses, generator |
-| [08. Localization](docs/guide/08-i18n.md) | languages, translations, switcher |
-| [09. Theming](docs/guide/09-theming.md) | tokens, light/dark/system |
-| [10. Extending](docs/guide/10-extending.md) | what is public and what is planned |
-| [11. List UI](docs/guide/11-ui.md) | column picker, responsive layout |
-| [12. Field blocks](docs/guide/12-layout.md) | panels, tabs, two columns |
-| [13. Metrics](docs/guide/13-metrics.md) | Value, Trend, Partition, Progress, scoping, caching |
-| [14. Dashboards](docs/guide/14-dashboards.md) | dashboards, home page, entity cards |
+| [01. Installation](docs/guide/en/01-installation.md) | requirements, publish tags, config, commands |
+| [02. Entities](docs/guide/en/02-entities.md) | Entity API, queries, generator |
+| [03. Fields](docs/guide/en/03-fields.md) | field types, visibility, validation, list columns |
+| [04. Relations](docs/guide/en/04-relations.md) | BelongsTo, HasMany, BelongsToMany |
+| [05. Authorization](docs/guide/en/05-authorization.md) | panel gate, policies, row scoping |
+| [06. Filters](docs/guide/en/06-filters.md) | built-in and custom filters |
+| [07. Actions](docs/guide/en/07-actions.md) | bulk and row actions, responses, generator |
+| [08. Localization](docs/guide/en/08-i18n.md) | languages, translations, switcher |
+| [09. Theming](docs/guide/en/09-theming.md) | tokens, light/dark/system |
+| [10. Extending](docs/guide/en/10-extending.md) | what is public and what is planned |
+| [11. List UI](docs/guide/en/11-ui.md) | column picker, responsive layout |
+| [12. Field blocks](docs/guide/en/12-layout.md) | panels, tabs, two columns |
+| [13. Metrics](docs/guide/en/13-metrics.md) | Value, Trend, Partition, Progress, scoping, caching |
+| [14. Dashboards](docs/guide/en/14-dashboards.md) | dashboards, home page, entity cards |
 
 ## Changelog
 

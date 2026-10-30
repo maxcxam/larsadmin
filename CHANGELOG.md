@@ -7,6 +7,21 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-30
+
+### Added
+
+- **Англійські посібники.** Усі посібники розробника перекладено англійською: `docs/guide/en/`
+  (ті самі назви файлів). Українські оригінали лишаються в `docs/guide/`. Кожна сторінка обох мов
+  має під заголовком посилання на версію іншою мовою. README пакета веде на англійські посібники.
+
+### Fixed
+
+- **Тести.** Набір тестів проходить на Laravel 12 і Pest 4. Тест покриття українських повідомлень
+  валідації не залежить від версії Laravel: `lang/uk/validation.php` має містити всі ключі
+  англійського файлу фреймворку, а зайві ключі з новішої версії дозволені. Набір даних у тесті
+  метрик має ключі, тож Pest 4 більше не сприймає його як callable.
+
 ## [1.0.0] - 2026-10-30
 
 Перший публічний реліз. Ліцензія GPL-3.0.
@@ -167,5 +182,6 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/maxcxam/larsadmin/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/maxcxam/larsadmin/releases/tag/v1.0.0

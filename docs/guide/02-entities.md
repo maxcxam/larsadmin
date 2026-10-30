@@ -1,4 +1,5 @@
 # 02. Entities
+🇬🇧 [English](en/02-entities.md)
 
 Entity описує, як модель показується в панелі: які поля, за чим шукати, які записи бачить користувач.
 Клас розширює `Maxcxam\Larsadmin\Entity`.
