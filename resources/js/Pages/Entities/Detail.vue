@@ -6,6 +6,7 @@ import { useLarsadmin } from '../../composables/useLarsadmin'
 import { useI18n } from '../../composables/useI18n'
 import ActionMenu from '../../components/actions/ActionMenu.vue'
 import ActionModal from '../../components/actions/ActionModal.vue'
+import FieldBlocks from '../../components/layout/FieldBlocks.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import Breadcrumbs from '../../components/Breadcrumbs.vue'
 import IconPencil from '../../components/icons/IconPencil.vue'
@@ -45,7 +46,7 @@ function destroy() {
         <h1 class="text-2xl font-semibold">{{ entity.singularLabel }}: {{ record.title }}</h1>
 
         <div class="flex gap-2">
-            <ActionMenu v-if="actions.length" :actions="actions" context="detail" @run="pending = $event" />
+            <ActionMenu v-if="actions.length" :actions="actions" context="detail" :runnable="record.actions ?? null" @run="pending = $event" />
             <Link v-if="editUrl" :href="editUrl" class="larsadmin-btn">
                 <IconPencil />{{ t('edit') }}
             </Link>
@@ -55,14 +56,16 @@ function destroy() {
         </div>
     </div>
 
-    <dl v-if="detailFields.length" class="larsadmin-box divide-y divide-muted">
-        <div v-for="field in detailFields" :key="field.attribute" class="grid gap-1 px-4 py-3 md:grid-cols-4 md:gap-4">
-            <dt class="font-semibold text-fg-muted">{{ field.name }}</dt>
-            <dd class="min-w-0 break-words md:col-span-3">
-                <component :is="displayComponent(field)" :field="field" />
-            </dd>
-        </div>
-    </dl>
+    <FieldBlocks v-if="detailFields.length" :layout="record.layout ?? null" :fields="detailFields">
+        <template #field="{ field, stacked }">
+            <div :class="stacked ? 'grid gap-1 px-4 py-3' : 'grid gap-1 px-4 py-3 md:grid-cols-4 md:gap-4'">
+                <div class="font-semibold text-fg-muted">{{ field.name }}</div>
+                <div :class="['min-w-0 break-words', stacked ? '' : 'md:col-span-3']">
+                    <component :is="displayComponent(field)" :field="field" />
+                </div>
+            </div>
+        </template>
+    </FieldBlocks>
 
     <component
         :is="panelComponent(field)"

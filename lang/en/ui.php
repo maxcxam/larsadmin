@@ -93,6 +93,28 @@ return [
     'panel_error' => 'Could not load the records.',
     'panel_forbidden' => 'You do not have access to this list.',
 
+    // Blocks, row actions
+    'row_actions' => 'Row actions',
+    'action_unavailable' => 'Action is not available for this record',
+    'expand' => 'Expand',
+    'collapse' => 'Collapse',
+    'tab_errors' => ':count error|:count errors',
+
+    // Dashboards and metrics
+    'dashboards' => 'Dashboards',
+    'metric_range' => 'Range',
+    'metric_error' => 'Could not load the data.',
+    'metric_forbidden' => 'You do not have access to this data.',
+    'metric_compare' => 'Compared to the previous period',
+    'no_data' => 'No data',
+    'change_up' => 'Up :value%',
+    'change_down' => 'Down :value%',
+    'no_change' => 'No change',
+    'no_previous' => 'No data for the previous period',
+    'of_target' => 'of :target',
+    'chart_data' => 'Chart data',
+    'other' => 'Other',
+
     // Language
     'language' => 'Language',
     'language_current' => 'Language: :language',

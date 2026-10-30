@@ -1,0 +1,29 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
+use Maxcxam\Larsadmin\Metrics\Results\TrendResult;
+use Maxcxam\Larsadmin\Metrics\Trend;
+
+class {{ class }} extends Trend
+{
+    /**
+     * Calculate the trend; the range is the number of buckets. Pass an Entity class to scope the rows
+     * by its indexQuery() and viewAny (narrow it with $this->scoped()); a model class or builder is NOT restricted.
+     */
+    public function calculate(MetricRequest $request): TrendResult
+    {
+        // Placeholder: count your Entity (scoped) or model instead of User, by created_at or a given date column.
+        return $this->countByDays($request, User::class)->showSumValue();
+    }
+
+    /**
+     * Cache the result per user, timezone, locale and range (null: no cache).
+     */
+    public function cacheFor(): ?int
+    {
+        return null;
+    }
+}

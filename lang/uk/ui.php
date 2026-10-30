@@ -93,6 +93,28 @@ return [
     'panel_error' => 'Не вдалося завантажити записи.',
     'panel_forbidden' => 'Немає доступу до цього списку.',
 
+    // Blocks, row actions
+    'row_actions' => 'Дії для запису',
+    'action_unavailable' => 'Дія недоступна для цього запису',
+    'expand' => 'Розгорнути',
+    'collapse' => 'Згорнути',
+    'tab_errors' => ':count помилка|:count помилки|:count помилок',
+
+    // Dashboards and metrics
+    'dashboards' => 'Дашборди',
+    'metric_range' => 'Період',
+    'metric_error' => 'Не вдалося завантажити дані.',
+    'metric_forbidden' => 'Немає доступу до цих даних.',
+    'metric_compare' => 'Порівняно з попереднім періодом',
+    'no_data' => 'Немає даних',
+    'change_up' => 'Зросло на :value%',
+    'change_down' => 'Зменшилося на :value%',
+    'no_change' => 'Без змін',
+    'no_previous' => 'Немає даних за попередній період',
+    'of_target' => 'з :target',
+    'chart_data' => 'Дані діаграми',
+    'other' => 'Інше',
+
     // Language
     'language' => 'Мова',
     'language_current' => 'Мова: :language',

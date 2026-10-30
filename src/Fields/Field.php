@@ -73,6 +73,11 @@ abstract class Field implements JsonSerializable
 
     public ?string $width = null;
 
+    /**
+     * Span both columns of a two-column panel.
+     */
+    public bool $fullWidth = false;
+
     protected ?string $align = null;
 
     /**
@@ -407,6 +412,13 @@ abstract class Field implements JsonSerializable
         }
 
         $this->width = $normalized;
+
+        return $this;
+    }
+
+    public function fullWidth(bool $full = true): static
+    {
+        $this->fullWidth = $full;
 
         return $this;
     }
@@ -762,6 +774,7 @@ abstract class Field implements JsonSerializable
             'align' => $this->getAlign(),
             'wrap' => $this->wrap,
             'truncate' => $this->truncate,
+            'fullWidth' => $this->fullWidth,
         ], $this->meta);
     }
 }

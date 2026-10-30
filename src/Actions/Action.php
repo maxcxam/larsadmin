@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Fields\Field;
+use ReflectionMethod;
 
 /**
  * A bulk or standalone operation on an entity's records.
@@ -245,6 +246,16 @@ abstract class Action
     }
 
     /**
+     * Whether availability is just the entity's update ability (no canRun callback, authorizedToRun not
+     * overridden), so a caller that already knows that ability can skip the policy call.
+     */
+    public function usesDefaultRunCheck(): bool
+    {
+        return $this->canRunCallback === null
+            && (new ReflectionMethod($this, 'authorizedToRun'))->getDeclaringClass()->getName() === self::class;
+    }
+
+    /**
      * Whether the user may run a standalone action (it has no records to check). The canRun
      * callback is called with a null model when set, otherwise the entity's create ability
      * decides. An unbound action fails closed.
@@ -296,6 +307,38 @@ abstract class Action
     public function withoutConfirmation(bool $without = true): static
     {
         $this->withoutConfirmation = $without;
+
+        return $this;
+    }
+
+    /**
+     * Show the action in the index toolbar menu.
+     */
+    public function showOnIndex(bool $show = true): static
+    {
+        $this->showOnIndex = $show;
+
+        return $this;
+    }
+
+    /**
+     * Show the action in the detail page menu.
+     */
+    public function showOnDetail(bool $show = true): static
+    {
+        $this->showOnDetail = $show;
+
+        return $this;
+    }
+
+    /**
+     * Show the action only in the per-row menu of the index.
+     */
+    public function onlyInline(): static
+    {
+        $this->showOnIndex = false;
+        $this->showOnDetail = false;
+        $this->showInline = true;
 
         return $this;
     }

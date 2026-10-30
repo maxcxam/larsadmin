@@ -33,6 +33,7 @@ const submitUrl = computed(() => showUrl.value ?? props.record.urls?.destroy ?? 
 
     <EntityForm
         :fields="record.fields"
+        :layout="record.layout ?? null"
         :action="submitUrl"
         method="put"
         context="update"

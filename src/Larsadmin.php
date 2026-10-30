@@ -3,8 +3,12 @@
 namespace Maxcxam\Larsadmin;
 
 use Closure;
+use DateTimeZone;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Maxcxam\Larsadmin\Dashboards\Dashboard;
+use Maxcxam\Larsadmin\Dashboards\Main;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
 
@@ -185,12 +189,134 @@ class Larsadmin
     }
 
     /**
+     * The registered dashboards, in menu order.
+     *
+     * @var array<int, Dashboard>
+     */
+    protected static array $dashboards = [];
+
+    /**
+     * The callback that resolves the timezone metrics are aligned to.
+     */
+    protected static ?Closure $timezoneUsing = null;
+
+    /**
+     * Register the dashboards of the panel (replacing earlier ones); the order is the menu order.
+     *
+     * @param  array<int, Dashboard>  $dashboards
+     */
+    public static function dashboards(array $dashboards): void
+    {
+        static::$dashboards = array_values(array_filter($dashboards, fn ($dashboard) => $dashboard instanceof Dashboard));
+    }
+
+    /**
+     * The registered dashboards; the empty "Main" one when none were registered.
+     *
+     * @return array<int, Dashboard>
+     */
+    public static function registeredDashboards(): array
+    {
+        return static::$dashboards === [] ? [new Main] : static::$dashboards;
+    }
+
+    /**
+     * Find a registered dashboard by its URI key (visibility is NOT checked).
+     */
+    public static function dashboardForKey(string $key): ?Dashboard
+    {
+        foreach (static::registeredDashboards() as $dashboard) {
+            if ($dashboard->uriKey() === $key) {
+                return $dashboard;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The dashboard shown at the panel root: the first one the request may see.
+     */
+    public static function home(Request $request): ?Dashboard
+    {
+        foreach (static::registeredDashboards() as $dashboard) {
+            if ($dashboard->authorizedToSee($request)) {
+                return $dashboard;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The sidebar entries of the dashboards the request may see. The home dashboard points at the
+     * panel root, so the root URL is "active" for it.
+     *
+     * @return list<array{uriKey: string, name: string, url: string}>
+     */
+    public static function dashboardNavigation(Request $request): array
+    {
+        $home = static::home($request);
+        $entries = [];
+
+        foreach (static::registeredDashboards() as $dashboard) {
+            if ($dashboard->displayInNavigation && $dashboard->authorizedToSee($request)) {
+                $entries[] = [
+                    'uriKey' => $dashboard->uriKey(),
+                    'name' => $dashboard->name(),
+                    'url' => $dashboard === $home
+                        ? route('larsadmin.dashboard', [], false)
+                        : route('larsadmin.dashboards.show', $dashboard->uriKey(), false),
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Register the callback that resolves the metrics timezone, e.g. a per-user setting: fn (Request): ?string.
+     */
+    public static function timezoneUsing(?Closure $callback): void
+    {
+        static::$timezoneUsing = $callback;
+    }
+
+    /**
+     * Resolve the timezone metrics are aligned to: callback, then config, then the app timezone.
+     * Unknown identifiers are skipped.
+     */
+    public static function timezone(Request $request): string
+    {
+        $candidates = [
+            static::$timezoneUsing ? (static::$timezoneUsing)($request) : null,
+            config('larsadmin.timezone'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                try {
+                    new DateTimeZone($candidate);
+                } catch (Exception) {
+                    continue;
+                }
+
+                return $candidate;
+            }
+        }
+
+        return (string) config('app.timezone', 'UTC');
+    }
+
+    /**
      * Reset the static state, e.g. between tests or Octane requests.
      */
     public static function flushState(): void
     {
         static::$authUsing = null;
         static::$localeUsing = null;
+        static::$dashboards = [];
+        static::$timezoneUsing = null;
         static::$entities = [];
         static::$hashes = [];
     }

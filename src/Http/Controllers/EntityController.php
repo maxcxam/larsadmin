@@ -12,6 +12,7 @@ use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Fields\BelongsTo;
 use Maxcxam\Larsadmin\Fields\Field;
 use Maxcxam\Larsadmin\Larsadmin;
+use Maxcxam\Larsadmin\Metrics\Cards;
 use Maxcxam\Larsadmin\Query\EntityQuery;
 
 class EntityController
@@ -35,14 +36,23 @@ class EntityController
 
         $params = $query->params();
 
+        $rowActions = ActionRegistry::rowActions($entity, $request, 'index');
+
         $records = $query->paginate($params['perPage'], $params['page'])
             ->withQueryString()
-            ->through(fn (Model $record) => $entity::make($record)->serializeRecord($request, Field::INDEX));
+            ->through(function (Model $record) use ($request, $entity, $rowActions) {
+                $row = $entity::make($record)->serializeRecord($request, Field::INDEX);
+
+                return $rowActions === [] ? $row : $row + [
+                    'actions' => ActionRegistry::runnableFor($request, $rowActions, $record, $row['authorizedToUpdate']),
+                ];
+            });
 
         return Inertia::render('Entities/Index', [
             'entity' => $entity::serializeMeta($request),
             'actions' => ActionRegistry::serialize($entity, $request),
             'columns' => $columns,
+            'cards' => Cards::serialize($request, $entity::make()->cards($request), 'larsadmin.api.entity-metric', $entity::uriKey()),
             'records' => $records,
             'filters' => $query->serializeFilters(),
             'query' => [
@@ -65,9 +75,13 @@ class EntityController
 
         abort_unless($entity::authorizedToCreate($request), 403);
 
+        $instance = $entity::make();
+        $fields = $instance->resolveFields($request, Field::CREATE);
+
         return Inertia::render('Entities/Create', [
             'entity' => $entity::serializeMeta($request),
-            'fields' => $entity::make()->resolveFields($request, Field::CREATE),
+            'fields' => $fields,
+            'layout' => $instance->serializeLayout($request, $fields),
         ]);
     }
 
@@ -105,9 +119,16 @@ class EntityController
 
         abort_unless($instance->authorizedToView($request), 403);
 
+        $record = $instance->serializeRecord($request, Field::DETAIL);
+        $detailActions = ActionRegistry::rowActions($entity, $request, 'detail');
+
+        if ($detailActions !== []) {
+            $record['actions'] = ActionRegistry::runnableFor($request, $detailActions, $instance->record, $record['authorizedToUpdate']);
+        }
+
         return Inertia::render('Entities/Detail', [
             'entity' => $entity::serializeMeta($request),
-            'record' => $instance->serializeRecord($request, Field::DETAIL),
+            'record' => $record,
             'actions' => ActionRegistry::serialize($entity, $request),
         ]);
     }

@@ -3,6 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { useLarsadmin } from '../composables/useLarsadmin'
 import { useI18n } from '../composables/useI18n'
+import CardGrid from '../components/cards/CardGrid.vue'
 import IconChevronRight from '../components/icons/IconChevronRight.vue'
 import IconDatabase from '../components/icons/IconDatabase.vue'
 
@@ -11,17 +12,21 @@ const { entityUrl } = useLarsadmin()
 const { t } = useI18n()
 
 const entities = computed(() => page.props.navigation ?? [])
+const cards = computed(() => page.props.cards ?? [])
+const title = computed(() => page.props.dashboard?.name ?? t('dashboard'))
 </script>
 
 <template>
-    <Head :title="t('dashboard')" />
+    <Head :title="title" />
 
     <div class="mb-4 border-b border-default pb-4">
-        <h1 class="text-2xl font-semibold">{{ t('dashboard') }}</h1>
+        <h1 class="text-2xl font-semibold">{{ title }}</h1>
         <p class="mt-1 text-fg-muted">{{ t('welcome', { name: page.props.larsadmin.name }) }}</p>
     </div>
 
-    <div class="larsadmin-box">
+    <CardGrid v-if="cards.length" :cards="cards" />
+
+    <div v-else class="larsadmin-box">
         <div class="larsadmin-box-header text-sm font-semibold">{{ t('resources') }}</div>
 
         <ul v-if="entities.length" class="divide-y divide-muted">

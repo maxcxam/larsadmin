@@ -5,6 +5,8 @@ namespace Maxcxam\Larsadmin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Maxcxam\Larsadmin\Dashboards\Dashboard;
+use Maxcxam\Larsadmin\Dashboards\Main;
 
 class LarsadminApplicationServiceProvider extends ServiceProvider
 {
@@ -16,6 +18,17 @@ class LarsadminApplicationServiceProvider extends ServiceProvider
         $this->gate();
         $this->authorization();
         $this->entities();
+        Larsadmin::dashboards($this->dashboards());
+    }
+
+    /**
+     * The dashboards of the panel, in menu order; the first one the user may see is the home page.
+     *
+     * @return array<int, Dashboard>
+     */
+    protected function dashboards(): array
+    {
+        return [new Main];
     }
 
     /**

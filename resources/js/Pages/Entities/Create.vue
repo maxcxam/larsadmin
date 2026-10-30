@@ -8,6 +8,7 @@ import EntityForm from '../../components/EntityForm.vue'
 defineProps({
     entity: { type: Object, required: true },
     fields: { type: Array, required: true },
+    layout: { type: Array, default: null },
 })
 
 const { entityUrl } = useLarsadmin()
@@ -22,6 +23,7 @@ const { t } = useI18n()
 
     <EntityForm
         :fields="fields"
+        :layout="layout"
         :action="entityUrl(entity.uriKey)"
         method="post"
         context="create"

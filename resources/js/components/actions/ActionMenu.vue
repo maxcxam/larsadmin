@@ -10,6 +10,8 @@ const props = defineProps({
     context: { type: String, default: 'index' },
     // Number of selected rows (index); 0 = none
     selectedCount: { type: Number, default: 0 },
+    // Detail only: uriKeys runnable on this record (record.actions); null = unknown, treat all as runnable
+    runnable: { type: Array, default: null },
 })
 
 const emit = defineEmits(['run'])
@@ -23,7 +25,8 @@ const items = ref([])
 
 const visible = computed(() => props.actions.filter((a) => (props.context === 'detail' ? a.showOnDetail : a.showOnIndex)))
 // Standalone actions need no selection; the rest require at least one selected row (index only)
-const isEnabled = (a) => props.context === 'detail' || a.standalone || props.selectedCount > 0
+const isRunnable = (a) => props.context !== 'detail' || a.standalone || props.runnable === null || props.runnable.includes(a.uriKey)
+const isEnabled = (a) => isRunnable(a) && (props.context === 'detail' || a.standalone || props.selectedCount > 0)
 const normal = computed(() => visible.value.filter((a) => !a.destructive))
 const destructive = computed(() => visible.value.filter((a) => a.destructive))
 const ordered = computed(() => [...normal.value, ...destructive.value])
@@ -124,6 +127,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onOutside))
                     type="button"
                     role="menuitem"
                     :disabled="!isEnabled(action)"
+                    :title="isRunnable(action) ? undefined : t('action_unavailable')"
                     class="flex w-full items-center px-3 py-1.5 text-left hover:bg-neutral-muted disabled:cursor-not-allowed disabled:text-fg-muted disabled:hover:bg-transparent"
                     :class="action.destructive && isEnabled(action) ? 'text-danger-fg' : ''"
                     @click="choose(action)"

@@ -3,10 +3,13 @@ import { computed } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import { formComponent } from '../fields'
 import { useI18n } from '../composables/useI18n'
+import FieldBlocks from './layout/FieldBlocks.vue'
 import IconAlert from './icons/IconAlert.vue'
 
 const props = defineProps({
     fields: { type: Array, required: true },
+    // Server layout tree (panels/tabs); null renders every field in one box as before
+    layout: { type: Array, default: null },
     action: { type: String, required: true },
     method: { type: String, default: 'post' },
     submitLabel: { type: String, required: true },
@@ -44,30 +47,32 @@ function submit() {
 
 <template>
     <form class="max-w-4xl" @submit.prevent="submit">
-        <div class="larsadmin-box divide-y divide-muted">
-            <div v-for="field in fields" :key="field.attribute" class="grid gap-2 px-4 py-4 md:grid-cols-4 md:gap-4">
-                <label :for="field.attribute" class="pt-1 font-semibold">
-                    {{ field.name }}
-                    <span v-if="field.required" class="text-danger-fg" aria-hidden="true">*</span>
-                    <span v-if="field.required" class="sr-only">({{ t('required') }})</span>
-                </label>
+        <FieldBlocks :layout="layout" :fields="fields" :errors="form.errors">
+            <template #field="{ field, stacked }">
+                <div :class="stacked ? 'grid gap-2 px-4 py-4' : 'grid gap-2 px-4 py-4 md:grid-cols-4 md:gap-4'">
+                    <label :for="field.attribute" class="pt-1 font-semibold">
+                        {{ field.name }}
+                        <span v-if="field.required" class="text-danger-fg" aria-hidden="true">*</span>
+                        <span v-if="field.required" class="sr-only">({{ t('required') }})</span>
+                    </label>
 
-                <div class="min-w-0 md:col-span-3">
-                    <component
-                        :is="formComponent(field)"
-                        v-model="form[field.attribute]"
-                        :field="field"
-                        :invalid="!!form.errors[field.attribute]"
-                        :context="context"
-                        :resource-id="resourceId"
-                    />
-                    <p v-if="form.errors[field.attribute]" class="mt-1.5 flex items-center gap-1 text-xs text-danger-fg" role="alert">
-                        <IconAlert />{{ form.errors[field.attribute] }}
-                    </p>
-                    <p v-else-if="field.help" class="mt-1.5 text-xs text-fg-muted">{{ field.help }}</p>
+                    <div :class="stacked ? 'min-w-0' : 'min-w-0 md:col-span-3'">
+                        <component
+                            :is="formComponent(field)"
+                            v-model="form[field.attribute]"
+                            :field="field"
+                            :invalid="!!form.errors[field.attribute]"
+                            :context="context"
+                            :resource-id="resourceId"
+                        />
+                        <p v-if="form.errors[field.attribute]" class="mt-1.5 flex items-center gap-1 text-xs text-danger-fg" role="alert">
+                            <IconAlert />{{ form.errors[field.attribute] }}
+                        </p>
+                        <p v-else-if="field.help" class="mt-1.5 text-xs text-fg-muted">{{ field.help }}</p>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </template>
+        </FieldBlocks>
 
         <div class="mt-4 flex items-center justify-end gap-2">
             <Link :href="cancelHref" class="larsadmin-btn">{{ t('cancel') }}</Link>

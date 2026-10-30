@@ -9,10 +9,15 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Maxcxam\Larsadmin\Console\ActionCommand;
+use Maxcxam\Larsadmin\Console\DashboardCommand;
 use Maxcxam\Larsadmin\Console\EntityCommand;
 use Maxcxam\Larsadmin\Console\FilterCommand;
 use Maxcxam\Larsadmin\Console\InstallCommand;
+use Maxcxam\Larsadmin\Console\PartitionCommand;
+use Maxcxam\Larsadmin\Console\ProgressCommand;
 use Maxcxam\Larsadmin\Console\PublishCommand;
+use Maxcxam\Larsadmin\Console\TrendCommand;
+use Maxcxam\Larsadmin\Console\ValueCommand;
 
 class LarsadminServiceProvider extends ServiceProvider
 {
@@ -42,6 +47,11 @@ class LarsadminServiceProvider extends ServiceProvider
                 EntityCommand::class,
                 ActionCommand::class,
                 FilterCommand::class,
+                DashboardCommand::class,
+                ValueCommand::class,
+                TrendCommand::class,
+                PartitionCommand::class,
+                ProgressCommand::class,
                 InstallCommand::class,
                 PublishCommand::class,
             ]);

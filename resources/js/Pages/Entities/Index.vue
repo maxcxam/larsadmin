@@ -11,6 +11,7 @@ import ColumnMenu from '../../components/ColumnMenu.vue'
 import FilterMenu from '../../components/FilterMenu.vue'
 import { useColumnPreferences } from '../../composables/useColumnPreferences'
 import { cleanFilters } from '../../filters'
+import CardGrid from '../../components/cards/CardGrid.vue'
 import EntityTable from '../../components/EntityTable.vue'
 import Pagination from '../../components/Pagination.vue'
 import IconPlus from '../../components/icons/IconPlus.vue'
@@ -23,6 +24,8 @@ const props = defineProps({
     query: { type: Object, required: true },
     filters: { type: Array, default: () => [] },
     actions: { type: Array, default: () => [] },
+    // Entity-level metric cards (Entity::cards())
+    cards: { type: Array, default: () => [] },
 })
 
 const { entityUrl, recordUrl } = useLarsadmin()
@@ -152,6 +155,8 @@ const actionFilters = computed(() => {
             <IconPlus />{{ t('create') }}
         </Link>
     </div>
+
+    <CardGrid v-if="cards?.length" :cards="cards" class="mb-4" />
 
     <div class="larsadmin-box">
         <div class="larsadmin-box-header flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

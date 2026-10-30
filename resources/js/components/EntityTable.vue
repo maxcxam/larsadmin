@@ -5,6 +5,7 @@ import { displayComponent } from '../fields'
 import { useLarsadmin, withParams } from '../composables/useLarsadmin'
 import { useI18n } from '../composables/useI18n'
 import { normalizeColumn } from '../composables/columnPreferences'
+import RowActionMenu from './actions/RowActionMenu.vue'
 import SelectionCheckbox from './actions/SelectionCheckbox.vue'
 import IconArrowDown from './icons/IconArrowDown.vue'
 import IconArrowUp from './icons/IconArrowUp.vue'
@@ -30,7 +31,7 @@ const props = defineProps({
     isSelected: { type: Function, default: () => false },
     pageSelected: { type: Boolean, default: false },
     pageIndeterminate: { type: Boolean, default: false },
-    // Actions with `showInline`, rendered as per-row buttons
+    // Actions with `showInline`, listed in each row's "⋯" menu (filtered by record.actions)
     inlineActions: { type: Array, default: () => [] },
 })
 
@@ -175,15 +176,12 @@ const actionBtn = 'inline-flex rounded-md p-1.5 text-fg-muted hover:bg-neutral-m
                             >
                                 <IconTrash />
                             </button>
-                            <button
-                                v-for="action in inlineActions"
-                                :key="action.uriKey"
-                                type="button"
-                                :class="[actionBtn, 'px-2 text-xs font-semibold', action.destructive ? 'text-danger-fg' : 'text-accent-fg']"
-                                @click="emit('run-action', action, record)"
-                            >
-                                {{ action.name }}
-                            </button>
+                            <RowActionMenu
+                                v-if="inlineActions.length"
+                                :actions="inlineActions"
+                                :runnable="record.actions ?? []"
+                                @run="emit('run-action', $event, record)"
+                            />
                             <slot name="row-actions" :record="record" :action-class="actionBtn" />
                         </div>
                     </td>

@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Maxcxam\Larsadmin\Actions\Action;
 use Maxcxam\Larsadmin\Fields\Field;
 use Maxcxam\Larsadmin\Filters\Filter;
+use Maxcxam\Larsadmin\Layout\FieldLayout;
 use Maxcxam\Larsadmin\Support\Like;
 
 abstract class Entity
@@ -203,14 +204,51 @@ abstract class Entity
         $shared = $request->attributes->get($name);
 
         if (! $shared instanceof Collection) {
-            $shared = collect($this->fields($request))
+            [$flat, $tree] = FieldLayout::flatten($this->fields($request));
+
+            $shared = collect($flat)
                 ->each(fn (Field $field) => $field->bindTo($request, static::class))
                 ->values();
 
             $request->attributes->set($name, $shared);
+            $request->attributes->set('larsadmin.field_layout.'.static::class, $tree);
         }
 
         return $this->fieldPrototypes = $shared;
+    }
+
+    /**
+     * The attribute-keyed layout tree of fields() (Panel/Tabs blocks), built together with the prototypes.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function fieldLayout(Request $request): array
+    {
+        $this->fieldPrototypes($request);
+
+        return $request->attributes->get('larsadmin.field_layout.'.static::class, []);
+    }
+
+    /**
+     * The layout tree for the resolved fields of one context (hidden fields and empty blocks dropped).
+     *
+     * @param  Collection<int, Field>  $resolved
+     * @return list<array<string, mixed>>
+     */
+    public function serializeLayout(Request $request, Collection $resolved): array
+    {
+        return FieldLayout::serialize($this->fieldLayout($request), $resolved);
+    }
+
+    /**
+     * Get the metric cards shown above the entity's index. Cards failing canSee() are not shown,
+     * and their endpoint answers 404.
+     *
+     * @return array<int, Metrics\Card>
+     */
+    public function cards(Request $request): array
+    {
+        return [];
     }
 
     /**
@@ -436,10 +474,12 @@ abstract class Entity
         $update = $this->authorizedToUpdate($request);
         $delete = $this->authorizedToDelete($request);
 
+        $fields = $this->resolveFields($request, $context);
+
         return [
             'id' => $this->record->getKey(),
             'title' => $this->title(),
-            'fields' => $this->resolveFields($request, $context),
+            'fields' => $fields,
             'authorizedToView' => $view,
             'authorizedToUpdate' => $update,
             'authorizedToDelete' => $delete,
@@ -448,7 +488,9 @@ abstract class Entity
                 'edit' => $update ? $this->url('edit') : null,
                 'destroy' => $delete ? $this->url('destroy') : null,
             ],
-        ];
+        ] + (in_array($context, [Field::DETAIL, Field::UPDATE], true)
+            ? ['layout' => $this->serializeLayout($request, $fields)]
+            : []);
     }
 
     /**

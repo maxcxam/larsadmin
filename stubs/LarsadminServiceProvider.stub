@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Gate;
+use Maxcxam\Larsadmin\Dashboards\Main;
 use Maxcxam\Larsadmin\LarsadminApplicationServiceProvider;
 
 class LarsadminServiceProvider extends LarsadminApplicationServiceProvider
@@ -13,6 +14,19 @@ class LarsadminServiceProvider extends LarsadminApplicationServiceProvider
      * Never run a shared or internet-reachable instance with APP_ENV=local, or
      * set LARSADMIN_ALLOW_LOCAL=false to always enforce the gate.
      */
+
+    /**
+     * The dashboards of the panel, in menu order; the first one the user may see is the home page.
+     * Generate more with `php artisan larsadmin:dashboard`.
+     *
+     * @return array<int, \Maxcxam\Larsadmin\Dashboards\Dashboard>
+     */
+    protected function dashboards(): array
+    {
+        return [
+            new Main,
+        ];
+    }
 
     /**
      * Register the gate that determines who can access the panel in non-local environments.

@@ -61,6 +61,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Timezone
+    |--------------------------------------------------------------------------
+    |
+    | The timezone metrics (today, month to date, trend buckets) are aligned to.
+    | Null uses the "app.timezone" setting; Larsadmin::timezoneUsing() can override
+    | it per request, e.g. with a per-user preference.
+    |
+    */
+
+    'timezone' => env('LARSADMIN_TIMEZONE'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Metrics
+    |--------------------------------------------------------------------------
+    |
+    | "cache_store" is the cache store used by metrics that opt in with
+    | cacheFor(); null uses the default store. Results are cached per user.
+    |
+    */
+
+    'metrics' => [
+        'cache_store' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Middleware
     |--------------------------------------------------------------------------
     |

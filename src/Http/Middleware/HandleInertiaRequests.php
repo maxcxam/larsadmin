@@ -74,6 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'email' => $user->email ?? null,
             ] : null,
             'navigation' => fn () => $user && Larsadmin::check($request) ? Larsadmin::navigation($request) : [],
+            'dashboards' => fn () => $user && Larsadmin::check($request) ? Larsadmin::dashboardNavigation($request) : [],
             'toast' => fn () => $request->session()->get('larsadmin.toast'),
         ];
     }

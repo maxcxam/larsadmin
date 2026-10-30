@@ -1,0 +1,30 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Dashboards\Dashboard;
+
+class {{ class }} extends Dashboard
+{
+    /**
+     * The name shown in the sidebar (translated via __()).
+     */
+    public function name(): string
+    {
+        return __('{{ class }}');
+    }
+
+    /**
+     * The cards of the dashboard, in order. Register the dashboard in
+     * LarsadminServiceProvider::dashboards() to show it in the sidebar.
+     *
+     * @return array<int, \Maxcxam\Larsadmin\Metrics\Card>
+     */
+    public function cards(Request $request): array
+    {
+        return [
+            //
+        ];
+    }
+}

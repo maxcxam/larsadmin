@@ -1,0 +1,30 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
+use Maxcxam\Larsadmin\Metrics\Results\ValueResult;
+use Maxcxam\Larsadmin\Metrics\Value;
+
+class {{ class }} extends Value
+{
+    /**
+     * Calculate the value. Pass an Entity class to scope the number by its indexQuery() and viewAny
+     * (narrow it with $this->scoped(Post::class, fn ($query) => $query->where(...))); a model class or
+     * builder is NOT restricted. Hide the card with ->canSee() if needed.
+     */
+    public function calculate(MetricRequest $request): ValueResult
+    {
+        // Placeholder: count your Entity (scoped) or model instead of User.
+        return $this->count($request, User::class);
+    }
+
+    /**
+     * Cache the result per user, timezone, locale and range (null: no cache).
+     */
+    public function cacheFor(): ?int
+    {
+        return null;
+    }
+}

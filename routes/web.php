@@ -7,6 +7,7 @@ use Maxcxam\Larsadmin\Http\Controllers\DashboardController;
 use Maxcxam\Larsadmin\Http\Controllers\EntityController;
 use Maxcxam\Larsadmin\Http\Controllers\LocaleController;
 use Maxcxam\Larsadmin\Http\Controllers\LoginController;
+use Maxcxam\Larsadmin\Http\Controllers\MetricController;
 use Maxcxam\Larsadmin\Http\Controllers\RelatableController;
 use Maxcxam\Larsadmin\Http\Controllers\RelatedController;
 
@@ -16,7 +17,11 @@ Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 Route::post('locale', [LocaleController::class, 'update'])->middleware('throttle:30,1')->name('locale.update');
 
 Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/', [DashboardController::class, 'home'])->name('dashboard');
+    Route::get('dashboards/{dashboard}', [DashboardController::class, 'show'])->name('dashboards.show');
+
+    Route::get('api/dashboards/{dashboard}/metrics/{metric}', [MetricController::class, 'dashboard'])->name('api.dashboard-metric');
+    Route::get('api/entities/{entity}/metrics/{metric}', [MetricController::class, 'entity'])->name('api.entity-metric');
 
     Route::get('api/entities/{entity}/fields/{field}/options', [RelatableController::class, 'index'])->name('api.options');
     Route::get('api/entities/{entity}/{id}/related/{field}', [RelatedController::class, 'index'])->name('api.related');

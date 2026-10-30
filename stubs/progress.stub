@@ -1,0 +1,29 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
+use Maxcxam\Larsadmin\Metrics\Progress;
+use Maxcxam\Larsadmin\Metrics\Results\ProgressResult;
+
+class {{ class }} extends Progress
+{
+    /**
+     * Calculate the progress towards the target. Pass an Entity class to scope the number by its
+     * indexQuery() and viewAny (narrow it with $this->scoped()); a model class or builder is NOT restricted.
+     */
+    public function calculate(MetricRequest $request): ProgressResult
+    {
+        // Placeholder: count your Entity (scoped) or model instead of User, towards your own target.
+        return $this->count($request, User::class, 100);
+    }
+
+    /**
+     * Cache the result per user, timezone, locale and range (null: no cache).
+     */
+    public function cacheFor(): ?int
+    {
+        return null;
+    }
+}

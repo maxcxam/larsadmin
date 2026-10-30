@@ -33,6 +33,16 @@ const groups = computed(() => {
     return [...groups].map(([label, items]) => ({ label, items }))
 })
 
+const dashboards = computed(() => page.props.dashboards ?? [])
+const pagePath = computed(() => page.url.split(/[?#]/)[0])
+const dashboardActive = (dashboard, index) => {
+    if (page.component !== 'Dashboard') return false
+
+    const path = (dashboard.url ?? '').split(/[?#]/)[0]
+
+    return pagePath.value === path || (index === 0 && pagePath.value === url())
+}
+
 const isActive = (href) => page.url === href || page.url.startsWith(`${href}/`) || page.url.startsWith(`${href}?`)
 
 const drawerOpen = ref(false)
@@ -110,10 +120,24 @@ const linkActive =
                 :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
             >
                 <nav class="space-y-5" :aria-label="t('main_navigation')">
-                    <div class="pl-2">
+                    <div v-if="dashboards.length > 1" class="pl-2">
+                        <h2 class="mb-1 px-3 text-xs font-semibold text-fg-muted">{{ t('dashboards') }}</h2>
+                        <Link
+                            v-for="(dashboard, index) in dashboards"
+                            :key="dashboard.uriKey"
+                            :href="dashboard.url"
+                            :class="[linkBase, dashboardActive(dashboard, index) ? linkActive : '']"
+                            :aria-current="dashboardActive(dashboard, index) ? 'page' : undefined"
+                        >
+                            <IconHome class="text-fg-muted" />
+                            {{ dashboard.name }}
+                        </Link>
+                    </div>
+
+                    <div v-else class="pl-2">
                         <Link :href="url()" :class="[linkBase, page.component === 'Dashboard' ? linkActive : '']">
                             <IconHome class="text-fg-muted" />
-                            {{ t('dashboard') }}
+                            {{ dashboards[0]?.name ?? t('dashboard') }}
                         </Link>
                     </div>
 
