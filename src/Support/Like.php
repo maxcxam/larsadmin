@@ -15,13 +15,33 @@ final class Like
      */
     public static function where(Builder $query, string $column, string $term, string $boolean = 'or'): void
     {
-        $value = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
-        $operator = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-
         $query->whereRaw(
-            $query->getQuery()->getGrammar()->wrap($column)." {$operator} ? escape '!'",
-            [$value],
+            self::expression($query, $column),
+            ['%'.self::escape($term).'%'],
             $boolean,
         );
+    }
+
+    /**
+     * Order rows whose column starts with the term (case-insensitively, wildcards escaped) first.
+     */
+    public static function orderByPrefix(Builder $query, string $column, string $term): void
+    {
+        $query->orderByRaw(
+            'case when '.self::expression($query, $column).' then 0 else 1 end',
+            [self::escape($term).'%'],
+        );
+    }
+
+    private static function escape(string $term): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term);
+    }
+
+    private static function expression(Builder $query, string $column): string
+    {
+        $operator = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->getQuery()->getGrammar()->wrap($column)." {$operator} ? escape '!'";
     }
 }

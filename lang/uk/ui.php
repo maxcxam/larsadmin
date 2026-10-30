@@ -146,6 +146,25 @@ return [
     'files_links_expired' => 'Посилання на файли застаріли, оновлюємо сторінку…',
     'files_preview_alt' => 'Попередній перегляд: :name',
 
+    // Global search (Ctrl/⌘+K)
+    'global_search_open' => 'Пошук…',
+    'global_search_open_label' => 'Відкрити пошук (:hotkey)',
+    'global_search_dialog' => 'Глобальний пошук',
+    'global_search_label' => 'Шукати в панелі',
+    'global_search_placeholder' => 'Шукати записи…',
+    'global_search_hint' => 'Введіть щонайменше :count символ|Введіть щонайменше :count символи|Введіть щонайменше :count символів',
+    'global_search_keys' => '↑↓ — вибір, Enter — відкрити, :modifier+Enter — у новій вкладці, Esc — закрити',
+    'global_search_loading' => 'Пошук…',
+    'global_search_no_results' => 'Нічого не знайдено за запитом «:search»',
+    'global_search_results' => ':count результат|:count результати|:count результатів',
+    'global_search_results_in' => ':results у :groups розділі|:results у :groups розділах|:results у :groups розділах',
+    'global_search_view_all' => 'Показати всі — :entity',
+    'global_search_error' => 'Не вдалося виконати пошук.',
+    'global_search_retry' => 'Спробувати ще раз',
+    'global_search_failed' => 'Не вдалося пошукати в: :entities',
+    'global_search_partial' => 'Показано не всі розділи — пошук тривав задовго. Уточніть запит.',
+    'global_search_close' => 'Закрити пошук',
+
     // Language
     'language' => 'Мова',
     'language_current' => 'Мова: :language',

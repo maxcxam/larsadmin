@@ -6,6 +6,7 @@ use Maxcxam\Larsadmin\Http\Controllers\AttachController;
 use Maxcxam\Larsadmin\Http\Controllers\DashboardController;
 use Maxcxam\Larsadmin\Http\Controllers\EntityController;
 use Maxcxam\Larsadmin\Http\Controllers\FileController;
+use Maxcxam\Larsadmin\Http\Controllers\GlobalSearchController;
 use Maxcxam\Larsadmin\Http\Controllers\LocaleController;
 use Maxcxam\Larsadmin\Http\Controllers\LoginController;
 use Maxcxam\Larsadmin\Http\Controllers\MetricController;
@@ -23,6 +24,8 @@ Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
 
     Route::get('api/dashboards/{dashboard}/metrics/{metric}', [MetricController::class, 'dashboard'])->middleware('throttle:larsadmin-metrics')->name('api.dashboard-metric');
     Route::get('api/entities/{entity}/metrics/{metric}', [MetricController::class, 'entity'])->middleware('throttle:larsadmin-metrics')->name('api.entity-metric');
+
+    Route::get('api/search', [GlobalSearchController::class, 'index'])->middleware('throttle:larsadmin-search')->name('api.search');
 
     Route::get('api/entities/{entity}/fields/{field}/options', [RelatableController::class, 'index'])->name('api.options');
     Route::get('api/entities/{entity}/{id}/related/{field}', [RelatedController::class, 'index'])->name('api.related');

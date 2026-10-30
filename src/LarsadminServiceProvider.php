@@ -60,14 +60,15 @@ class LarsadminServiceProvider extends ServiceProvider
 
     /**
      * Register the rate limiters: login 5/min per email + IP and 30/min per IP; the metric endpoints
-     * "larsadmin.metrics.throttle" and the file downloads "larsadmin.files.throttle" per minute per
-     * user (per IP for guests), unlimited when null.
+     * "larsadmin.metrics.throttle", the file downloads "larsadmin.files.throttle" and the global search
+     * "larsadmin.search.throttle" per minute per user (per IP for guests), unlimited when null.
      */
     protected function registerRateLimiting(): void
     {
         // A config published before the keys existed keeps the defaults.
         RateLimiter::for('larsadmin-metrics', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.metrics.throttle', 120)));
         RateLimiter::for('larsadmin-files', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.files.throttle', 600)));
+        RateLimiter::for('larsadmin-search', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.search.throttle', 60)));
 
         RateLimiter::for('larsadmin-login', function (Request $request) {
             $email = $request->input('email');

@@ -16,6 +16,7 @@ use Maxcxam\Larsadmin\Fields\File;
 use Maxcxam\Larsadmin\Files\FileJournal;
 use Maxcxam\Larsadmin\Filters\Filter;
 use Maxcxam\Larsadmin\Layout\FieldLayout;
+use Maxcxam\Larsadmin\Search\ResultText;
 use Maxcxam\Larsadmin\Support\Like;
 use Throwable;
 
@@ -68,6 +69,23 @@ abstract class Entity
     public static ?string $group = null;
 
     public static bool $displayInNavigation = true;
+
+    /**
+     * Whether the entity takes part in the global search (Ctrl/⌘+K). Opt-in.
+     */
+    public static bool $globallySearchable = false;
+
+    /**
+     * How many records the global search shows for the entity; null uses config('larsadmin.search.limit') (5).
+     * Clamped to 1..20.
+     */
+    public static ?int $globalSearchLimit = null;
+
+    /**
+     * The attribute shown under the title in global search results (data_get, so "relation.attribute" works
+     * with $with). Null: no subtitle.
+     */
+    public static ?string $subtitle = null;
 
     /**
      * @var Collection<int, Field>|null
@@ -194,6 +212,41 @@ abstract class Entity
     public function title(): string
     {
         return (string) data_get($this->record, static::$title);
+    }
+
+    /**
+     * The secondary line of the record in global search results. The search applies canSee and the related
+     * entity's scope to the declarative $subtitle itself; an override of this method owns its visibility.
+     */
+    public function subtitle(): ?string
+    {
+        if (static::$subtitle === null) {
+            return null;
+        }
+
+        // Enums by value/name, Stringable and scalars cast; arrays and other objects are not shown.
+        return ResultText::text(data_get($this->record, static::$subtitle));
+    }
+
+    /**
+     * Whether the global search queries Laravel Scout instead of the $search columns.
+     * Default: the model uses Laravel\Scout\Searchable and Scout is installed.
+     */
+    public static function usesScout(): bool
+    {
+        return Larsadmin::modelUsesScout(static::$model);
+    }
+
+    /**
+     * Customize the Scout search of the global search, e.g. pre-filter by tenant so the candidates
+     * are not starved by indexQuery(). Row scoping is applied afterwards in any case (ADR-021).
+     *
+     * @param  \Laravel\Scout\Builder  $search
+     * @return \Laravel\Scout\Builder
+     */
+    public static function scoutQuery(Request $request, $search)
+    {
+        return $search;
     }
 
     /**
@@ -324,10 +377,7 @@ abstract class Entity
         $model = $query->getModel();
         $integerKey = $model->getIncrementing() && in_array($model->getKeyType(), ['int', 'integer'], true);
 
-        $unseen = static::make()->fieldPrototypes($request)
-            ->reject(fn (Field $field) => $field->isAuthorizedToSee($request))
-            ->map(fn (Field $field) => $field->attribute)
-            ->all();
+        $unseen = static::unseenAttributes($request);
 
         $query->where(function (Builder $query) use ($request, $model, $integerKey, $term, $unseen) {
             foreach (static::$search as $column) {
@@ -359,6 +409,22 @@ abstract class Entity
                 }
             }
         });
+    }
+
+    /**
+     * The attributes of the fields the request may not see (canSee); search skips their columns.
+     *
+     * @internal Shared by applySearch() and the global search; not part of the public API.
+     *
+     * @return array<int, string>
+     */
+    public static function unseenAttributes(Request $request): array
+    {
+        return static::make()->fieldPrototypes($request)
+            ->reject(fn (Field $field) => $field->isAuthorizedToSee($request))
+            ->map(fn (Field $field) => $field->attribute)
+            ->values()
+            ->all();
     }
 
     /**

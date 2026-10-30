@@ -14,6 +14,7 @@ import IconSignOut from '../components/icons/IconSignOut.vue'
 import IconX from '../components/icons/IconX.vue'
 import LocaleSwitcher from '../components/LocaleSwitcher.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
+import GlobalSearch from '../components/search/GlobalSearch.vue'
 
 const page = usePage()
 const { url, entityUrl } = useLarsadmin()
@@ -92,6 +93,7 @@ const linkActive =
             </Link>
 
             <div class="ml-auto flex items-center gap-3 text-xs">
+                <GlobalSearch />
                 <span v-if="user" class="hidden sm:inline text-header-fg/70">{{ user.name ?? user.email }}</span>
                 <LocaleSwitcher />
                 <ThemeSwitcher />
