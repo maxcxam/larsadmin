@@ -1,0 +1,33 @@
+<?php
+
+namespace Maxcxam\Larsadmin\Tests\Fixtures;
+
+class PostPolicy
+{
+    public static bool $allowDelete = false;
+
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, Post $post): bool
+    {
+        return true;
+    }
+
+    public function create(User $user): bool
+    {
+        return true;
+    }
+
+    public function update(User $user, Post $post): bool
+    {
+        return true;
+    }
+
+    public function delete(User $user, Post $post): bool
+    {
+        return static::$allowDelete;
+    }
+}

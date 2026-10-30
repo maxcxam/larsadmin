@@ -1,0 +1,17 @@
+<template>
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        class="shrink-0"
+    >
+        <rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.25" />
+        <path d="M5.5 14h5M8 11v3" />
+    </svg>
+</template>

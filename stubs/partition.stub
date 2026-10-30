@@ -1,0 +1,41 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
+use Maxcxam\Larsadmin\Metrics\Partition;
+use Maxcxam\Larsadmin\Metrics\Results\PartitionResult;
+
+class {{ class }} extends Partition
+{
+    /**
+     * Calculate the groups. Pass an Entity class to scope the rows by its indexQuery() and viewAny
+     * (narrow it with $this->scoped()); a model class or builder is NOT restricted. Hide the card
+     * with ->canSee() if needed.
+     */
+    public function calculate(MetricRequest $request): PartitionResult
+    {
+        // SECURITY: unscoped — replace with your Entity class (e.g. \App\Larsadmin\Post::class):
+        // this placeholder counts EVERY user for everyone who can see the card.
+        // Placeholder: verified vs. unverified users, so the card works on a fresh app. Usually you
+        // group your Entity (scoped) by a column with a few distinct values, e.g.
+        // $this->count($request, Post::class, 'status'), and label a foreign key such as
+        // 'category_id' with ->labelsFrom(Category::class).
+        $verified = User::query()->whereNotNull('email_verified_at')->count();
+
+        $values = ['Verified' => $verified, 'Unverified' => User::query()->count() - $verified];
+        arsort($values);
+
+        return new PartitionResult($values);
+    }
+
+    /**
+     * Cache the result (null: no cache). It is cached per user only: return anything else the result
+     * depends on (current team, tenant, role...) from cacheKeyParts().
+     */
+    public function cacheFor(): ?int
+    {
+        return null;
+    }
+}

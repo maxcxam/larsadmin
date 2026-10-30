@@ -1,0 +1,32 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
+use Maxcxam\Larsadmin\Metrics\Progress;
+use Maxcxam\Larsadmin\Metrics\Results\ProgressResult;
+
+class {{ class }} extends Progress
+{
+    /**
+     * Calculate the progress towards the target. Pass an Entity class to scope the number by its
+     * indexQuery() and viewAny (narrow it with $this->scoped()); a model class or builder is NOT restricted.
+     */
+    public function calculate(MetricRequest $request): ProgressResult
+    {
+        // SECURITY: unscoped — replace with your Entity class (e.g. \App\Larsadmin\Post::class):
+        // this placeholder counts EVERY user for everyone who can see the card.
+        // Placeholder: count your Entity (scoped) or model instead of User, towards your own target.
+        return $this->count($request, User::class, 100);
+    }
+
+    /**
+     * Cache the result (null: no cache). It is cached per user only: return anything else the result
+     * depends on (current team, tenant, role...) from cacheKeyParts().
+     */
+    public function cacheFor(): ?int
+    {
+        return null;
+    }
+}

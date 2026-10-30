@@ -1,0 +1,43 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Filters\Filter;
+
+class {{ class }} extends Filter
+{
+    /**
+     * The frontend component: 'select-filter'.
+     */
+    public string $component = 'select-filter';
+
+    /**
+     * The label shown in the UI (translated via __()).
+     */
+    public function name(): string
+    {
+        return __('{{ class }}');
+    }
+
+    /**
+     * Apply the filter to the query. $value is one of the option keys.
+     */
+    public function apply(Request $request, Builder $query, mixed $value): Builder
+    {
+        return $query->where('status', $value);
+    }
+
+    /**
+     * The selectable options as [value => label].
+     *
+     * @return array<string, string>
+     */
+    public function options(Request $request): array
+    {
+        return [
+            // 'draft' => 'Draft',
+        ];
+    }
+}
