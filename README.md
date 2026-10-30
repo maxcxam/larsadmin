@@ -1,31 +1,84 @@
 # Larsadmin
 
-Адмін-панель для Laravel у стилі Nova: Entity описує, як Eloquent-модель показується в панелі.
-Inertia v3 + Vue 3, світла/темна/системна тема, інтерфейс українською (за замовчуванням) та англійською.
+An admin panel for Laravel, built with Inertia and Vue 3: describe each Eloquent model once as
+an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
 
-Вимоги: PHP 8.3+, Laravel 12 або 13.
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/maxcxam/larsadmin.svg)](https://packagist.org/packages/maxcxam/larsadmin)
+[![Total Downloads](https://img.shields.io/packagist/dt/maxcxam/larsadmin.svg)](https://packagist.org/packages/maxcxam/larsadmin)
+[![Tests](https://github.com/maxcxam/larsadmin/actions/workflows/tests.yml/badge.svg)](https://github.com/maxcxam/larsadmin/actions/workflows/tests.yml)
+[![License](https://img.shields.io/packagist/l/maxcxam/larsadmin.svg)](LICENSE)
 
-## Встановлення
+> The developer guides are written in **Ukrainian** (the panel's default language). This README covers
+> the essentials in English.
+
+## Features
+
+- **Entities**: one class per model with fields, search (including `relation.column`), sorting,
+  pagination and row scoping (`indexQuery`, `detailQuery`, `relatableQuery`).
+- **Fields**: `ID`, `Text`, `Textarea`, `Number`, `Boolean`, `Date`, `DateTime`, `Password`, `Select`
+  (enums too), with per-context and per-record visibility, read-only rules and validation.
+- **Relations**: `BelongsTo` (searchable), `HasMany` and `BelongsToMany` panels with attach/detach.
+- **Field blocks**: group form and detail fields into panels (one or two columns, collapsible) and tabs.
+- **Filters**: select, boolean and date range filters, plus your own.
+- **Actions**: bulk, standalone and per-row ("⋯" menu) actions with modal fields, confirmation, batching
+  and per-record availability.
+- **Metrics and dashboards**: Value, Trend, Partition and Progress cards, scoped to what the user may
+  see, on dashboards or above an entity list.
+- **Security by default**: panel gate, model policies that fail closed, server-built record URLs.
+- **UI**: GitHub-like interface with light, dark and system themes, column picker, responsive layout.
+- **i18n**: Ukrainian (default) and English, with a language switcher.
+- **Generators** for entities, actions, filters, metrics and dashboards.
+
+The frontend ships prebuilt: your application does not need Node.js.
+
+Inspired by the developer experience of Laravel Nova: an Entity plays the role of a Nova Resource.
+
+## Requirements
+
+- PHP 8.3+
+- Laravel 12 or 13
+
+## Installation
 
 ```bash
 composer require maxcxam/larsadmin
 php artisan larsadmin:install
 ```
 
-## Мінімальний приклад
+`larsadmin:install` publishes `config/larsadmin.php`, the assets (`public/vendor/larsadmin`) and
+`app/Providers/LarsadminServiceProvider.php` (registered in `bootstrap/providers.php`), and copies
+`lang/uk/validation.php` if your app does not have one yet.
+
+The panel lives at `/admin`. After updating the package, refresh the assets:
+
+```bash
+composer update maxcxam/larsadmin
+php artisan larsadmin:publish
+```
+
+## Quick start
+
+### An entity
 
 ```bash
 php artisan larsadmin:entity Post --model=Post
 ```
 
+Classes in `app/Larsadmin` are registered automatically.
+
 ```php
-// app/Larsadmin/Post.php: реєструється автоматично
 namespace App\Larsadmin;
 
+use App\Larsadmin\Actions\Publish;
 use Illuminate\Http\Request;
 use Maxcxam\Larsadmin\Entity;
+use Maxcxam\Larsadmin\Fields\BelongsTo;
+use Maxcxam\Larsadmin\Fields\DateTime;
 use Maxcxam\Larsadmin\Fields\ID;
+use Maxcxam\Larsadmin\Fields\Select;
 use Maxcxam\Larsadmin\Fields\Text;
+use Maxcxam\Larsadmin\Fields\Textarea;
+use Maxcxam\Larsadmin\Filters\SelectFilter;
 
 class Post extends Entity
 {
@@ -38,19 +91,203 @@ class Post extends Entity
         return [
             ID::make()->sortable(),
             Text::make('Title', 'title')->sortable()->rules('required', 'max:255'),
+            BelongsTo::make('Author', 'author', User::class)->searchable()->nullable(),
+            Select::make('Status', 'status')->rules('required')->options([
+                'draft' => 'Draft',
+                'live' => 'Live',
+            ]),
+            Textarea::make('Body', 'body')->nullable(),
+            DateTime::make('Published at', 'published_at')->nullable()->sortable(),
+        ];
+    }
+
+    public function filters(Request $request): array
+    {
+        return [
+            SelectFilter::make('Status', 'status')->withOptions(['draft' => 'Draft', 'live' => 'Live']),
+        ];
+    }
+
+    public function actions(Request $request): array
+    {
+        return [
+            Publish::make()->showInline(), // bulk menu, record page and the row "⋯" menu
         ];
     }
 }
 ```
 
-Панель доступна на `/admin`. Поза `APP_ENV=local` доступ відкриває gate `viewLarsadmin`
-(за замовчуванням закритий для всіх), див. `app/Providers/LarsadminServiceProvider.php`.
+`BelongsTo` points at the related **entity** (`App\Larsadmin\User` here), not the model.
 
-## Документація
+### An action
 
-Повні посібники (українською): [docs/guide](TODO(repo-url)/docs/guide/01-installation.md) у репозиторії.
-Історія змін: [CHANGELOG.md](CHANGELOG.md).
+```bash
+php artisan larsadmin:action Publish
+```
 
-## Ліцензія
+```php
+namespace App\Larsadmin\Actions;
 
-MIT
+use Illuminate\Support\Collection;
+use Maxcxam\Larsadmin\Actions\Action;
+use Maxcxam\Larsadmin\Actions\ActionFields;
+use Maxcxam\Larsadmin\Actions\ActionResponse;
+
+class Publish extends Action
+{
+    public function handle(ActionFields $fields, Collection $models): ?ActionResponse
+    {
+        $models->each->update(['status' => 'live', 'published_at' => now()]);
+
+        return ActionResponse::message("Published: {$models->count()}");
+    }
+}
+```
+
+By default an action may run on the records the user can `update`; `canRun()` replaces that check.
+
+### A metric and a dashboard
+
+```bash
+php artisan larsadmin:value NewPosts
+php artisan larsadmin:dashboard Overview
+```
+
+```php
+namespace App\Larsadmin\Metrics;
+
+use App\Larsadmin\Post;
+use Maxcxam\Larsadmin\Metrics\MetricRequest;
+use Maxcxam\Larsadmin\Metrics\Results\ValueResult;
+use Maxcxam\Larsadmin\Metrics\Value;
+
+class NewPosts extends Value
+{
+    public function calculate(MetricRequest $request): ValueResult
+    {
+        // An Entity class: counts only the rows the user may see (indexQuery + viewAny).
+        return $this->count($request, Post::class)->allowZeroResult(); // show 0 as a number
+    }
+}
+```
+
+```php
+namespace App\Larsadmin\Dashboards;
+
+use App\Larsadmin\Metrics\NewPosts;
+use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Dashboards\Dashboard;
+
+class Overview extends Dashboard
+{
+    public function cards(Request $request): array
+    {
+        return [
+            NewPosts::make()->help('Posts created in the selected period.'),
+        ];
+    }
+}
+```
+
+Register the dashboard in `app/Providers/LarsadminServiceProvider.php`; the first one the user may see
+becomes the home page:
+
+```php
+protected function dashboards(): array
+{
+    return [
+        new \App\Larsadmin\Dashboards\Overview,
+    ];
+}
+```
+
+> Metric helpers given an Entity class (or `$this->scoped(Post::class, fn ($query) => ...)`) are scoped
+> by the entity's `indexQuery()` and need `viewAny`. A **model class or a query builder is not scoped**
+> and aggregates every row it can reach: use it for global numbers only and hide the card with
+> `canSee()` when needed.
+
+## Configuration
+
+`config/larsadmin.php`:
+
+| Key | Env | Default | Purpose |
+| --- | --- | --- | --- |
+| `name` | `LARSADMIN_NAME` | `APP_NAME` + ` Admin` | Panel title |
+| `domain` | `LARSADMIN_DOMAIN` | `null` | Serve the panel on a domain |
+| `path` | `LARSADMIN_PATH` | `admin` | URI prefix |
+| `guard` | `LARSADMIN_GUARD` | `null` | Authentication guard |
+| `locale` | `LARSADMIN_LOCALE` | `uk` | Panel language (`null` keeps the app locale) |
+| `locales` | | `uk`, `en` | Languages offered by the switcher |
+| `timezone` | `LARSADMIN_TIMEZONE` | `null` (`app.timezone`) | Timezone metric periods are aligned to |
+| `metrics.cache_store` | | `null` | Cache store for metrics using `cacheFor()` |
+| `middleware`, `auth_middleware` | | | Middleware of all / authenticated panel routes |
+| `allow_without_policy` | | `true` | Allow models that have no policy |
+| `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | Skip the gate when `APP_ENV=local` |
+| `actions.max_all` | | `1000` | Limit for "run on all matching records" |
+
+## Authorization
+
+- **Panel access.** Outside `APP_ENV=local`, only users passing the `viewLarsadmin` gate get in. The gate
+  denies everyone until you open it in `app/Providers/LarsadminServiceProvider.php`:
+
+  ```php
+  protected function gate(): void
+  {
+      Gate::define('viewLarsadmin', fn ($user) => in_array($user->email, ['admin@example.com']));
+  }
+  ```
+
+- **Local environment.** While `APP_ENV=local` and `allow_local` is `true`, **every authenticated user**
+  can open the panel. Set `LARSADMIN_ALLOW_LOCAL=false` on any shared or public server.
+- **Policies fail closed.** When a model has a policy, it decides everything (`viewAny`, `view`,
+  `create`, `update`, `delete`, attach/detach); a missing policy method means "deny". Models without a
+  policy are allowed while `allow_without_policy` is `true`.
+- **Row scoping.** `indexQuery()` and `detailQuery()` limit what a user sees; records outside them
+  answer 404.
+
+## Localization
+
+The panel speaks Ukrainian (default) and English. Users switch the language in the header; you can
+also resolve it yourself with `Larsadmin::resolveLocaleUsing()`. Publish the translations to change
+them:
+
+```bash
+php artisan vendor:publish --tag=larsadmin-lang
+```
+
+## Theming
+
+Light, dark and system themes, switchable in the header and on the login page. The choice is kept in
+the browser. There is no public theming API yet; see the theming guide for the design tokens.
+
+## Documentation
+
+Full guides (Ukrainian):
+
+| Guide | Topics |
+| --- | --- |
+| [01. Installation](docs/guide/01-installation.md) | requirements, publish tags, config, commands |
+| [02. Entities](docs/guide/02-entities.md) | Entity API, queries, generator |
+| [03. Fields](docs/guide/03-fields.md) | field types, visibility, validation, list columns |
+| [04. Relations](docs/guide/04-relations.md) | BelongsTo, HasMany, BelongsToMany |
+| [05. Authorization](docs/guide/05-authorization.md) | panel gate, policies, row scoping |
+| [06. Filters](docs/guide/06-filters.md) | built-in and custom filters |
+| [07. Actions](docs/guide/07-actions.md) | bulk and row actions, responses, generator |
+| [08. Localization](docs/guide/08-i18n.md) | languages, translations, switcher |
+| [09. Theming](docs/guide/09-theming.md) | tokens, light/dark/system |
+| [10. Extending](docs/guide/10-extending.md) | what is public and what is planned |
+| [11. List UI](docs/guide/11-ui.md) | column picker, responsive layout |
+| [12. Field blocks](docs/guide/12-layout.md) | panels, tabs, two columns |
+| [13. Metrics](docs/guide/13-metrics.md) | Value, Trend, Partition, Progress, scoping, caching |
+| [14. Dashboards](docs/guide/14-dashboards.md) | dashboards, home page, entity cards |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+Larsadmin is open-source software licensed under the [GNU General Public License v3.0](LICENSE).
+
+Larsadmin is an independent project and is not affiliated with, sponsored or endorsed by Laravel
+Holdings Inc. or Laravel Nova. Laravel and Nova are trademarks of their respective owners.
