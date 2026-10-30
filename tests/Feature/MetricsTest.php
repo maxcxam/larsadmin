@@ -677,7 +677,12 @@ it('rejects a scoped() source that is not an Entity', function (string $class) {
         ->toThrow(InvalidArgumentException::class)
         ->and(fn () => EntitySource::make($class, fn () => null))
         ->toThrow(InvalidArgumentException::class);
-})->with([Post::class, stdClass::class]);
+})->with([
+    // Keyed: a bare [Post::class, stdClass::class] list is is_callable() (Post::stdClass() via __callStatic),
+    // so Pest 4 would call it as a dataset closure before the app boots.
+    'a model class' => [Post::class],
+    'another class' => [stdClass::class],
+]);
 
 it('rejects a source that is neither an Entity nor a model', function () {
     TestMetrics::$source = stdClass::class;
