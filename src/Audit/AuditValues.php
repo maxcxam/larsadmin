@@ -63,7 +63,8 @@ final class AuditValues
 
         return match (true) {
             $value === null, is_bool($value), is_int($value), is_string($value) => $value,
-            is_float($value) => is_finite($value) ? $value : (string) $value,
+            // PHP 8.5 warns when NAN is cast to string, so name it explicitly.
+            is_float($value) => is_finite($value) ? $value : (is_nan($value) ? 'NAN' : (string) $value),
             $value instanceof BackedEnum => $value->value,
             $value instanceof UnitEnum => $value->name,
             $value instanceof DateTimeInterface => Carbon::instance($value)->toIso8601String(),
