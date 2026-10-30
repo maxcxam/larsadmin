@@ -537,4 +537,4 @@ protected static function booted(): void
   (див. [Очищення](#очищення-pruning)).
 - Інтеграція зі `spatie/laravel-medialibrary` запланована окремим доповненням після 1.5.
 
-Далі: [Розширення](10-extending.md).
+Далі: [Глобальний пошук](16-search.md).
