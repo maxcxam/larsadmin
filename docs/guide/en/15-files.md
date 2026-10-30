@@ -547,4 +547,4 @@ key has a default.
   (see [Pruning](#pruning)).
 - Integration with `spatie/laravel-medialibrary` is planned as a separate add-on after 1.5.
 
-Next: [Extending](10-extending.md).
+Next: [Global search](16-search.md).

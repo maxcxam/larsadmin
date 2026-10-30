@@ -155,9 +155,30 @@ validation.
 
 Actions on records additionally check `update` for each record ([Actions](07-actions.md)).
 
+## Global search
+
+The global search (Ctrl/⌘+K) follows the same rules as the Entity list:
+
+- An Entity is searched only when it has `$globallySearchable = true` and the user has `viewAny`.
+  Otherwise it is silently skipped and not mentioned in the response.
+- Rows only come from `indexQuery()`, also when the search goes through Laravel Scout: the engine only
+  proposes keys, and the records are loaded from the database within the user's scope.
+- Columns of fields hidden with `canSee` are not searched (SQL path). On the Scout path, the engine's
+  index decides what matches, so a field hidden with `canSee` but present in `toSearchableArray()` can
+  still make a record match.
+- The title and subtitle never show fields hidden with `canSee` or related records outside the related
+  Entity's scope.
+- Each result is checked against `view`; records without permission are dropped.
+- Results are not cached; the endpoint has the `larsadmin-search` rate limiter.
+
+A Scout index knows nothing about `canSee`: keep sensitive fields out of `toSearchableArray()` or turn
+Scout off for the Entity with `usesScout(): false`. See [Global search](16-search.md#authorization).
+
 ## Checklist
 
 - Restrict the `viewLarsadmin` gate to real conditions; turn `allow_local` off outside development.
 - Create policies for the managed models and consider `allow_without_policy => false`.
 - Add `indexQuery` if a user may see only some of the rows.
+- For Entities with `$globallySearchable` and Laravel Scout, check that `toSearchableArray()` holds no
+  fields hidden with `canSee`.
 - Do not run public servers with `APP_ENV=local`.

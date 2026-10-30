@@ -146,6 +146,25 @@ return [
     'files_links_expired' => 'File links have expired, refreshing the page…',
     'files_preview_alt' => 'Preview: :name',
 
+    // Global search (Ctrl/⌘+K)
+    'global_search_open' => 'Search…',
+    'global_search_open_label' => 'Open search (:hotkey)',
+    'global_search_dialog' => 'Global search',
+    'global_search_label' => 'Search the panel',
+    'global_search_placeholder' => 'Search records…',
+    'global_search_hint' => 'Type at least :count character|Type at least :count characters',
+    'global_search_keys' => '↑↓ to select, Enter to open, :modifier+Enter for a new tab, Esc to close',
+    'global_search_loading' => 'Searching…',
+    'global_search_no_results' => 'No results for “:search”',
+    'global_search_results' => ':count result|:count results',
+    'global_search_results_in' => ':results in :groups section|:results in :groups sections',
+    'global_search_view_all' => 'View all — :entity',
+    'global_search_error' => 'Search failed.',
+    'global_search_retry' => 'Try again',
+    'global_search_failed' => 'Could not search: :entities',
+    'global_search_partial' => 'Not all sections were searched — the search took too long. Refine your query.',
+    'global_search_close' => 'Close search',
+
     // Language
     'language' => 'Language',
     'language_current' => 'Language: :language',

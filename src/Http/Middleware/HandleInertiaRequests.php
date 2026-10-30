@@ -9,6 +9,7 @@ use Inertia\Middleware;
 use Inertia\Ssr\DisablesSsr;
 use Inertia\Ssr\Gateway;
 use Maxcxam\Larsadmin\Larsadmin;
+use Maxcxam\Larsadmin\Search\GlobalSearch;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -66,6 +67,8 @@ class HandleInertiaRequests extends Middleware
                     ->all(),
                 // Keyed by locale so a language switch invalidates the client's remembered copy.
                 'download' => fn () => $request->session()->get('larsadmin.download'),
+                // Null hides the search trigger and hotkey: no opt-in entity the user may list.
+                'search' => fn () => $user && Larsadmin::check($request) ? GlobalSearch::clientConfig($request) : null,
                 'translations' => Inertia::once(fn () => trans('larsadmin::ui'))->as('larsadmin.translations.'.$locale),
             ],
             'user' => $user ? [

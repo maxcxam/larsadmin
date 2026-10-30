@@ -72,6 +72,9 @@ class Category extends Entity
 | `$perPage` | `int`, `25` | Default page size |
 | `$perPageOptions` | `array`, `[25, 50, 100]` | Allowed page sizes (`?perPage=`). Any other value is replaced with `$perPage` |
 | `$displayInNavigation` | `bool`, `true` | Show the Entity in the side navigation |
+| `$globallySearchable` | `bool`, `false` | Take part in the global search (Ctrl/⌘+K), see [Global search](16-search.md) |
+| `$globalSearchLimit` | `?int`, `null` | Results in the global search; `null` uses `larsadmin.search.limit` (5), clamped to 1..20 |
+| `$subtitle` | `?string`, `null` | Attribute of the global search result's second line (a column or a one-level `relation.attribute`) |
 
 Relations that fields need (for example, `BelongsTo`) are loaded automatically. You only need `$with`
 for extra relations, say, when `$title` points to `author.name`.
@@ -104,8 +107,16 @@ Entries of `$search`:
 
 The term is trimmed and cut to 100 characters.
 
+On SQLite, `LIKE` ignores case for Latin letters only, so "огляд" does not find "Огляд". MySQL and
+PostgreSQL collations handle Cyrillic case.
+
 For `relation.column`, the search only covers records that the related Entity's `indexQuery` lets
 through (when the relation matches a registered Entity), so hidden related rows are not revealed.
+
+Columns of fields hidden from the user with `canSee` are not searched.
+
+The global search uses the same columns when the Entity enables `$globallySearchable` and the model does
+not use Laravel Scout. See [Global search](16-search.md).
 
 ### Record URLs
 
@@ -168,7 +179,12 @@ See [Dashboards](14-dashboards.md#cards-above-an-entity-list).
 ## Record title
 
 `$entity->title()` returns `(string) data_get($record, static::$title)`. This is the record's label in
-headings, breadcrumbs and relation pickers.
+headings, breadcrumbs, relation pickers and global search results.
+
+`$entity->subtitle()` returns the `$subtitle` value (or `null`) and is only used as the second line of a
+global search result. For `$title`/`$subtitle` the search checks `canSee` and access to the related
+record; an overridden `title()`/`subtitle()` is used as is, so your code owns its visibility. See
+[Global search](16-search.md#visibility-of-the-title-and-subtitle).
 
 ## Authorization
 

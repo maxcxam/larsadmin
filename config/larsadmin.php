@@ -92,6 +92,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Global Search
+    |--------------------------------------------------------------------------
+    |
+    | Entities opt in with `public static bool $globallySearchable = true`.
+    | "limit" is the number of results per entity (Entity::$globalSearchLimit
+    | overrides it, both clamped to 1..20), "min_length" the shortest term that
+    | is searched (digits-only terms are always searched, for ID lookups),
+    | "throttle" the requests per minute per user (null disables it). Models
+    | using Laravel Scout are searched through Scout: "scout_candidates" keys
+    | are fetched from the engine before the entity's indexQuery() is applied.
+    | After "time_budget_ms" the remaining entities are skipped (partial result).
+    |
+    */
+
+    'search' => [
+        'limit' => 5,
+        'min_length' => 2,
+        'throttle' => 60,
+        'scout_candidates' => 50,
+        'time_budget_ms' => 3000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Middleware
     |--------------------------------------------------------------------------
     |

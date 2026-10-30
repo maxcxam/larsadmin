@@ -191,6 +191,40 @@ class Larsadmin
     }
 
     /**
+     * The registered entities in sidebar order: navigation groups in order of first appearance,
+     * entities in registration order within a group (as the layout builds the menu).
+     *
+     * @return array<int, class-string<Entity>>
+     */
+    public static function searchOrder(): array
+    {
+        $groups = [];
+
+        foreach (static::$entities as $entity) {
+            $groups[$entity::$group === null ? ':' : 'group:'.$entity::$group][] = $entity;
+        }
+
+        return array_merge(...array_values($groups));
+    }
+
+    /**
+     * Whether a model uses Laravel Scout's Searchable trait while Scout is installed, memoized per
+     * class (reset by flushState()). Scout is referenced by name only: it is not a dependency.
+     *
+     * @param  class-string  $model
+     */
+    public static function modelUsesScout(string $model): bool
+    {
+        return static::$scoutModels[$model] ??= class_exists('Laravel\Scout\Builder')
+            && in_array('Laravel\Scout\Searchable', class_uses_recursive($model), true);
+    }
+
+    /**
+     * @var array<class-string, bool>
+     */
+    protected static array $scoutModels = [];
+
+    /**
      * The registered dashboards, in menu order.
      *
      * @var array<int, Dashboard>
@@ -368,6 +402,7 @@ class Larsadmin
         static::$metricCacheScopeUsing = null;
         static::$entities = [];
         static::$hashes = [];
+        static::$scoutModels = [];
     }
 
     /**
