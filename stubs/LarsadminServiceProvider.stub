@@ -38,5 +38,12 @@ class LarsadminServiceProvider extends LarsadminApplicationServiceProvider
                 //
             ]);
         });
+
+        // Who may read the audit log (config "larsadmin.audit.enabled"). Undefined means nobody:
+        // Gate::define('viewLarsadminAudit', function ($user) {
+        //     return in_array($user->email, [
+        //         //
+        //     ]);
+        // });
     }
 }

@@ -8,6 +8,7 @@ import { isDashboardActive } from './navigation'
 import IconAlert from '../components/icons/IconAlert.vue'
 import IconCheck from '../components/icons/IconCheck.vue'
 import IconDatabase from '../components/icons/IconDatabase.vue'
+import IconHistory from '../components/icons/IconHistory.vue'
 import IconHome from '../components/icons/IconHome.vue'
 import IconMenu from '../components/icons/IconMenu.vue'
 import IconSignOut from '../components/icons/IconSignOut.vue'
@@ -39,6 +40,10 @@ const dashboards = computed(() => page.props.dashboards ?? [])
 const dashboardActive = (dashboard) => isDashboardActive(dashboard, page)
 // Single entry (or none): the plain home link; with an entry, highlight it only when that dashboard is shown.
 const homeActive = computed(() => (dashboards.value.length ? dashboardActive(dashboards.value[0]) : page.component === 'Dashboard'))
+
+// Audit log link: the shared prop is { url } only when the log is enabled and viewLarsadminAudit allows it.
+const audit = computed(() => (larsadmin.value?.audit?.url ? larsadmin.value.audit : null))
+const auditActive = computed(() => page.component === 'Audit/Index')
 
 const isActive = (href) => page.url === href || page.url.startsWith(`${href}/`) || page.url.startsWith(`${href}?`)
 
@@ -155,6 +160,17 @@ const linkActive =
                         >
                             <IconDatabase class="text-fg-muted" />
                             {{ item.label }}
+                        </Link>
+                    </div>
+
+                    <div v-if="audit" class="border-t border-default pt-4 pl-2">
+                        <Link
+                            :href="audit.url"
+                            :class="[linkBase, auditActive ? linkActive : '']"
+                            :aria-current="auditActive ? 'page' : undefined"
+                        >
+                            <IconHistory class="text-fg-muted" />
+                            {{ t('audit_log') }}
                         </Link>
                     </div>
                 </nav>

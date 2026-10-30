@@ -11,8 +11,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Maxcxam\Larsadmin\Actions\Action;
+use Maxcxam\Larsadmin\Actions\ActionFields;
 use Maxcxam\Larsadmin\Actions\ActionRegistry;
 use Maxcxam\Larsadmin\Actions\ActionResponse;
+use Maxcxam\Larsadmin\Audit\ActionAudit;
+use Maxcxam\Larsadmin\Audit\AuditActor;
+use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Larsadmin;
 use Maxcxam\Larsadmin\Query\EntityQuery;
@@ -38,12 +42,35 @@ class ActionController
         $resources = $this->resources($request, $entity, $action);
         $fields = $action->validatedFields($request);
 
+        if (! $entity::audited()) {
+            return $this->execute($request, $entity, $action, $resources, $fields, null);
+        }
+
+        // One batch id for the whole run; save()/deleteRecord() called by handle() write no entries of their own.
+        $recorder = app(AuditRecorder::class);
+        $audit = new ActionAudit($entity, $action, $fields, $request, AuditActor::fromRequest($request), $recorder);
+
+        return $recorder->batch(fn () => $this->execute($request, $entity, $action, $resources, $fields, $audit));
+    }
+
+    /**
+     * Run the action: standalone in one transaction, otherwise per chunk of authorized records, each
+     * in its own transaction together with its audit entries.
+     *
+     * @param  class-string<Entity>  $entity
+     * @param  'all'|list<int|string>  $resources
+     */
+    protected function execute(Request $request, string $entity, Action $action, string|array $resources, ActionFields $fields, ?ActionAudit $audit): RedirectResponse
+    {
         if ($action->standalone) {
             $model = $entity::newModel();
 
-            return $this->respond($request, $entity, $model->getConnection()->transaction(
-                fn () => $action->handle($fields, $model->newCollection()),
-            ), 0);
+            return $this->respond($request, $entity, $model->getConnection()->transaction(function () use ($action, $fields, $model, $audit) {
+                $result = $action->handle($fields, $model->newCollection());
+                $audit?->standalone();
+
+                return $result;
+            }), 0);
         }
 
         $builder = $this->builder($request, $entity, $resources);
@@ -69,7 +96,7 @@ class ActionController
         try {
             $builder->reorder()->chunkById(
                 max(1, $action->chunkSize),
-                function (EloquentCollection $chunk) use ($request, $action, $fields, &$response, &$ran, &$skipped) {
+                function (EloquentCollection $chunk) use ($request, $action, $fields, $audit, &$response, &$ran, &$skipped) {
                     $allowed = $chunk->filter(fn (Model $record) => $action->authorizedToRun($request, $record))->values();
 
                     $skipped += $chunk->count() - $allowed->count();
@@ -78,9 +105,15 @@ class ActionController
                         return;
                     }
 
-                    $result = $allowed->first()->getConnection()->transaction(
-                        fn () => $action->handle($fields, $allowed),
-                    );
+                    $result = $allowed->first()->getConnection()->transaction(function () use ($action, $fields, $allowed, $audit) {
+                        // Snapshots first: handle() may change the models it receives.
+                        $snapshots = $audit?->before($allowed);
+                        $result = $action->handle($fields, $allowed);
+
+                        $audit?->after($snapshots ?? []);
+
+                        return $result;
+                    });
 
                     $ran += $allowed->count();
                     $response = $this->mostSevere($response, $result);

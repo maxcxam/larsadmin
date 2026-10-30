@@ -6,6 +6,7 @@ import { useLarsadmin } from '../../composables/useLarsadmin'
 import { useI18n } from '../../composables/useI18n'
 import ActionMenu from '../../components/actions/ActionMenu.vue'
 import ActionModal from '../../components/actions/ActionModal.vue'
+import AuditHistory from '../../components/audit/AuditHistory.vue'
 import FieldBlocks from '../../components/layout/FieldBlocks.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import Breadcrumbs from '../../components/Breadcrumbs.vue'
@@ -16,6 +17,8 @@ const props = defineProps({
     entity: { type: Object, required: true },
     record: { type: Object, required: true },
     actions: { type: Array, default: () => [] },
+    // { url } of the record's audit history, or null (audit disabled, entity not auditable, no viewLarsadminAudit)
+    audit: { type: Object, default: null },
 })
 
 const pending = ref(null)
@@ -76,6 +79,8 @@ function destroy() {
         :record="record"
         class="mt-6"
     />
+
+    <AuditHistory v-if="audit?.url" :url="audit.url" :record="record" class="mt-6" />
 
     <ActionModal
         v-if="pending"

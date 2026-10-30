@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Console\ActionCommand;
 use Maxcxam\Larsadmin\Console\DashboardCommand;
 use Maxcxam\Larsadmin\Console\EntityCommand;
@@ -15,6 +16,7 @@ use Maxcxam\Larsadmin\Console\FilterCommand;
 use Maxcxam\Larsadmin\Console\InstallCommand;
 use Maxcxam\Larsadmin\Console\PartitionCommand;
 use Maxcxam\Larsadmin\Console\ProgressCommand;
+use Maxcxam\Larsadmin\Console\PruneAuditCommand;
 use Maxcxam\Larsadmin\Console\PublishCommand;
 use Maxcxam\Larsadmin\Console\TrendCommand;
 use Maxcxam\Larsadmin\Console\ValueCommand;
@@ -27,6 +29,9 @@ class LarsadminServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/larsadmin.php', 'larsadmin');
+
+        // One recorder per request (Octane-safe): it holds the batch of a running action.
+        $this->app->scoped(AuditRecorder::class);
     }
 
     /**
@@ -54,14 +59,15 @@ class LarsadminServiceProvider extends ServiceProvider
                 ProgressCommand::class,
                 InstallCommand::class,
                 PublishCommand::class,
+                PruneAuditCommand::class,
             ]);
         }
     }
 
     /**
      * Register the rate limiters: login 5/min per email + IP and 30/min per IP; the metric endpoints
-     * "larsadmin.metrics.throttle", the file downloads "larsadmin.files.throttle" and the global search
-     * "larsadmin.search.throttle" per minute per user (per IP for guests), unlimited when null.
+     * "larsadmin.metrics.throttle", the file downloads "larsadmin.files.throttle", the global search
+     * "larsadmin.search.throttle" and the audit log "larsadmin.audit.throttle" per minute per user (per IP for guests), unlimited when null.
      */
     protected function registerRateLimiting(): void
     {
@@ -69,6 +75,7 @@ class LarsadminServiceProvider extends ServiceProvider
         RateLimiter::for('larsadmin-metrics', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.metrics.throttle', 120)));
         RateLimiter::for('larsadmin-files', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.files.throttle', 600)));
         RateLimiter::for('larsadmin-search', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.search.throttle', 60)));
+        RateLimiter::for('larsadmin-audit', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.audit.throttle', 60)));
 
         RateLimiter::for('larsadmin-login', function (Request $request) {
             $email = $request->input('email');
@@ -131,6 +138,11 @@ class LarsadminServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../dist' => public_path('vendor/larsadmin'),
         ], ['larsadmin-assets', 'laravel-assets']);
+
+        // Not loaded implicitly: the host publishes and runs it when enabling the audit log (ADR-023).
+        $this->publishesMigrations([
+            __DIR__.'/../database/migrations' => database_path('migrations'),
+        ], 'larsadmin-migrations');
 
         $this->publishes([
             __DIR__.'/../stubs/LarsadminServiceProvider.stub' => app_path('Providers/LarsadminServiceProvider.php'),

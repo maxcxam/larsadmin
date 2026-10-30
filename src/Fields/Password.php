@@ -18,6 +18,14 @@ class Password extends Field
         $this->onlyOnForms();
     }
 
+    /**
+     * Password values never reach the audit log; sensitive(false) has no effect.
+     */
+    public function isSensitive(): bool
+    {
+        return true;
+    }
+
     protected function typeRules(): array
     {
         return ['string'];

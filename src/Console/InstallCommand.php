@@ -22,7 +22,7 @@ class InstallCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Install the Larsadmin config, assets and service provider';
+    protected $description = 'Install the Larsadmin config, assets, service provider and migrations';
 
     /**
      * Execute the console command.
@@ -34,11 +34,13 @@ class InstallCommand extends Command
         $this->call('vendor:publish', ['--tag' => 'larsadmin-config']);
         $this->call('vendor:publish', ['--tag' => 'larsadmin-assets', '--force' => true]);
         $this->call('vendor:publish', ['--tag' => 'larsadmin-provider']);
+        $this->call('vendor:publish', ['--tag' => 'larsadmin-migrations']);
 
         $this->registerApplicationProvider();
         $this->installUkrainianValidation();
 
         $this->components->info('Larsadmin installed. Visit '.url(config('larsadmin.path')).' to get started.');
+        $this->components->info('To enable the audit log: run `php artisan migrate`, define the "viewLarsadminAudit" gate, set LARSADMIN_AUDIT=true and schedule `php artisan larsadmin:prune-audit`.');
     }
 
     /**
