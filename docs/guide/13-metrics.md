@@ -85,9 +85,13 @@ public function cards(Request $request): array
 | `width(string)` | `'1/3'` | `'1/3'`, `'1/2'`, `'2/3'` або `'full'`. Інше значення кидає `InvalidArgumentException` |
 | `help(string)` | | підказка: іконка «?» біля заголовка |
 | `canSee(Closure)` | | `fn (Request $request): bool`. Прихована картка не показується, а її ендпоінт відповідає 404 |
+| `withMeta(array)` | `[]` | додаткові ключі серіалізації картки (з 1.5), додаються після базових; базові ключі (`component`, `uriKey`, `name`, `width`, `helpText`, `endpoint`) кидають `InvalidArgumentException` |
 
 Ширина діє на великих екранах (сітка з шести частин). На планшеті картки `1/3` і `1/2` займають
 половину рядка, `2/3` і `full` весь рядок; на телефоні кожна картка на всю ширину.
+
+Власні картки з власним Vue-компонентом (статичні `Card` і картки з даними `DataCard` з тим самим
+ендпоінтом, авторизацією й кешем) описано в [Розширення: картки](19-extensions.md#картки).
 
 ## Періоди (ranges)
 
@@ -442,6 +446,11 @@ Larsadmin::metricCacheScopeUsing(fn (Request $request, Metric $metric) => tenant
 `cacheKeyParts()` повертає масив (за замовчуванням `[]`), callback `metricCacheScopeUsing()`
 будь-яке значення. Обидва мають бути придатні для `json_encode`. `null` вимикає callback.
 
+Той самий callback отримує й картки з даними (`DataCard`, з 1.5). Callback, чий другий параметр
+типізовано лише як `Metric`, картку отримати не може, тож така картка не кешується зовсім. Щоб кешувати
+картки з даними, типізуйте параметр як `Metric|DataCard`, `Card` чи `mixed`
+(див. [Розширення: кешування карток](19-extensions.md#кешування)).
+
 ## Обмеження частоти запитів
 
 Ендпоінти метрик обмежені іменованим лімітером `larsadmin-metrics`: `larsadmin.metrics.throttle`
@@ -468,10 +477,13 @@ Larsadmin::metricCacheScopeUsing(fn (Request $request, Metric $metric) => tenant
 
 Картки завантажують дані з `GET {path}/api/dashboards/{dashboard}/metrics/{metric}?range=` і
 `GET {path}/api/entities/{entity}/metrics/{metric}?range=`. Обидва потребують доступу до панелі.
+Ті самі ендпоінти віддають дані карток `DataCard` ([Розширення](19-extensions.md#datacard)).
 
 | Ситуація | Відповідь |
 | --- | --- |
-| дашборд або картка невидимі (`canSee`), картка не є метрикою | 404 |
+| метрика | `200 {"range": …, "result": …}` ([формат](#формат-відповіді-ендпоінта)) |
+| картка `DataCard` | `200 {"data": …}`; невалідні параметри за `rules()` дають `422 {"message", "errors"}` |
+| дашборд або картка невидимі (`canSee`), картка не є метрикою чи `DataCard` | 404 |
 | немає `viewAny` для Entity, чиї картки запитуються | 403 |
 | джерело Entity без `viewAny` (і при попаданні в кеш), `AuthorizationException` у `calculate()` | 403 |
 | перевищено ліміт `larsadmin-metrics` | 429 |
@@ -481,5 +493,21 @@ Larsadmin::metricCacheScopeUsing(fn (Request $request, Metric $metric) => tenant
 - SQL метрик у CI перевіряється лише на SQLite. На SQLite колонки лише з датою (`DATE`) у трендах
   потрапляють у точку попереднього дня; використовуйте `DATETIME`/`TIMESTAMP`.
 - Кожна картка завантажується окремим HTTP-запитом.
+
+## Формат відповіді ендпоінта
+
+Метрика відповідає `{"range": <ключ періоду або null>, "result": {…}}`. Форма `result` стабільна в 1.x:
+на неї спираються [перевизначення вбудованих карток](19-extensions.md#перевизначення-вбудованих-компонентів)
+(у мінорах ключі лише додаються). Сама картка серіалізується з ключами `Card` плюс `ranges`
+(`[{ value, label }]`) і `defaultRange`.
+
+| `type` | Ключі `result` |
+| --- | --- |
+| `value` | `value`, `previous`, `change` (відсотки, `null` без попереднього значення чи з нулем), `zeroResult`, `format`, `prefix`, `suffix` |
+| `trend` | `unit` (`day`, `week`, `month`), `points` (`[{ label, start, value }]`), `value` (підсумок для `showLatestValue()`/`showSumValue()`, інакше `null`), `valueKind`, `format`, `prefix`, `suffix` |
+| `partition` | `slices` (`[{ key, label, value, color }]`), `total` (`null` для неадитивних агрегатів), `additive`, `format` |
+| `progress` | `value`, `target`, `percentage`, `avoid`, `format`, `prefix`, `suffix` |
+
+`format` є об'єктом опцій `Intl.NumberFormat` (порожній об'єкт, якщо їх немає).
 
 Далі: [Дашборди](14-dashboards.md).

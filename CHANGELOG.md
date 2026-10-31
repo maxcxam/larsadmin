@@ -7,6 +7,186 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-31
+
+### Added
+
+- **Публічний API розширень (FR-058).** Розширення є Composer-пакетом (або каталогом застосунку) з
+  PHP-класами й зібраними Vue-компонентами: власні поля, картки, фільтри, сторінки меню (tools), маршрути й
+  переклади. Встановлюється одним `composer require`, без npm, `vendor:publish` і правок конфігу в хості.
+  Панель і розширення ділять один екземпляр Vue та Inertia через import map (`vue`, `@inertiajs/vue3`,
+  `larsadmin` → `dist/runtime/vue.js`, `runtime/inertia.js`, `runtime/larsadmin.js`). Посібник:
+  `docs/guide/19-extensions.md`.
+- **`Larsadmin`:** `API_VERSION` (`'1.5'`), `extension()`, `registeredExtensions()`, `extensionFor()`,
+  `routes()` (маршрути розширень під `{path}/ext`, імена `larsadmin.ext.*`, за гейтом панелі),
+  `findRecord()` (`viewAny` → скоуп `detailQuery()` → policy, fail closed), `findField()` (поле, як його
+  бачить панель: видимість 404, `readonly` 403), `audited()` (зміна поза формою з записом `updated` у
+  журнал аудиту), `tools()`, `registeredTools()`, `toolForKey()`.
+- **`Maxcxam\Larsadmin\Extensions\Extension`:** `script()`, `style()`, `translations()`, `version()`, `url()`.
+  Файли віддає маршрут `GET {path}/extensions/{vendor}/{package}/{version}/{file}` прямо з зареєстрованого
+  каталогу (лімітер `larsadmin-files`), версія в шляху, `immutable`-кеш для поточної версії.
+- **Модуль `larsadmin` (JS SDK):** `apiVersion`, `defineExtension()` (з `requires: '^MAJOR.MINOR'`),
+  `useI18n`, `useLarsadmin`, `useJsonRequest`, `useJsonResource`, `useCardData`, `useToasts`, `useTheme`,
+  `useNumberFormat`, `buildUrl`, `withParams`, компоненти `Icon`, `CardShell`, `ConfirmDialog`.
+- **Поля:** `Field::$multipart` / `multipart()` (форма надсилається як `multipart/form-data`),
+  `hasAuditValue()` / `auditValue()` (аудит поля без колонки), `fillInto(Request, Model, FileJournal)`
+  (файли поля в журналі збереження), `bindTo()` і решта хуків спадкоємців стали стабільним API, зокрема
+  хуки для перевизначення `__construct(string $name, ?string $attribute = null, ?callable $resolveCallback = null)`,
+  `resolveDefault()`, `rulesFor()`, `validationAttributeNames()`, `isRequired()`, `sortable()`.
+- **Фільтри:** `Filter::serialize(Request, $value)` став стабільним хуком: фільтр розширення додає props
+  до `parent::serialize()`, зберігаючи базові ключі.
+  `FileJournal::created()` / `obsolete()` стабільні. Компоненти форми розширень отримують `errors`,
+  `errorsByKey`, `describedBy`, `context`, `resourceId`; компоненти відображення `context`.
+- **Картки:** `Card::withMeta()`; новий `Maxcxam\Larsadmin\Metrics\DataCard` (`rules()`, `data()`,
+  `cacheFor()`, `cacheKeyParts()`, `entityQuery()`) з даними з наявного ендпоінта метрик
+  (`200 {"data": …}`, 422 для невалідних параметрів); новий `Maxcxam\Larsadmin\Metrics\CardRequest`.
+- **Tools:** `Maxcxam\Larsadmin\Tools\Tool` (`name()`, `uriKey()`, `icon()` зі стабільного `Tool::ICONS`,
+  `canSee()`, `props()`), розділ «Інструменти» в бічному меню, сторінка `GET {path}/tools/{tool}`
+  (невидимий tool відповідає 404 і не має пункту меню).
+- **Перевизначення вбудованих компонентів** (`override: true`) для `text-field`, `password-field`,
+  `textarea-field`, `number-field`, `boolean-field`, `select-field`, `date-field`, `datetime-field` (частини
+  `form`, `display`, `index`, `detail`), `select-filter`, `boolean-filter`, `date-range-filter`,
+  `value-metric`, `trend-metric`, `partition-metric`, `progress-metric`. Лише UI; при збої працює вбудований
+  компонент; з `APP_DEBUG=true` журнал перевизначень у консолі.
+- **Ізоляція збоїв:** `ExtensionBoundary`, placeholder «Недоступно» / «Завантаження розширення…»,
+  завантаження розширень паралельно з очікуванням до 5 с, довантаження після входу без перезавантаження,
+  toast про незавантажене чи несумісне розширення лише з `APP_DEBUG=true`.
+- **Переклади розширень:** `Extension::translations('ns')` віддає `trans('ns::ui')` в JavaScript як
+  `t('ns::key')`. Нові ключі панелі: `extension_unavailable`, `extension_loading`, `extension_failed`,
+  `extension_incompatible`, `field_unavailable_hint`, `tools`.
+- **Команди:** `larsadmin:extension {name} [--path=packages] [--field=] [--card=]` (скелет пакета з
+  прикладами поля, `DataCard`, тестами Pest і vitest), `larsadmin:field`, `larsadmin:card [--data]`,
+  `larsadmin:tool` з `--extension=`.
+- **Kit автора** у Composer-архіві (`kit/`): пресет Vite `kit/vite.js` (запобіжник проти другої копії
+  Vue/Inertia), `kit/sdk.js` для vitest, `kit/testing.js` (`withPanel`, `mountField`, `mountDisplay`,
+  `mountCard`; `mountField` з опцією `errorsByKey`), `kit/theme.css` (тема Tailwind на токенах `--la-*`).
+- **`Maxcxam\Larsadmin\Testing\InteractsWithLarsadmin`:** `serializeField()` (з параметром `$entity`),
+  `fillField()` (як панель: `fillInto()` з журналом файлів у транзакції, при помилці записані файли
+  видаляються), `cardData()`, `assertExtensionRegistered()`, `extensionAssetResponse()`.
+- **Перевірка публічного API:** `kit/check-public-api.mjs` і знімок `kit/public-api.json` у Composer-архіві.
+  Автори запускають `node vendor/maxcxam/larsadmin/kit/check-public-api.mjs <каталог-розширення>`: скрипт
+  перевіряє, що розширення використовує лише стабільну поверхню й перевизначає лише стабільні хуки
+  (`Field`, `Filter`, `Card`/`DataCard`, `Tool`); `tests/` розширення не перевіряється (тести паритету). У
+  репозиторії панелі `npm run check:api` перевіряє саму поверхню.
+- **Конфіг `extensions`:** `source_maps` (`LARSADMIN_EXTENSION_SOURCE_MAPS`, `false`), `max_age` (`31536000`).
+- **CSP:** inline-скрипти панелі, import map, тег `app.js` і теги `modulepreload` отримують `nonce`, якщо
+  застосунок викликав `Vite::useCspNonce()`.
+- **`<link rel="modulepreload">`** у кореневому шаблоні для статичних імпортів `app.js` (з
+  `dist/.vite/manifest.json`; без manifest тегів немає): чанки vue, inertia і shared вантажаться паралельно
+  одразу після `app.js`, без додаткових послідовних запитів.
+- Спільні Inertia-пропи `larsadmin.extensions`, `larsadmin.extensionTranslations`, `larsadmin.debug` і
+  `tools` (лише коли зареєстровано розширення чи tools і лише для користувачів, що пройшли гейт).
+
+### Changed
+
+- **Структура `dist/`:** `app.js` тепер невеликий вхідний модуль; код панелі в `chunks/shared-*.js`, Vue й
+  Inertia в `chunks/vue-*.js` і `chunks/inertia-*.js`; нові `dist/runtime/vue.js`, `runtime/inertia.js`,
+  `runtime/larsadmin.js` для import map.
+- Вбудовані поля, фільтри й картки реєструються в тому самому реєстрі, що й розширення;
+  `registerField`, `registerFilter`, `registerCard` лишилися внутрішніми обгортками.
+- **Поле з невідомим ключем `vendor/name`** показує placeholder і не надсилається з форми (fail closed).
+  Невідомий ключ без `/` поводиться як раніше (текст / текстовий input).
+- Форма визначає поля файлів за явним ключем `fileField: true`, який надсилають `File`, `Image` і їхні
+  спадкоємці, а не за формою значення; поле з `multipart: true` теж переводить форму в multipart.
+- `Entity::save()` викликає `fillInto()` для кожного поля (за замовчуванням `fill()`); журнал аудиту бере
+  `auditValue()` для полів з `hasAuditValue()`. Вбудовані поля поводяться як раніше.
+- `MetricCard` розділено на публічний `CardShell` і логіку метрик; розмітка вбудованих метрик не змінилася.
+- `Larsadmin::assetsVersion()` враховує версії розширень, коли вони зареєстровані.
+- Без зареєстрованих розширень і tools спільні пропи й Inertia-версія такі самі, як у 1.4; HTML
+  відрізняється лише тегами `modulepreload`.
+- Розширення реєструються в порядку серверного списку, незалежно від порядку завершення імпорту; імпорт,
+  що не завершився за 30 с, позначає розширення як незавантажене.
+- `ExtensionBoundary` вимикає компонент лише при помилках render, `setup`, хуків життєвого циклу чи
+  завантажувача асинхронного компонента. Помилки обробників подій, watcher-ів і асинхронного коду
+  пишуться в консоль (з `APP_DEBUG=true` ще й toast), а введене значення поля зберігається й надсилається.
+- `DataCard::entityQuery()` приймає лише зареєстровані Entity (клас чи `uriKey`); `Card::withMeta()` кидає
+  `InvalidArgumentException` для базових ключів (`component`, `uriKey`, `name`, `width`, `helpText`,
+  `endpoint`); `Larsadmin::audited()` кидає `InvalidArgumentException`, якщо запис не є моделлю Entity.
+- Внутрішні (`@internal`) члени стабільних класів позначено явно: `DataCard::cardRequest()`, `resolve()`,
+  `cacheKey()` (`resolve()` і `cacheKey()` тепер `final`), конструктор і допоміжні методи `Extension`
+  (конструктор приватний), конструктор `CardRequest`, `Extension::NAME_PATTERN`, `Tool::COMPONENT_PATTERN`,
+  `Tool::$canSee`.
+- `composer.json`: `extra.branch-alias` `dev-main` → `1.x-dev`.
+
+### Security
+
+- **Модель довіри:** розширення є довіреним кодом; межа безпеки лишається на сервері (policies,
+  `canSee()`, скоупінг, валідація). Посібник прямо попереджає встановлювати лише довірені розширення.
+- **Код розширень лише для користувачів панелі:** список розширень і їхні файли отримують лише
+  користувачі, що пройшли гейт `viewLarsadmin`; сторінка входу не завантажує код розширень.
+- **Віддача файлів:** лише всередині `realpath` зареєстрованого каталогу (traversal, кодування, `\`, NUL,
+  абсолютні шляхи, symlink назовні дають 404), dotfiles і `.vite/` закриті, allow-list типів, SVG з
+  `Content-Security-Policy: sandbox`, source maps вимкнені за замовчуванням, `X-Content-Type-Options:
+  nosniff`, `Cross-Origin-Resource-Policy: same-origin`. Завантажувач приймає лише URL того самого origin.
+- **Перевірка вводу реєстрації:** назви розширень і ключі tools перевіряються з `\z` (кінцевий `\n` не
+  проходить); порожній, відносний чи symlink-каталог розширення відхиляється (інакше `realpath('')` віддав би
+  файли з робочого каталогу).
+- **Scaffold:** команди не пишуть поза `base_path()` через symlink чи junction (перевірка за `realpath`
+  найближчого наявного предка); PSR-4 namespace з `composer.json` перевіряється як PHP namespace перед
+  вставкою в код.
+- **`DataCard`:** параметри лише через `rules()` (решта відкидається), ті самі перевірки власника й
+  `canSee()`, що в метрик, кеш з ключем на користувача (`cacheKey()` `final`); картка, яку не може
+  отримати колбек `metricCacheScopeUsing()`, не кешується. При попаданні в кеш `viewAny` Entity, прочитаних
+  через `entityQuery()`, перевіряється знову: користувач з відкликаним правом отримує 403 (SECX-02).
+  `entityQuery()` приймає лише зареєстровані Entity (SECX-06).
+- **SECX-01:** віддача файлів розширень перевіряє розв'язаний шлях повторно, тож короткі імена Windows 8.3
+  (`VITE~1/manifest.json`) не обходять заборону dotfiles.
+- **SECX-04:** scaffold-команди відмовляються писати, якщо під коренем застосунку на шляху є будь-яке
+  символічне посилання чи junction, зокрема «висяче».
+- **SECX-05:** `useJsonRequest()` (SDK) надсилає CSRF-токен лише на URL того самого origin.
+- **SECX-07:** переможець конфлікту ключів між розширеннями визначається порядком реєстрації на сервері, а
+  не мережею.
+- **Скопійований код безпеки:** посібник вимагає тестів паритету для коду, скопійованого з внутрішніх
+  класів панелі (приклад: `FileSafetyParityTest` у spike медіатеки); перевірка публічного API дозволяє
+  такі тести в `tests/`.
+- **Fail closed:** поле недоступного чи зламаного розширення не надсилається; перевизначення вбудованих
+  компонентів змінюють лише UI, серверна валідація й авторизація від клієнта не залежать.
+- JSON import map екранує `<`, `>`, `&` і лапки.
+
+### Upgrade notes
+
+- **Оновіть асети:** `php artisan larsadmin:publish` (або `php artisan vendor:publish --tag=larsadmin-assets
+  --force`). Публікуйте **весь** каталог: `app.js` тепер невеликий вхідний модуль, а код лежить у нових
+  `chunks/shared-*`, `chunks/vue-*`, `chunks/inertia-*`; з'явився каталог `runtime/`. Копія лише `app.js` і
+  `app.css` ламає панель.
+- **Без розширень нічого не змінюється:** HTML, пропи й Inertia-версія як у 1.4.
+- **Перевизначений `resources/views/vendor/larsadmin/app.blade.php`** має отримати import map і атрибути
+  `nonce` з шаблону пакета, інакше розширення не завантажаться.
+- **CSP:** якщо застосунок задає суворий `script-src`, увімкніть `Vite::useCspNonce()`, інакше import map
+  блокується, а поля розширень показують «Недоступно».
+- **`Larsadmin::metricCacheScopeUsing()`:** колбек, чий другий параметр типізовано лише як `Metric`, ніколи
+  не отримує `DataCard`, і такі картки не кешуються. Щоб кешувати картки з даними, типізуйте параметр як
+  `Metric|DataCard`, `Card` або `mixed`. Нетипізований колбек тепер може отримати будь-яку `Card`: не
+  викликайте в ньому методів лише `Metric` (наприклад, `ranges()`).
+- Спадкоємці `DataCard` не можуть мати власних методів `resolve()` чи `cacheKey()` (вони `final`).
+- **Нові члени базових класів, що можуть конфліктувати з вашими спадкоємцями:** `Field::$multipart`,
+  `multipart()`, `hasAuditValue()`, `auditValue()`, `fillInto()`; `Card::$meta`, `withMeta()`. Властивість з
+  іншим типом дає fatal error під час завантаження класу; перейменуйте її або приведіть до сумісної сигнатури.
+- Власні поля з ключем `component` вигляду `vendor/name` без зареєстрованого розширення тепер не
+  надсилаються з форми (раніше показувалися текстовим input-ом).
+- Власне поле, чиє значення лише схоже на формат полів файлів (`{ present, keep, upload }`), більше не
+  переписується формою: воно надсилається як є. Спадкоємців `File` і `Image` це не зачіпає.
+- **`branch-alias`:** гілка `main` пакета тепер `1.x-dev`, тож розширення з `"maxcxam/larsadmin": "^1.5"`
+  встановлюються проти панелі з гілки (з `minimum-stability: dev`).
+- Тести, що викликають `Larsadmin::flushState()`, знімають і розширення, зареєстровані провайдерами.
+
+### Known issues
+
+- Перше завантаження панелі приблизно на 27 КБ gzip більше, ніж у 1.4, також без розширень: спільні
+  чанки Vue та Inertia не проходять tree-shaking (додаткові послідовні запити прибрано `modulepreload`).
+- `FileTypes` і `FileResponse` внутрішні: розширення, що віддає файли, тримає власну копію перевірок
+  безпеки з тестами паритету (публічний відповідач заплановано на 1.6). Копія в spike медіатеки вже
+  розходилася з ядром (SECX-03); тепер її звіряє з ядром `FileSafetyParityTest`.
+- Поля не отримують прав `view`/`update` на кожен запис; поле, якому вони потрібні, перевіряє policy саме
+  (N викликів на сторінку index). Заплановано на 1.6.
+- Поля розширень у модальних вікнах дій не підтримуються (1.6).
+- `Larsadmin::flushState()` знімає розширення, зареєстровані провайдерами під час boot: у тестах
+  реєструйте їх знову після нього.
+- `FileJournal` видаляє файли, але не каталоги: після відкинутого завантаження можуть лишатися порожні
+  каталоги медіа.
+- `larsadmin:extension` завжди пише пакет у `PATH/VENDOR/PACKAGE`.
+- Розширення без збірки пишуться лише render-функціями (панель постачає Vue без компілятора шаблонів).
+
 ## [1.4.0] - 2026-10-31
 
 ### Added
@@ -660,7 +840,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/maxcxam/larsadmin/compare/v1.4.1...v1.5.0
 [1.4.0]: https://github.com/maxcxam/larsadmin/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/maxcxam/larsadmin/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/maxcxam/larsadmin/compare/v1.2.0...v1.3.0

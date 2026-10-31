@@ -452,6 +452,15 @@ protected static function booted(): void
 `afterCommit()` waits for the transaction to commit and runs at once when there is no transaction.
 The example assumes the `array` cast on `attachments`.
 
+### Custom fields with files
+
+An extension field that writes files registers them in the same save journal that `File` and `Image` use:
+it overrides `Field::fillInto(Request $request, Model $record, FileJournal $journal)` and calls
+`$journal->created($disk, $path)` for written files (deleted when the save fails) and
+`$journal->obsolete($disk, $path)` for replaced ones (deleted after the commit). Its form is sent as
+`multipart/form-data` when the field has `multipart()`. See
+[Extensions: save hooks](19-extensions.md#save-hooks-fillinto-and-filejournal).
+
 ## Security
 
 - The file path never comes from the browser. The form sends tokens of existing files, and they are

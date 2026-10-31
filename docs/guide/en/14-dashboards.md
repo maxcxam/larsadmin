@@ -133,6 +133,26 @@ public function cards(Request $request): array
 - The same metric classes can be used on dashboards too. The cache (`cacheFor()`) is kept separately
   for each card owner.
 
+## Custom cards
+
+Besides metrics, both `Dashboard::cards()` and `Entity::cards()` accept extension cards (since 1.5): static
+`Card` subclasses and `DataCard`s. A data card goes through the same checks as a metric (dashboard
+visibility or the entity's `viewAny`, `canSee()`), and its parameters are validated by `rules()`.
+`withMeta()` gives any card extra props:
+
+```php
+public function cards(Request $request): array
+{
+    return [
+        NewPosts::make(),
+        TopRated::make()->width('1/2'),                       // an extension DataCard
+        Welcome::make()->withMeta(['links' => $this->links()]), // a static card
+    ];
+}
+```
+
+See [Extensions: cards](19-extensions.md#cards).
+
 ## Timezone
 
 The ranges of all metrics are computed in the panel timezone: `Larsadmin::timezoneUsing()`, then

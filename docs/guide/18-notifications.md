@@ -721,4 +721,4 @@ Schedule::command('larsadmin:prune-notifications')->daily();
 - Завислий запуск визначається лише тоді, коли його хтось перевіряє (ліміт, опитування, список запусків,
   `larsadmin:prune-notifications`). Плануйте `larsadmin:prune-notifications` щодня.
 
-Далі: [Розширення](10-extending.md).
+Далі: [Розширення: публічний API](19-extensions.md).

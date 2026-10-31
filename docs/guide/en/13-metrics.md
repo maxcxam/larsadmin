@@ -85,9 +85,13 @@ Methods shared by all cards (class `Maxcxam\Larsadmin\Metrics\Card`):
 | `width(string)` | `'1/3'` | `'1/3'`, `'1/2'`, `'2/3'` or `'full'`. Any other value throws `InvalidArgumentException` |
 | `help(string)` | | a hint: a "?" icon next to the title |
 | `canSee(Closure)` | | `fn (Request $request): bool`. A hidden card is not shown, and its endpoint responds with 404 |
+| `withMeta(array)` | `[]` | extra serialized keys of the card (since 1.5), added after the base ones; base keys (`component`, `uriKey`, `name`, `width`, `helpText`, `endpoint`) throw `InvalidArgumentException` |
 
 The width applies on large screens (a six-column grid). On a tablet, `1/3` and `1/2` cards take half a
 row, `2/3` and `full` cards the whole row; on a phone, every card is full width.
+
+Cards with your own Vue component (static `Card`s and `DataCard`s with data from the same endpoint, with
+the same authorization and caching) are described in [Extensions: cards](19-extensions.md#cards).
 
 ## Ranges
 
@@ -447,6 +451,11 @@ Larsadmin::metricCacheScopeUsing(fn (Request $request, Metric $metric) => tenant
 `cacheKeyParts()` returns an array (`[]` by default); the `metricCacheScopeUsing()` callback returns
 any value. Both must be JSON-encodable. `null` disables the callback.
 
+The same callback also receives data cards (`DataCard`, since 1.5). A callback whose second parameter is
+typed as `Metric` only cannot receive the card, so such a card is not cached at all. To cache data cards,
+type the parameter as `Metric|DataCard`, `Card` or `mixed` (see
+[Extensions: caching cards](19-extensions.md#caching)).
+
 ## Rate limiting
 
 The metric endpoints are limited by the named `larsadmin-metrics` limiter: `larsadmin.metrics.throttle`
@@ -473,10 +482,13 @@ limit.
 
 Cards load their data from `GET {path}/api/dashboards/{dashboard}/metrics/{metric}?range=` and
 `GET {path}/api/entities/{entity}/metrics/{metric}?range=`. Both require access to the panel.
+The same endpoints serve the data of `DataCard`s ([Extensions](19-extensions.md#datacard)).
 
 | Situation | Response |
 | --- | --- |
-| the dashboard or card is not visible (`canSee`), the card is not a metric | 404 |
+| a metric | `200 {"range": …, "result": …}` ([format](#endpoint-response-format)) |
+| a `DataCard` | `200 {"data": …}`; parameters failing `rules()` give `422 {"message", "errors"}` |
+| the dashboard or card is not visible (`canSee`), the card is neither a metric nor a `DataCard` | 404 |
 | no `viewAny` for the Entity whose cards are requested | 403 |
 | an Entity source without `viewAny` (also on a cache hit), `AuthorizationException` in `calculate()` | 403 |
 | the `larsadmin-metrics` limit is exceeded | 429 |
@@ -486,5 +498,21 @@ Cards load their data from `GET {path}/api/dashboards/{dashboard}/metrics/{metri
 - Metric SQL is tested in CI on SQLite only. On SQLite, date-only (`DATE`) columns in trends land in
   the previous day's point; use `DATETIME`/`TIMESTAMP`.
 - Each card is loaded with a separate HTTP request.
+
+## Endpoint response format
+
+A metric answers `{"range": <range key or null>, "result": {…}}`. The shape of `result` is stable in 1.x:
+[overrides of the built-in cards](19-extensions.md#overriding-built-in-components) rely on it (minors only
+add keys). The card itself is serialized with the `Card` keys plus `ranges` (`[{ value, label }]`) and
+`defaultRange`.
+
+| `type` | `result` keys |
+| --- | --- |
+| `value` | `value`, `previous`, `change` (percent, `null` without a previous value or with zero), `zeroResult`, `format`, `prefix`, `suffix` |
+| `trend` | `unit` (`day`, `week`, `month`), `points` (`[{ label, start, value }]`), `value` (the summary for `showLatestValue()`/`showSumValue()`, else `null`), `valueKind`, `format`, `prefix`, `suffix` |
+| `partition` | `slices` (`[{ key, label, value, color }]`), `total` (`null` for non-additive aggregates), `additive`, `format` |
+| `progress` | `value`, `target`, `percentage`, `avoid`, `format`, `prefix`, `suffix` |
+
+`format` is an object of `Intl.NumberFormat` options (an empty object when there are none).
 
 Next: [Dashboards](14-dashboards.md).

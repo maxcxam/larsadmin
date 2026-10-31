@@ -264,4 +264,14 @@ Password::make('Пароль', 'password')
 Validation messages come from `lang/{locale}/validation.php`, and field names from the field labels.
 `larsadmin:install` installs the Ukrainian messages ([Localization](08-i18n.md)).
 
+## Custom fields
+
+A custom field is a subclass of `Field` (or `Text`, `Number`, …). Since 1.5 its protected hooks
+(`resolveValue()`, `formatForDisplay()`, `fillValue()`, `fillString()`, `typeRules()`, `implicitRules()`,
+`acceptsNullInput()`, `defaultAlign()`), public hooks (`fill()`, `fillInto()`, `fillAttribute()`,
+`resolve()`, `eagerLoads()`, `applySort()`, `bindTo()`, `hasAuditValue()`, `auditValue()`), `withMeta()`,
+`jsonSerialize()` and `$component` are stable API. A field with a built-in component is described in
+[Extending](10-extending.md#a-field-with-a-built-in-component), a field with its own Vue component,
+including a field that uploads files (`multipart()`), in [Extensions: the public API](19-extensions.md#custom-fields).
+
 Next: [Relations](04-relations.md).

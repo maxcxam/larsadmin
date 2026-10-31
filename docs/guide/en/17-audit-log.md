@@ -80,7 +80,9 @@ The diff covers the Entity's fields, not every attribute of the model:
   what to show is decided when the log is read (see [Who can see the log](#who-can-see-the-log));
 - relation panels (`HasMany`, `BelongsToMany`) are not recorded as fields; attaching is recorded by the
   separate `attached`/`detached` events;
-- computed fields without a model column are not recorded;
+- computed fields without a model column are not recorded, except fields that return their value through
+  `hasAuditValue()` and `auditValue()` (since 1.5, for example media or tags in another table; see
+  [Extensions: audit](19-extensions.md#audit-hasauditvalue-and-auditvalue));
 - model attributes that are not Entity fields (`updated_at`, internal columns) are not recorded.
 
 The fields come from `fields()` for the current request. When `fields()` returns a different set for
@@ -198,6 +200,21 @@ This holds when the log and the Entity's model use the same database connection.
 change, without atomicity: when the insert fails, the change stays, a `critical` message (with the
 `batch_id`, the Entity and the record keys) is logged and the exception goes to `report()`. Alert on
 these messages.
+
+### Changes outside the form
+
+Your own code (an extension route, for example) records a change to a record with `Larsadmin::audited()`:
+
+```php
+Larsadmin::audited($request, 'posts', $record, function (Model $record) {
+    $record->tags()->sync($ids);
+});
+```
+
+The panel snapshots the entity's fields before and after the closure, diffs them with masking and records
+an `updated` event in one transaction with the closure. There is no entry when nothing changed, the log is
+off or the entity is not audited. The second argument is the entity's `uriKey`. See
+[Extensions: `audited()`](19-extensions.md#audited).
 
 ## Who can see the log
 

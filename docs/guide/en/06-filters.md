@@ -133,10 +133,13 @@ Methods of the `Maxcxam\Larsadmin\Filters\Filter` base class:
 | `default()` | the value used when the key is missing from the request |
 | `normalize($request, $raw)` | converts the raw value; `null` means "filter not active" |
 | `canSee(Closure)` | visibility condition |
-| `$component` | the frontend component: `select-filter`, `boolean-filter` or `date-range-filter` |
+| `$component` | the frontend component: `select-filter`, `boolean-filter`, `date-range-filter` or an extension key `vendor/name` |
 
 The generator stub creates a select filter. For other value logic, override `normalize()` and `apply()`.
-Custom frontend components for new filter types cannot be added without changing the package yet
-(see [Extending](10-extending.md)).
+A custom frontend component for a new filter type comes from an extension (see
+[Extensions: filters](19-extensions.md#filters)), and the stable hook `serialize(Request $request, mixed $value)`
+gives the component extra props (the result of `parent::serialize()` with every base key, plus yours); the
+UI of the built-in filters can be
+[overridden](19-extensions.md#overriding-built-in-components).
 
 Next: [Actions](07-actions.md).
