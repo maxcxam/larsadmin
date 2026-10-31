@@ -20,6 +20,7 @@ use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\CanaryTool;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\IntrospectedPost;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\IntrospectedTag;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\IntrospectedUser;
+use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpResult;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpSpy;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\UserBoundEntity;
 use Maxcxam\Larsadmin\Tests\Fixtures\Post;
@@ -86,7 +87,7 @@ afterEach(function () {
  */
 function mcpRawResponse(TestResponse $response): string
 {
-    return (string) json_encode((fn () => $this->response->toArray())->call($response), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    return (string) json_encode(McpResult::raw($response), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 }
 
 /**

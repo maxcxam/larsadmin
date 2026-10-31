@@ -11,6 +11,7 @@ use Laravel\Mcp\Server\McpServiceProvider;
 use Maxcxam\Larsadmin\Mcp\LarsadminServer;
 use Maxcxam\Larsadmin\Mcp\Tools\Generate;
 use Maxcxam\Larsadmin\Scaffolding\Scaffolder;
+use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpResult;
 
 beforeEach(function () {
     $this->app->register(McpServiceProvider::class);
@@ -55,7 +56,7 @@ function mcpGenerate(array $arguments): array
 
     expect($response)->toBeInstanceOf(ResponseFactory::class);
 
-    return $response->getStructuredContent();
+    return McpResult::fromHandle($response);
 }
 
 /**

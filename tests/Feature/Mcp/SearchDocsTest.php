@@ -8,6 +8,7 @@ use Maxcxam\Larsadmin\Mcp\Docs\DocsIndex;
 use Maxcxam\Larsadmin\Mcp\LarsadminServer;
 use Maxcxam\Larsadmin\Mcp\McpGate;
 use Maxcxam\Larsadmin\Mcp\Tools\SearchDocs;
+use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpResult;
 
 /*
  * Exact ranking is asserted against the fixture guides in tests/Fixtures/Docs/en, which change only with these tests.
@@ -58,7 +59,7 @@ function searchDocs(array $arguments): array
     $response = LarsadminServer::tool(SearchDocs::class, $arguments);
     $response->assertOk()->assertHasNoErrors();
 
-    return searchDocsMcpResult($response)['structuredContent'];
+    return McpResult::json($response);
 }
 
 /**

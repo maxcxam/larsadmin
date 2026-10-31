@@ -6,6 +6,7 @@ use Laravel\Mcp\Server\McpServiceProvider;
 use Maxcxam\Larsadmin\Mcp\Docs\DocsIndex;
 use Maxcxam\Larsadmin\Mcp\LarsadminServer;
 use Maxcxam\Larsadmin\Mcp\Tools\ReadDocs;
+use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpResult;
 
 beforeEach(function () {
     // laravel/mcp is a require-dev package: Testbench does not discover it, register it like a host would.
@@ -29,7 +30,7 @@ function readDocs(array $arguments): array
     $response = LarsadminServer::tool(ReadDocs::class, $arguments);
     $response->assertOk()->assertHasNoErrors();
 
-    return (fn () => $this->response->toArray()['result']['structuredContent'])->call($response);
+    return McpResult::json($response);
 }
 
 /**

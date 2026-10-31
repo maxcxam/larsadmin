@@ -76,7 +76,7 @@ function parityScenario(): array
 }
 
 /**
- * Console output without the temporary root, with forward slashes in its paths and without the dev-version
+ * Console output with paths relative to the temporary root (forward slashes, as Laravel prints them on Linux) and without the dev-version
  * hint of larsadmin:extension (it depends on how the package is installed, not on the generator).
  */
 function parityOutput(string $output, string $root): string
@@ -84,7 +84,9 @@ function parityOutput(string $output, string $root): string
     $output = str_replace("\r\n", "\n", $output);
 
     foreach ([$root, str_replace('\\', '/', $root), str_replace('/', '\\', $root)] as $prefix) {
-        $output = preg_replace_callback('/'.preg_quote($prefix, '/').'[^\s\]]*/', fn (array $m) => '{root}'.str_replace('\\', '/', substr($m[0], strlen($prefix))), $output);
+        // Laravel's components print paths below base_path().'/' relative (EnsureRelativePaths); on Windows the
+        // separator differs and the absolute path stays. Both become the relative path with forward slashes.
+        $output = preg_replace_callback('/'.preg_quote($prefix, '/').'[\\\\\/]([^\s\]]*)/', fn (array $m) => str_replace('\\', '/', $m[1]), $output);
     }
 
     $lines = array_filter(explode("\n", $output), fn (string $line) => ! preg_match('/Larsadmin is installed as|Only the main branch is aliased|"options": \{"versions"|allow dev stability/', $line));
@@ -212,22 +214,22 @@ function parityGolden(): array
 {
     return [
         'steps' => [
-            0 => '0 larsadmin:entity {"name":"Post"} => INFO  Entity [{root}/app/Larsadmin/Post.php] created successfully.',
-            1 => '0 larsadmin:entity {"name":"Admin/Comment","--model":"Comment"} => INFO  Entity [{root}/app/Larsadmin/Admin/Comment.php] created successfully.',
-            2 => '0 larsadmin:entity {"name":"Member","--model":"App\\\\Models\\\\User"} => INFO  Entity [{root}/app/Larsadmin/Member.php] created successfully.',
+            0 => '0 larsadmin:entity {"name":"Post"} => INFO  Entity [app/Larsadmin/Post.php] created successfully.',
+            1 => '0 larsadmin:entity {"name":"Admin/Comment","--model":"Comment"} => INFO  Entity [app/Larsadmin/Admin/Comment.php] created successfully.',
+            2 => '0 larsadmin:entity {"name":"Member","--model":"App\\\\Models\\\\User"} => INFO  Entity [app/Larsadmin/Member.php] created successfully.',
             3 => '0 larsadmin:entity {"name":"Post"} => ERROR  Entity already exists.',
-            4 => '0 larsadmin:entity {"name":"Post","--force":true,"--model":"Article"} => INFO  Entity [{root}/app/Larsadmin/Post.php] created successfully.',
+            4 => '0 larsadmin:entity {"name":"Post","--force":true,"--model":"Article"} => INFO  Entity [app/Larsadmin/Post.php] created successfully.',
             5 => '0 larsadmin:entity {"name":"Class"} => ERROR  The name "Class" is reserved by PHP.',
-            6 => '0 larsadmin:action {"name":"PublishPost"} => INFO  Action [{root}/app/Larsadmin/Actions/PublishPost.php] created successfully.',
-            7 => '0 larsadmin:action {"name":"DeletePosts","--destructive":true} => INFO  Action [{root}/app/Larsadmin/Actions/DeletePosts.php] created successfully.',
-            8 => '0 larsadmin:filter {"name":"Status"} => INFO  Filter [{root}/app/Larsadmin/Filters/Status.php] created successfully.',
-            9 => '0 larsadmin:filter {"name":"Region.php"} => INFO  Filter [{root}/app/Larsadmin/Filters/Region.php] created successfully.',
-            10 => '0 larsadmin:dashboard {"name":"Sales"} => INFO  Dashboard [{root}/app/Larsadmin/Dashboards/Sales.php] created successfully.',
-            11 => '0 larsadmin:value {"name":"NewUsers"} => INFO  Value metric [{root}/app/Larsadmin/Metrics/NewUsers.php] created successfully.',
-            12 => '0 larsadmin:value {"name":"App\\\\Larsadmin\\\\Metrics\\\\Revenue"} => INFO  Value metric [{root}/app/Larsadmin/Metrics/Revenue.php] created successfully.',
-            13 => '0 larsadmin:trend {"name":"UsersPerDay"} => INFO  Trend metric [{root}/app/Larsadmin/Metrics/UsersPerDay.php] created successfully.',
-            14 => '0 larsadmin:partition {"name":"UsersByRole"} => INFO  Partition metric [{root}/app/Larsadmin/Metrics/UsersByRole.php] created successfully.',
-            15 => '0 larsadmin:progress {"name":"Goal"} => INFO  Progress metric [{root}/app/Larsadmin/Metrics/Goal.php] created successfully.',
+            6 => '0 larsadmin:action {"name":"PublishPost"} => INFO  Action [app/Larsadmin/Actions/PublishPost.php] created successfully.',
+            7 => '0 larsadmin:action {"name":"DeletePosts","--destructive":true} => INFO  Action [app/Larsadmin/Actions/DeletePosts.php] created successfully.',
+            8 => '0 larsadmin:filter {"name":"Status"} => INFO  Filter [app/Larsadmin/Filters/Status.php] created successfully.',
+            9 => '0 larsadmin:filter {"name":"Region.php"} => INFO  Filter [app/Larsadmin/Filters/Region.php] created successfully.',
+            10 => '0 larsadmin:dashboard {"name":"Sales"} => INFO  Dashboard [app/Larsadmin/Dashboards/Sales.php] created successfully.',
+            11 => '0 larsadmin:value {"name":"NewUsers"} => INFO  Value metric [app/Larsadmin/Metrics/NewUsers.php] created successfully.',
+            12 => '0 larsadmin:value {"name":"App\\\\Larsadmin\\\\Metrics\\\\Revenue"} => INFO  Value metric [app/Larsadmin/Metrics/Revenue.php] created successfully.',
+            13 => '0 larsadmin:trend {"name":"UsersPerDay"} => INFO  Trend metric [app/Larsadmin/Metrics/UsersPerDay.php] created successfully.',
+            14 => '0 larsadmin:partition {"name":"UsersByRole"} => INFO  Partition metric [app/Larsadmin/Metrics/UsersByRole.php] created successfully.',
+            15 => '0 larsadmin:progress {"name":"Goal"} => INFO  Progress metric [app/Larsadmin/Metrics/Goal.php] created successfully.',
             16 => '0 larsadmin:progress {"name":"Goal"} => ERROR  Progress metric already exists.',
             17 => '0 larsadmin:field {"name":"star-rating"} => INFO  Field [StarRating] created with the component key [app/star-rating].
 
@@ -323,7 +325,7 @@ function parityGolden(): array
   And in the boot() method of the package\'s service provider:
 
     Larsadmin::tools([\\Acme\\LarsadminRating\\Tools\\Reports::class]);',
-            35 => '1 larsadmin:field {"name":"Mood","--extension":"packages/missing"} => ERROR  No extension package (composer.json with a vendor/name) in [{root}/packages/missing].',
+            35 => '1 larsadmin:field {"name":"Mood","--extension":"packages/missing"} => ERROR  No extension package (composer.json with a vendor/name) in [packages/missing].',
         ],
         'files' => [
             'app/Larsadmin/Actions/DeletePosts.php' => 'b565794d2ec13b95f06339980b57631f6e7d337afdadcc190d6e68acaa18ba1b',
@@ -408,3 +410,13 @@ function parityGolden(): array
         ],
     ];
 }
+
+it('normalises the console paths the same on Linux and Windows', function () {
+    $expected = 'INFO  Entity [app/Larsadmin/Post.php] created successfully.';
+
+    // Linux: Laravel's EnsureRelativePaths already strips base_path().'/'; Windows: the absolute path stays.
+    expect(parityOutput($expected, '/tmp/root'))->toBe($expected)
+        ->and(parityOutput('INFO  Entity [/tmp/root/app/Larsadmin/Post.php] created successfully.', '/tmp/root'))->toBe($expected)
+        ->and(parityOutput('INFO  Entity [C:\Temp\root\app\Larsadmin\Post.php] created successfully.', 'C:\Temp\root'))->toBe($expected)
+        ->and(parityOutput('ERROR  No extension package in [C:\Temp\root/packages/missing].', 'C:\Temp\root'))->toBe('ERROR  No extension package in [packages/missing].');
+});

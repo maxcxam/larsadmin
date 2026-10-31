@@ -100,7 +100,7 @@ final class SearchDocs extends Tool
             return Response::error('Unknown "page". Available pages: '.implode(', ', $index->pages()).'.');
         }
 
-        return Response::structured([
+        return JsonResult::make([
             'version' => McpGate::packageVersion(),
             'results' => $index->search($query, $limit, $page),
         ]);
