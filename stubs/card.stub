@@ -1,0 +1,23 @@
+<?php
+
+namespace {{ namespace }};
+
+use Maxcxam\Larsadmin\Metrics\Card;
+
+class {{ class }} extends Card
+{
+    /**
+     * The extension component that renders the card ("vendor/name", registered with defineExtension()).
+     */
+    public string $component = '{{ component }}';
+
+    /**
+     * The props of the card: a static card has no data endpoint. ->withMeta([...]) adds props per instance.
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [...parent::jsonSerialize(), 'message' => __('{{ class }}')];
+    }
+}

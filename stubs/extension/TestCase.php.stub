@@ -1,0 +1,51 @@
+<?php
+
+namespace {{ namespace }}\Tests;
+
+use {{ namespace }}\{{ provider }};
+use {{ namespace }}\Tests\Fixtures\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
+use Inertia\ServiceProvider as InertiaServiceProvider;
+use Maxcxam\Larsadmin\Larsadmin;
+use Maxcxam\Larsadmin\LarsadminServiceProvider;
+use Orchestra\Testbench\Attributes\WithMigration;
+use Orchestra\Testbench\TestCase as Orchestra;
+
+// Laravel's default tables (users, ...), shipped with Testbench and run by RefreshDatabase.
+#[WithMigration]
+abstract class TestCase extends Orchestra
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Every signed-in user may use the panel in these tests.
+        Larsadmin::auth(fn () => true);
+        Gate::define('viewLarsadmin', fn () => true);
+    }
+
+    protected function getPackageProviders($app): array
+    {
+        return [
+            InertiaServiceProvider::class,
+            LarsadminServiceProvider::class,
+            {{ provider }}::class,
+        ];
+    }
+
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
+        $app['config']->set('database.default', 'testing');
+        $app['config']->set('database.connections.testing', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
+        $app['config']->set('auth.providers.users.model', User::class);
+    }
+
+    protected function user(): User
+    {
+        return User::create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => 'secret']);
+    }
+}

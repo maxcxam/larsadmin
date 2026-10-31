@@ -48,4 +48,24 @@ describe('useI18n', () => {
         expect(tc('files', 1)).toBe('1 file')
         expect(tc('files', 2)).toBe('2 files')
     })
+
+    it('resolves extension translations as namespace::key', () => {
+        props.larsadmin = {
+            locale: 'uk',
+            translations: { retry: 'Ще раз' },
+            extensionTranslations: { 'acme-rating': { stars: ':count зірка|:count зірки|:count зірок', group: { title: 'Рейтинг' } } },
+        }
+        const { t, tc } = useI18n()
+
+        expect(t('acme-rating::group.title')).toBe('Рейтинг')
+        expect(tc('acme-rating::stars', 3)).toBe('3 зірки')
+        expect(t('retry')).toBe('Ще раз')
+        expect(t('acme-rating::missing')).toBe('acme-rating::missing')
+    })
+
+    it('ignores a null extensionTranslations prop', () => {
+        props.larsadmin = { locale: 'uk', translations: {}, extensionTranslations: null }
+
+        expect(useI18n().t('retry')).toBe('Повторити')
+    })
 })

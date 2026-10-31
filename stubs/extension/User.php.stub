@@ -1,0 +1,13 @@
+<?php
+
+namespace {{ namespace }}\Tests\Fixtures;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+
+/**
+ * The panel user of the tests (Laravel's default "users" table).
+ */
+class User extends Authenticatable
+{
+    protected $guarded = [];
+}

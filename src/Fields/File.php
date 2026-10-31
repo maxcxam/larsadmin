@@ -905,6 +905,8 @@ class File extends Field
             'uploadLimit' => $limit,
             'files' => $this->resolvedFiles,
             'urlsExpireAt' => $this->urlsExpireAt,
+            // Tells the form to send this field as files, also for subclasses with their own component key.
+            'fileField' => true,
         ], $this->context === self::INDEX ? ['count' => $this->resolvedCount] : [], $this->meta);
     }
 }

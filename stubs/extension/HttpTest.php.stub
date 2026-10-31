@@ -1,0 +1,28 @@
+<?php
+
+use {{ namespace }}\Tests\Fixtures\TestDashboard;
+use Maxcxam\Larsadmin\Larsadmin;
+
+it('serves the card data to panel users only', function () {
+    Larsadmin::dashboards([TestDashboard::class]);
+
+    $this->getJson('/admin/api/dashboards/test-dashboard/metrics/{{ cardUriKey }}?limit=2')->assertUnauthorized();
+
+    $this->actingAs($this->user())
+        ->getJson('/admin/api/dashboards/test-dashboard/metrics/{{ cardUriKey }}?limit=2')
+        ->assertOk()
+        ->assertJsonPath('data.limit', 2);
+});
+
+it('serves the built extension files to panel users', function () {
+    if (! is_file(__DIR__.'/../dist/extension.js')) {
+        $this->markTestSkipped('Run `npm run build` first.');
+    }
+
+    $this->assertExtensionRegistered('{{ name }}');
+
+    $this->actingAs($this->user())
+        ->extensionAssetResponse('{{ name }}', 'extension.js')
+        ->assertOk()
+        ->assertHeader('Content-Type', 'text/javascript; charset=utf-8');
+});

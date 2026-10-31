@@ -10,7 +10,18 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use JsonSerializable;
 use Maxcxam\Larsadmin\Entity;
+use Maxcxam\Larsadmin\Files\FileJournal;
 
+/**
+ * A field of an entity. Stable for subclasses since 1.5 (extension fields, design §4.3): $component (a
+ * "vendor/name" key for extension components), $multipart, jsonSerialize() (subclass keys win), withMeta(),
+ * the protected hooks resolveValue(), formatForDisplay(), fillValue(), fillString(), typeRules(),
+ * implicitRules(), acceptsNullInput() and defaultAlign(), and the public hooks fill() (with its deferred
+ * closure, ADR-002), fillInto(), fillAttribute(), resolve(), eagerLoads(), applySort(), bindTo(),
+ * hasAuditValue() and auditValue() (ADR-035). Also stable as override hooks: the constructor
+ * (string $name, ?string $attribute = null, ?callable $resolveCallback = null), resolveDefault(), rulesFor(),
+ * validationAttributeNames(), isRequired() and sortable().
+ */
 abstract class Field implements JsonSerializable
 {
     public const string INDEX = 'index';
@@ -22,9 +33,14 @@ abstract class Field implements JsonSerializable
     public const string UPDATE = 'update';
 
     /**
-     * The Vue component that renders the field.
+     * The Vue component that renders the field; extension components use a "vendor/name" key (ADR-032).
      */
     public string $component;
+
+    /**
+     * Whether the form is sent as multipart/form-data because the field uploads files, like File and Image.
+     */
+    public bool $multipart = false;
 
     /**
      * The displayable name of the field.
@@ -167,7 +183,7 @@ abstract class Field implements JsonSerializable
     }
 
     /**
-     * Resolve the default value for a record that is being created.
+     * Resolve the default value for a record that is being created. Stable override hook since 1.5.
      */
     public function resolveDefault(Request $request): static
     {
@@ -178,11 +194,40 @@ abstract class Field implements JsonSerializable
 
     /**
      * Called once when the owning entity builds its fields, so relation fields
-     * know their parent entity and the request.
+     * know their parent entity and the request. Stable since 1.5.
      *
      * @param  class-string<Entity>  $entity
      */
     public function bindTo(Request $request, string $entity): void {}
+
+    /**
+     * Whether the audit log records this field through auditValue() instead of a model column (since 1.5).
+     * A field without a column (media, tags in another table...) returns true to be audited.
+     */
+    public function hasAuditValue(): bool
+    {
+        return false;
+    }
+
+    /**
+     * The JSON-encodable value the audit log records for the record's current state (since 1.5). Read it
+     * fresh (not from a cached relation) and cheaply: it runs before and after every audited save.
+     * sensitive() masks it as usual.
+     */
+    public function auditValue(Model $record): mixed
+    {
+        return null;
+    }
+
+    /**
+     * Fill with access to the save's file journal (since 1.5); the default calls fill(). Register files the
+     * field writes, also in its deferred closure, with $journal->created() (deleted when the save fails) and
+     * files it replaces with $journal->obsolete() (deleted after the commit).
+     */
+    public function fillInto(Request $request, Model $record, FileJournal $journal): ?Closure
+    {
+        return $this->fill($request, $record);
+    }
 
     /**
      * The model attribute written by fill(). Defaults to the request key.
@@ -339,6 +384,9 @@ abstract class Field implements JsonSerializable
         return $this;
     }
 
+    /**
+     * Allow sorting the index by the field. Stable override hook since 1.5 (a field without a column refuses it).
+     */
     public function sortable(bool $sortable = true): static
     {
         $this->sortable = $sortable;
@@ -539,6 +587,16 @@ abstract class Field implements JsonSerializable
         return $this;
     }
 
+    /**
+     * Send the form as multipart/form-data: the field's value holds files (since 1.5).
+     */
+    public function multipart(bool $multipart = true): static
+    {
+        $this->multipart = $multipart;
+
+        return $this;
+    }
+
     public function placeholder(string $placeholder): static
     {
         $this->placeholder = $placeholder;
@@ -586,6 +644,7 @@ abstract class Field implements JsonSerializable
      * The "{{id}}" placeholder in string rules is replaced with the record key,
      * e.g. "unique:users,email,{{id}}". Implicit rules for the field type
      * (e.g. "numeric", "in") are prepended unless a fillUsing() callback is set.
+     * Stable override hook since 1.5 (e.g. rules for nested keys such as "{attribute}.*").
      */
     public function rulesFor(string $context, ?Model $record = null): array
     {
@@ -607,6 +666,7 @@ abstract class Field implements JsonSerializable
 
     /**
      * The validation attribute names of the keys validated by rulesFor(), mapped to the field name.
+     * Stable override hook since 1.5: override it together with rulesFor() for nested keys.
      *
      * @return array<string, string>
      */
@@ -641,7 +701,8 @@ abstract class Field implements JsonSerializable
     }
 
     /**
-     * Determine if the field is required in its current context.
+     * Determine if the field is required in its current context (the form's "required" mark). Stable override
+     * hook since 1.5, e.g. when the "required" rule is on a nested key.
      */
     public function isRequired(): bool
     {
@@ -788,6 +849,10 @@ abstract class Field implements JsonSerializable
         return $this;
     }
 
+    /**
+     * The field as the client receives it. Subclasses add keys with [...parent::jsonSerialize(), 'key' => ...].
+     * "multipart" is only sent when true, so built-in fields serialize exactly as before 1.5.
+     */
     public function jsonSerialize(): array
     {
         return array_merge([
@@ -806,6 +871,6 @@ abstract class Field implements JsonSerializable
             'wrap' => $this->wrap,
             'truncate' => $this->truncate,
             'fullWidth' => $this->fullWidth,
-        ], $this->meta);
+        ], $this->multipart ? ['multipart' => true] : [], $this->meta);
     }
 }

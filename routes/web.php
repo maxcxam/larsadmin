@@ -8,6 +8,7 @@ use Maxcxam\Larsadmin\Http\Controllers\BroadcastAuthController;
 use Maxcxam\Larsadmin\Http\Controllers\DashboardController;
 use Maxcxam\Larsadmin\Http\Controllers\DownloadController;
 use Maxcxam\Larsadmin\Http\Controllers\EntityController;
+use Maxcxam\Larsadmin\Http\Controllers\ExtensionAssetController;
 use Maxcxam\Larsadmin\Http\Controllers\FileController;
 use Maxcxam\Larsadmin\Http\Controllers\GlobalSearchController;
 use Maxcxam\Larsadmin\Http\Controllers\LocaleController;
@@ -17,6 +18,7 @@ use Maxcxam\Larsadmin\Http\Controllers\NotificationController;
 use Maxcxam\Larsadmin\Http\Controllers\RelatableController;
 use Maxcxam\Larsadmin\Http\Controllers\RelatedController;
 use Maxcxam\Larsadmin\Http\Controllers\RunController;
+use Maxcxam\Larsadmin\Http\Controllers\ToolController;
 
 Route::get('login', [LoginController::class, 'show'])->name('login');
 Route::post('login', [LoginController::class, 'store'])->middleware('throttle:larsadmin-login')->name('login.store');
@@ -56,7 +58,15 @@ Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
     Route::middleware('throttle:larsadmin-files')->group(function () {
         Route::get('runs/{run}/download', [RunController::class, 'download'])->whereUlid('run')->name('runs.download');
         Route::get('downloads/{token}', DownloadController::class)->where('token', '[A-Za-z0-9_\-=]+')->name('downloads.show');
+
+        // Built files of registered extensions (1.5, ADR-031): the controller only serves allow-listed files inside the registered directory.
+        Route::get('extensions/{vendor}/{package}/{version}/{file}', [ExtensionAssetController::class, 'show'])
+            ->where(['vendor' => '[a-z0-9_.\-]+', 'package' => '[a-z0-9_.\-]+', 'version' => '[a-f0-9]{1,64}', 'file' => '.+'])
+            ->name('extensions.asset');
     });
+
+    // Tools of extensions (1.5): a page with the tool's component; an unknown or invisible tool is a 404.
+    Route::get('tools/{tool}', [ToolController::class, 'show'])->name('tools.show');
 
     Route::get('files/{entity}/{id}/{field}/{token}', [FileController::class, 'show'])
         ->where('token', '[a-f0-9]{32}')

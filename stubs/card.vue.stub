@@ -1,0 +1,14 @@
+<script setup>
+import { CardShell } from 'larsadmin'
+
+// The "{{ component }}" card: `card` is the serialized PHP card (component, uriKey, name, width, helpText, own keys).
+defineProps({
+    card: { type: Object, required: true },
+})
+</script>
+
+<template>
+    <CardShell :card="card">
+        <p class="px-4 pb-4 text-sm">{{ card.message }}</p>
+    </CardShell>
+</template>

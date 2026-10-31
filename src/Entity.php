@@ -494,10 +494,9 @@ abstract class Entity
         $before = $recorder === null ? null : ($event === 'updated' ? Snapshot::capture($this, $request) : Snapshot::empty());
 
         try {
+            // fillInto() defaults to fill(); fields that write files register them in the journal (ADR-035).
             $callbacks = $this->editableFields($request, $context)
-                ->map(fn (Field $field) => $field instanceof File
-                    ? $field->fillInto($request, $this->record, $journal)
-                    : $field->fill($request, $this->record))
+                ->map(fn (Field $field) => $field->fillInto($request, $this->record, $journal))
                 ->filter()
                 ->values();
 

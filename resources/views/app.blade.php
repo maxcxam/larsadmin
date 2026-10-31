@@ -8,11 +8,11 @@
 
     <title inertia>{{ \Maxcxam\Larsadmin\Larsadmin::name() }}</title>
 
-    <script>
+    <script{!! \Maxcxam\Larsadmin\Extensions\ExtensionAssets::nonceAttribute() !!}>
         try { var t = localStorage.getItem('larsadmin.theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t) } catch (e) {}
     </script>
-    <link rel="stylesheet" href="{{ \Maxcxam\Larsadmin\Larsadmin::asset('app.css') }}">
-    <script type="module" src="{{ \Maxcxam\Larsadmin\Larsadmin::asset('app.js') }}"></script>
+    <link rel="stylesheet" href="{{ \Maxcxam\Larsadmin\Larsadmin::asset('app.css') }}">{!! \Maxcxam\Larsadmin\Extensions\ExtensionAssets::importMapTag() !!}
+    <script type="module" src="{{ \Maxcxam\Larsadmin\Larsadmin::asset('app.js') }}"{!! \Maxcxam\Larsadmin\Extensions\ExtensionAssets::nonceAttribute() !!}></script>{!! \Maxcxam\Larsadmin\Extensions\ExtensionAssets::modulePreloadTags() !!}
 
     @inertiaHead
 </head>

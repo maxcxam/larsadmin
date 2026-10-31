@@ -8,7 +8,6 @@ use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Fields\Field;
 use Maxcxam\Larsadmin\Fields\PanelField;
 use Maxcxam\Larsadmin\Larsadmin;
-use Maxcxam\Larsadmin\Query\EntityQuery;
 
 /**
  * Resolves the parent record and the relation panel of a panel endpoint (ADR-005, ADR-006).
@@ -23,15 +22,9 @@ trait ResolvesPanel
      */
     protected function resolveParent(Request $request, string $entity, string $id): array
     {
-        $parentEntity = Larsadmin::entityForKey($entity) ?? abort(404);
+        $parent = Larsadmin::findRecord($request, $entity, $id);
 
-        abort_unless($parentEntity::authorizedToViewAny($request), 403);
-
-        $parent = EntityQuery::for($parentEntity, $request)->scope('detail')->findOrFail($id);
-
-        abort_unless($parentEntity::make($parent)->authorizedToView($request), 403);
-
-        return [$parentEntity, $parent];
+        return [Larsadmin::entityForKey($entity), $parent];
     }
 
     /**

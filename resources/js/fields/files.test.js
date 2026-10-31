@@ -5,11 +5,14 @@ import {
     emptyValue,
     extensionOf,
     fieldError,
+    fieldErrors,
+    fieldErrorsByKey,
     fileValue,
     focusIndexAfterRemoval,
     formatSize,
     hasFileFields,
     isExpired,
+    isMultipartField,
     isRasterImage,
     matchesAccept,
     maxFileSize,
@@ -139,6 +142,9 @@ describe('error mapping', () => {
         expect(fieldError(errors, 'attachments')).toBe('Too many uploads.')
         expect(fieldError(errors, 'gallery')).toBe('Bad keep.')
         expect(fieldError(errors, 'missing')).toBe(null)
+        // Only a per-upload message: the field is still invalid (§18 A6b), lowest index first.
+        expect(fieldError({ 'photos.upload.2': 'Third.', 'photos.upload.0': 'First.' }, 'photos')).toBe('First.')
+        expect(fieldError({ 'photos.upload.x': 'Odd.' }, 'photos')).toBe(null)
         expect(fieldError(undefined, 'x')).toBe(null)
     })
     it('maps per-upload messages by index', () => {
@@ -236,9 +242,18 @@ describe('buildSubmission (EntityForm transport)', () => {
         expect(fileValue({ present: 1, keep: [], upload: [] }, multiField)).toEqual({ present: 1, keep: [], upload: [] })
     })
 
-    it('recognizes custom file components by their value shape', () => {
-        expect(hasFileFields([{ component: 'avatar-field', value: { present: 1, keep: [], upload: [] }, files: [] }])).toBe(true)
+    it('recognizes File subclasses with their own key by the explicit fileField flag (§18 A6c)', () => {
+        expect(hasFileFields([{ component: 'avatar-field', fileField: true, value: { present: 1, keep: [], upload: [] }, files: [] }])).toBe(true)
         expect(hasFileFields([{ component: 'json-field', value: { present: 1 } }])).toBe(false)
+    })
+
+    it('no longer rewrites a field that only looks like a File field', () => {
+        const lookalike = { component: 'acme/media', attribute: 'media', value: { present: 1, keep: ['a'], upload: [] }, files: [] }
+        const data = { media: { present: 1, keep: [], upload: [], order: [3, 1] } }
+
+        expect(hasFileFields([lookalike])).toBe(false)
+        expect(buildSubmission([lookalike], 'put', data)).toEqual({ method: 'put', data, multipart: false })
+        expect(buildSubmission([{ ...lookalike, fileField: false }], 'put', data).multipart).toBe(false)
     })
 })
 
@@ -273,5 +288,67 @@ describe('focusIndexAfterRemoval', () => {
         expect(focusIndexAfterRemoval(2, 2)).toBe(-1)
         expect(focusIndexAfterRemoval(0, 0)).toBe(-1)
         expect(focusIndexAfterRemoval(-1, 3)).toBe(-1)
+    })
+})
+
+describe('extension fields (1.5)', () => {
+    const fields = [
+        { component: 'text-field', attribute: 'title', value: 'A' },
+        { component: 'acme/rating', attribute: 'rating', value: 4 },
+        { component: 'acme/media', attribute: 'media', value: null, multipart: true },
+    ]
+
+    it('leaves unavailable fields out of a JSON submission (fail closed)', () => {
+        const data = { title: 'B', rating: 'garbage' }
+        const submission = buildSubmission(fields.slice(0, 2), 'put', data, { exclude: ['rating'] })
+
+        expect(submission).toEqual({ method: 'put', data: { title: 'B' }, multipart: false })
+        expect(JSON.stringify(submission.data)).toBe('{"title":"B"}')
+        expect(data).toHaveProperty('rating')
+    })
+
+    it('keeps the 1.4 data object when nothing is excluded', () => {
+        const data = { title: 'B', rating: 5 }
+
+        expect(buildSubmission(fields.slice(0, 2), 'put', data, { exclude: [] }).data).toBe(data)
+    })
+
+    it('switches to multipart for fields with multipart: true, sending their value as is', () => {
+        const upload = file('a.jpg', 3, 'image/jpeg')
+        const data = { title: 'B', rating: 5, media: { upload: [upload] } }
+        const submission = buildSubmission(fields, 'put', data)
+
+        expect(isMultipartField(fields[2])).toBe(true)
+        expect(isMultipartField(fields[1])).toBe(false)
+        expect(submission.multipart).toBe(true)
+        expect(submission.method).toBe('post')
+        expect(submission.data).toEqual({ ...data, _method: 'PUT' })
+        expect(submission.data.media.upload[0]).toBe(upload)
+    })
+
+    it('excludes unavailable fields from multipart payloads too', () => {
+        const data = { title: 'B', rating: 5, media: { upload: [] }, cover: imageField.value }
+        const submission = buildSubmission([...fields, imageField], 'post', data, { exclude: ['rating', 'media'] })
+        const keys = [...objectToFormData(submission.data, new FormData(), null, 'indices').keys()]
+
+        expect(submission.multipart).toBe(true)
+        expect(keys).not.toContain('rating')
+        expect(keys.some((key) => key.startsWith('media'))).toBe(false)
+        expect(keys).toContain('title')
+    })
+
+    it('does not switch to multipart because of an excluded multipart field', () => {
+        expect(buildSubmission(fields, 'put', { title: 'B', media: null }, { exclude: ['media'] })).toEqual({ method: 'put', data: { title: 'B' }, multipart: false })
+    })
+
+    it('keys messages for the errorsByKey prop (attribute and attribute.* only)', () => {
+        expect(fieldErrorsByKey({ gallery: 'Required.', 'gallery.upload.1': 'Too big.', galleryx: 'Other.', title: 'No.' }, 'gallery'))
+            .toEqual({ gallery: 'Required.', 'gallery.upload.1': 'Too big.' })
+        expect(fieldErrorsByKey(null, 'gallery')).toEqual({})
+    })
+
+    it('collects messages for an attribute and its nested keys', () => {
+        expect(fieldErrors({ media: 'Required.', 'media.0': 'Too big.', mediax: 'Other.', title: 'No.' }, 'media')).toEqual(['Required.', 'Too big.'])
+        expect(fieldErrors(undefined, 'media')).toEqual([])
     })
 })

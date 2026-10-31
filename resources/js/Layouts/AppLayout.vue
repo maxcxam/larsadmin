@@ -5,7 +5,8 @@ import { useLarsadmin } from '../composables/useLarsadmin'
 import { useI18n } from '../composables/useI18n'
 import { useDownload } from '../composables/useDownload'
 import { useNotifications } from '../composables/useNotifications'
-import { isDashboardActive } from './navigation'
+import { isDashboardActive, isToolActive, toolLinks } from './navigation'
+import Icon from '../components/Icon.vue'
 import IconDatabase from '../components/icons/IconDatabase.vue'
 import IconHistory from '../components/icons/IconHistory.vue'
 import IconHome from '../components/icons/IconHome.vue'
@@ -40,6 +41,10 @@ const dashboards = computed(() => page.props.dashboards ?? [])
 const dashboardActive = (dashboard) => isDashboardActive(dashboard, page)
 // Single entry (or none): the plain home link; with an entry, highlight it only when that dashboard is shown.
 const homeActive = computed(() => (dashboards.value.length ? dashboardActive(dashboards.value[0]) : page.component === 'Dashboard'))
+
+// Extension tools (design 1.5 §4.5, Q-65): the shared prop lists only the tools the user may see.
+const tools = computed(() => toolLinks(page.props.tools, Icon.NAMES))
+const toolActive = (tool) => isToolActive(tool, page)
 
 // Audit log link: the shared prop is { url } only when the log is enabled and viewLarsadminAudit allows it.
 const audit = computed(() => (larsadmin.value?.audit?.url ? larsadmin.value.audit : null))
@@ -164,6 +169,20 @@ const linkActive =
                         >
                             <IconDatabase class="text-fg-muted" />
                             {{ item.label }}
+                        </Link>
+                    </div>
+
+                    <div v-if="tools.length" class="pl-2">
+                        <h2 class="mb-1 px-3 text-xs font-semibold text-fg-muted">{{ t('tools') }}</h2>
+                        <Link
+                            v-for="tool in tools"
+                            :key="tool.uriKey"
+                            :href="tool.url"
+                            :class="[linkBase, toolActive(tool) ? linkActive : '']"
+                            :aria-current="toolActive(tool) ? 'page' : undefined"
+                        >
+                            <Icon :name="tool.icon" class="text-fg-muted" />
+                            {{ tool.name }}
                         </Link>
                     </div>
 

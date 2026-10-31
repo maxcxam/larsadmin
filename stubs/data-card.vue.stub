@@ -1,0 +1,20 @@
+<script setup>
+import { ref } from 'vue'
+import { CardShell, useCardData } from 'larsadmin'
+
+// The "{{ component }}" card: its data comes from the card endpoint (DataCard::data()), reloaded when params change.
+const props = defineProps({
+    card: { type: Object, required: true },
+})
+
+const params = ref({ limit: 5 })
+const { status, data, reload } = useCardData(() => props.card, params)
+</script>
+
+<template>
+    <CardShell :card="card" :status="status" :ready="data !== null" :empty="data !== null && data.items.length === 0" @retry="reload()">
+        <ul class="px-4 pb-4 text-sm">
+            <li v-for="(item, index) in data?.items ?? []" :key="index">{{ item }}</li>
+        </ul>
+    </CardShell>
+</template>

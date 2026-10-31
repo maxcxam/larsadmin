@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createJsonRequest, readCookie } from './useJsonRequest'
+import { createJsonRequest, isSameOrigin, readCookie } from './useJsonRequest'
 
 function response(status, body = null) {
     return { status, ok: status >= 200 && status < 300, text: async () => (body === null ? '' : JSON.stringify(body)) }
@@ -9,7 +9,7 @@ function make(status, body, cookie = 'a=1; XSRF-TOKEN=eyJpdiI6%3D%3D; b=2') {
     const fetch = vi.fn(async () => response(status, body))
     const reload = vi.fn()
 
-    return { fetch, reload, request: createJsonRequest({ fetch, reload, cookie: () => cookie }) }
+    return { fetch, reload, request: createJsonRequest({ fetch, reload, cookie: () => cookie, base: () => 'https://panel.test/admin/posts' }) }
 }
 
 describe('readCookie', () => {
@@ -85,5 +85,32 @@ describe('useJsonRequest', () => {
 
         await loudGet.request.send('GET', '/x', undefined, { background: false })
         expect(loudGet.reload).toHaveBeenCalledOnce()
+    })
+})
+
+describe('CSRF token only for the panel origin (SECX-05)', () => {
+    it.each([
+        ['/admin/ext/rating', true],
+        ['ext/rating', true],
+        ['https://panel.test/admin/x', true],
+        ['https://api.vendor.example/v1', false],
+        ['//api.vendor.example/v1', false],
+        ['http://panel.test/admin/x', false],
+        ['https://panel.test:8443/x', false],
+    ])('%s -> token %s', async (url, sent) => {
+        const { fetch, request } = make(200, {})
+
+        await request.send('POST', url, { a: 1 })
+
+        const headers = fetch.mock.calls[0][1].headers
+        expect('X-XSRF-TOKEN' in headers).toBe(sent)
+        expect('X-Requested-With' in headers).toBe(sent)
+        expect(fetch.mock.calls[0][1].credentials).toBe('same-origin')
+    })
+
+    it('treats unparsable URLs and a missing page origin as foreign', () => {
+        expect(isSameOrigin('http://[bad', 'https://panel.test/')).toBe(false)
+        expect(isSameOrigin('/x', null)).toBe(false)
+        expect(isSameOrigin('/x', 'https://panel.test/admin')).toBe(true)
     })
 })

@@ -2,10 +2,12 @@
 
 namespace Maxcxam\Larsadmin;
 
+use Closure;
 use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -13,8 +15,11 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Console\ActionCommand;
+use Maxcxam\Larsadmin\Console\CardCommand;
 use Maxcxam\Larsadmin\Console\DashboardCommand;
 use Maxcxam\Larsadmin\Console\EntityCommand;
+use Maxcxam\Larsadmin\Console\ExtensionCommand;
+use Maxcxam\Larsadmin\Console\FieldCommand;
 use Maxcxam\Larsadmin\Console\FilterCommand;
 use Maxcxam\Larsadmin\Console\InstallCommand;
 use Maxcxam\Larsadmin\Console\PartitionCommand;
@@ -22,13 +27,22 @@ use Maxcxam\Larsadmin\Console\ProgressCommand;
 use Maxcxam\Larsadmin\Console\PruneAuditCommand;
 use Maxcxam\Larsadmin\Console\PruneNotificationsCommand;
 use Maxcxam\Larsadmin\Console\PublishCommand;
+use Maxcxam\Larsadmin\Console\ToolCommand;
 use Maxcxam\Larsadmin\Console\TrendCommand;
 use Maxcxam\Larsadmin\Console\ValueCommand;
 use Maxcxam\Larsadmin\Realtime\Realtime;
 use Maxcxam\Larsadmin\Realtime\SignalNotificationSent;
+use WeakMap;
 
 class LarsadminServiceProvider extends ServiceProvider
 {
+    /**
+     * The extension route callbacks already registered, per router.
+     *
+     * @var WeakMap<Router, WeakMap<Closure, true>>|null
+     */
+    protected static ?WeakMap $registeredRoutes = null;
+
     /**
      * Register any package services.
      */
@@ -52,6 +66,9 @@ class LarsadminServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->registerNotifications();
 
+        // Extension providers call Larsadmin::routes() in their boot(): register them once every provider booted.
+        $this->app->booted(fn () => static::registerExtensionRoutes());
+
         if ($this->app->runningInConsole()) {
             $this->registerPublishing();
 
@@ -68,6 +85,10 @@ class LarsadminServiceProvider extends ServiceProvider
                 PublishCommand::class,
                 PruneAuditCommand::class,
                 PruneNotificationsCommand::class,
+                ExtensionCommand::class,
+                FieldCommand::class,
+                CardCommand::class,
+                ToolCommand::class,
             ]);
         }
     }
@@ -145,6 +166,54 @@ class LarsadminServiceProvider extends ServiceProvider
         ], function () {
             $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         });
+    }
+
+    /**
+     * Register the routes of extensions (Larsadmin::routes()) under {path}/ext, named "larsadmin.ext.", behind the
+     * panel middleware and the panel gate ("larsadmin.middleware" + "larsadmin.auth_middleware"). Nothing is
+     * registered without callbacks or when the routes are cached (route:cache ran the callbacks already). Each
+     * callback is registered once per router, however often this runs.
+     *
+     * @internal
+     */
+    public static function registerExtensionRoutes(): void
+    {
+        if (app()->routesAreCached()) {
+            return;
+        }
+
+        static::$registeredRoutes ??= new WeakMap;
+        $router = app('router');
+
+        if (! isset(static::$registeredRoutes[$router])) {
+            static::$registeredRoutes[$router] = new WeakMap;
+        }
+
+        $registered = static::$registeredRoutes[$router];
+        $callbacks = array_values(array_filter(Larsadmin::extensionRoutes(), fn (Closure $callback) => ! isset($registered[$callback])));
+
+        if ($callbacks === []) {
+            return;
+        }
+
+        foreach ($callbacks as $callback) {
+            $registered[$callback] = true;
+        }
+
+        Route::group([
+            'domain' => config('larsadmin.domain'),
+            'prefix' => trim(config('larsadmin.path'), '/').'/ext',
+            'middleware' => [...(array) config('larsadmin.middleware', []), ...(array) config('larsadmin.auth_middleware', [])],
+            'as' => 'larsadmin.ext.',
+        ], function () use ($callbacks) {
+            foreach ($callbacks as $callback) {
+                $callback();
+            }
+        });
+
+        // Routes added after the application booted: make them findable by name and action.
+        Route::getRoutes()->refreshNameLookups();
+        Route::getRoutes()->refreshActionLookups();
     }
 
     /**

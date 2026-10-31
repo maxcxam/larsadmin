@@ -28,17 +28,33 @@ export function readCookie(name, cookie = typeof document === 'undefined' ? '' :
     return null
 }
 
+// Whether `url` (absolute, protocol-relative or relative) points at the page's own origin. Unparsable -> false.
+export function isSameOrigin(url, base = typeof window === 'undefined' ? null : window.location.href) {
+    if (!base) return false
+
+    try {
+        return new URL(String(url), base).origin === new URL(base).origin
+    } catch {
+        return false
+    }
+}
+
 export function createJsonRequest({
     fetch: fetchImpl = (...args) => globalThis.fetch(...args),
     reload = () => window.location.reload(),
     cookie = () => (typeof document === 'undefined' ? '' : document.cookie),
+    base = () => (typeof window === 'undefined' ? null : window.location.href),
 } = {}) {
     async function send(method, url, body = undefined, { background = undefined } = {}) {
         const verb = String(method).toUpperCase()
         const quiet = background ?? (verb === 'GET' || verb === 'HEAD')
-        const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        const own = isSameOrigin(url, base())
+        // X-Requested-With only for the panel: another origin would need a CORS preflight for it.
+        const headers = own ? { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } : { Accept: 'application/json' }
 
-        if (verb !== 'GET' && verb !== 'HEAD') {
+        // The CSRF token is a session secret: only the panel's own origin gets it (SECX-05). Cookies follow the same
+        // rule through `credentials: 'same-origin'`.
+        if (verb !== 'GET' && verb !== 'HEAD' && own) {
             const token = readCookie('XSRF-TOKEN', cookie())
 
             if (token) headers['X-XSRF-TOKEN'] = token

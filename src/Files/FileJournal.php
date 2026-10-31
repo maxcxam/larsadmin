@@ -11,7 +11,8 @@ use Throwable;
  * written files are discarded when the save fails, obsolete ones purged after the commit.
  * Storage failures are reported, never thrown.
  *
- * @internal
+ * Stable since 1.5 (ADR-035): created() and obsolete(), which Field::fillInto() uses. Everything else
+ * (construction, discarding, purging) belongs to Entity::save() and is internal.
  */
 class FileJournal
 {
@@ -42,11 +43,17 @@ class FileJournal
         return $this;
     }
 
+    /**
+     * A file this save wrote: deleted when the save fails or rolls back.
+     */
     public function created(string $disk, string $path): void
     {
         $this->created[] = [$disk, $path];
     }
 
+    /**
+     * A file this save made obsolete: deleted after the outermost commit.
+     */
     public function obsolete(string $disk, string $path): void
     {
         $this->obsolete[] = [$disk, $path];

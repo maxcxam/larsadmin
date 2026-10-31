@@ -1,0 +1,13 @@
+import { describe, expect, it } from 'vitest'
+import { mountField } from 'larsadmin-kit/testing.js'
+import {{ field }}Input from './{{ field }}Input.vue'
+
+describe('{{ field }}Input', () => {
+    it('emits the typed value', async () => {
+        const wrapper = mountField({{ field }}Input, { field: { attribute: '{{ attribute }}', value: 'a' } })
+
+        await wrapper.find('input').setValue('b')
+
+        expect(wrapper.emitted('update:modelValue').at(-1)).toEqual(['b'])
+    })
+})

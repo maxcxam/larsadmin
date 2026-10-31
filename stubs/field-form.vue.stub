@@ -1,0 +1,32 @@
+<script setup>
+// Form control of the "{{ component }}" field. The panel renders the label, the help text and the errors;
+// this component renders the control only and never submits the form itself.
+defineProps({
+    field: { type: Object, required: true },
+    modelValue: { default: null },
+    invalid: { type: Boolean, default: false },
+    errors: { type: Array, default: () => [] },
+    // The messages by key ({ 'attribute.0': '…' }) for structured values; the panel shows `errors` itself.
+    errorsByKey: { type: Object, default: () => ({}) },
+    describedBy: { type: String, default: null },
+    context: { type: String, default: 'update' },
+    resourceId: { type: [String, Number], default: null },
+})
+
+defineEmits(['update:modelValue'])
+</script>
+
+<template>
+    <input
+        :id="field.attribute"
+        type="text"
+        class="larsadmin-input"
+        :class="{ 'larsadmin-input-invalid': invalid }"
+        :value="modelValue ?? ''"
+        :placeholder="field.placeholder ?? undefined"
+        :readonly="field.readonly"
+        :aria-invalid="invalid ? 'true' : undefined"
+        :aria-describedby="describedBy ?? undefined"
+        @input="$emit('update:modelValue', $event.target.value)"
+    />
+</template>

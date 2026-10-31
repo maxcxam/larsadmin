@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { displayComponent } from '../fields'
+import { displayComponent, displayProps } from '../fields'
 import { useLarsadmin, withParams } from '../composables/useLarsadmin'
 import { useI18n } from '../composables/useI18n'
 import { normalizeColumn } from '../composables/columnPreferences'
@@ -153,9 +153,10 @@ const actionBtn = 'inline-flex rounded-md p-1.5 text-fg-muted hover:bg-neutral-m
                         :title="cellTitle(cellField(record, column), column)"
                     >
                         <component
-                            :is="displayComponent(cellField(record, column))"
+                            :is="displayComponent(cellField(record, column), 'index')"
                             v-if="cellField(record, column)"
                             :field="shownField(cellField(record, column), column)"
+                            v-bind="displayProps(displayComponent(cellField(record, column), 'index'), 'index')"
                         />
                     </td>
                     <td class="px-4 py-2 text-right whitespace-nowrap">

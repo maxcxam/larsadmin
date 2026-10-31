@@ -1,0 +1,12 @@
+<?php
+
+use {{ namespace }}\Cards\{{ card }};
+use Illuminate\Validation\ValidationException;
+
+it('returns the card data for valid parameters', function () {
+    expect($this->cardData({{ card }}::make(), ['limit' => 3]))->toBe(['items' => [], 'limit' => 3]);
+});
+
+it('rejects invalid parameters', function () {
+    $this->cardData({{ card }}::make(), ['limit' => 'many']);
+})->throws(ValidationException::class);

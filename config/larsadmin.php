@@ -256,6 +256,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Extensions
+    |--------------------------------------------------------------------------
+    |
+    | Extensions are registered by their packages with Larsadmin::extension(); their built files are served
+    | by the panel to signed-in panel users only. "source_maps" also serves *.map files (keep it off unless
+    | debugging). "max_age" is the browser cache lifetime of versioned extension files, in seconds.
+    |
+    */
+
+    'extensions' => [
+        'source_maps' => env('LARSADMIN_EXTENSION_SOURCE_MAPS', false),
+        'max_age' => 31536000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Files
     |--------------------------------------------------------------------------
     |

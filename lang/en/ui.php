@@ -100,6 +100,14 @@ return [
     'collapse' => 'Collapse',
     'tab_errors' => ':count error|:count errors',
 
+    // Extensions and tools
+    'extension_unavailable' => 'Unavailable: the extension is not loaded',
+    'extension_loading' => 'Loading the extension…',
+    'extension_failed' => 'Extension :name was not loaded',
+    'extension_incompatible' => 'Extension :name requires API :requires, the panel provides :version',
+    'field_unavailable_hint' => 'This field will not be changed when you save.',
+    'tools' => 'Tools',
+
     // Dashboards and metrics
     'dashboards' => 'Dashboards',
     'metric_range' => 'Range',

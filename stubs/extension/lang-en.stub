@@ -1,0 +1,6 @@
+<?php
+
+// Exposed to the extension's JavaScript as t('{{ langNamespace }}::key').
+return [
+    'empty' => 'Nothing here yet',
+];
