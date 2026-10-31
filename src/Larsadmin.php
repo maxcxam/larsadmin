@@ -405,6 +405,14 @@ class Larsadmin
     }
 
     /**
+     * Whether the bell and queued actions are enabled (config "larsadmin.notifications.enabled").
+     */
+    public static function notificationsEnabled(): bool
+    {
+        return filter_var(config('larsadmin.notifications.enabled', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
      * Customize the actor label snapshot stored with each entry: fn (Authenticatable $user): ?string.
      * Default: $user->name, else $user->email, else "#{id}". Null resets.
      */

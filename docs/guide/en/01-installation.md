@@ -26,12 +26,18 @@ php artisan larsadmin:install
 2. publishes the assets (`larsadmin-assets`) to `public/vendor/larsadmin`, overwriting existing files;
 3. publishes the service provider (`larsadmin-provider`) to `app/Providers/LarsadminServiceProvider.php`
    and adds it to `bootstrap/providers.php`;
-4. publishes the audit log migration (`larsadmin-migrations`) to `database/migrations`;
+4. publishes the package migrations (`larsadmin-migrations`) to `database/migrations`: the audit log and
+   the background action runs;
 5. copies `lang/uk/validation.php`, **only if that file does not exist yet** (an existing file is left untouched).
 
 The migration is not run: the audit log is off by default. To turn it on, run `php artisan migrate`,
 define the `viewLarsadminAudit` gate and set `LARSADMIN_AUDIT=true` (see
 [Audit log](17-audit-log.md#quick-start)).
+
+Notifications and background actions are off as well. To turn them on, create the `notifications` table
+(`php artisan make:notifications-table`), run `php artisan migrate`, set `LARSADMIN_NOTIFICATIONS=true`,
+run a queue worker and schedule `larsadmin:prune-notifications` (see
+[Notifications and background actions](18-notifications.md#quick-start)).
 
 The panel is then available at `/admin` (see the `path` key below).
 
@@ -43,7 +49,8 @@ php artisan larsadmin:publish
 ```
 
 `larsadmin:publish` publishes the config (an existing file is overwritten only with `--force`) and always
-overwrites the assets.
+overwrites the assets. The assets are more than `app.js` and `app.css`: some code (the bell, the realtime
+client) lives in `chunks/` and loads on demand, so publish the whole directory, not single files.
 
 Security fixes ship as patch versions of the latest 1.x release, so keep the package up to date.
 Report vulnerabilities privately, not in public issues: see [SECURITY.md](../../../SECURITY.md).
@@ -56,7 +63,7 @@ Report vulnerabilities privately, not in public issues: see [SECURITY.md](../../
 | `larsadmin-assets` (also `laravel-assets`) | `public/vendor/larsadmin` |
 | `larsadmin-lang` | `lang/vendor/larsadmin` |
 | `larsadmin-provider` | `app/Providers/LarsadminServiceProvider.php` |
-| `larsadmin-migrations` | `database/migrations` (the audit log table migration) |
+| `larsadmin-migrations` | `database/migrations` (the audit log and background action runs tables) |
 
 ```bash
 php artisan vendor:publish --tag=larsadmin-lang
@@ -80,6 +87,7 @@ translations (see [Localization](08-i18n.md)).
 | `larsadmin:partition {name} [--force]` | create a Partition metric in `app/Larsadmin/Metrics` |
 | `larsadmin:progress {name} [--force]` | create a Progress metric in `app/Larsadmin/Metrics` |
 | `larsadmin:prune-audit [--days=]` | delete audit log entries older than `audit.retention_days` (90 days) ([Audit log](17-audit-log.md#pruning)) |
+| `larsadmin:prune-notifications [--days=]` | delete panel notifications, background action runs and their files older than `notifications.retention_days` (30 days) ([Notifications](18-notifications.md#pruning)) |
 
 ## Configuration (`config/larsadmin.php`)
 
@@ -99,9 +107,16 @@ translations (see [Localization](08-i18n.md)).
 | `allow_without_policy` | | `true` | Models without a policy: `true` allows, `false` denies |
 | `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | With `APP_ENV=local`, let users into the panel without the `viewLarsadmin` gate |
 | `actions.max_all` | | `1000` | Maximum number of records for an action run on "all matching" records; more fails validation with 422 |
+| `actions.queued_max_all`, `actions.queued_max_active` | | `10000`, `3` | Background action limits: records for "all matching" and active runs per user |
+| `actions.stale_after`, `actions.queued_stale_after` | | `3600`, `86400` | Seconds after which a run without a heartbeat (without `$timeout`, plus 60 s) or a queued run counts as stale ([Notifications](18-notifications.md#stale-runs)) |
+| `actions.queue`, `actions.queue_connection` | `LARSADMIN_QUEUE`, `LARSADMIN_QUEUE_CONNECTION` | `null` | Default queue and queue connection for background actions |
 | `audit.enabled` | `LARSADMIN_AUDIT` | `false` | Turns the audit log on ([Audit log](17-audit-log.md#configuration)) |
 | `audit.connection` | `LARSADMIN_AUDIT_CONNECTION` | `null` | Database connection of the log |
 | `audit.*` | | `retention_days` 90, `max_value_length` 1000, `per_page` 25, `throttle` 60 | Table, storing the IP and user agent, pruning; see [Audit log](17-audit-log.md#configuration) |
+| `notifications.enabled` | `LARSADMIN_NOTIFICATIONS` | `false` | Turns on the bell and background actions ([Notifications](18-notifications.md#configuration)) |
+| `notifications.realtime` | `LARSADMIN_REALTIME` | `auto` | Realtime through Reverb/Pusher: `auto`, `true`, `false` |
+| `notifications.channel_prefix` | `LARSADMIN_CHANNEL_PREFIX` | `larsa_` | Prefix of the panel's broadcast channels |
+| `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Polling, bell page size, pruning; see [Notifications](18-notifications.md#configuration) |
 
 > **Warning.** When `allow_local` is `true` and `APP_ENV=local`, **every authenticated user** gets
 > into the panel. Do not run shared or public servers with `APP_ENV=local`, or set

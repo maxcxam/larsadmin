@@ -178,6 +178,10 @@ An action run writes one entry per handled record. All the entries of one run sh
 - The entry also stores the action's name at run time and the values of its fields. `Password` and
   `sensitive()` field values are masked, long values are cut.
 - A `standalone` action writes one entry without a record: it is visible only on the "Audit log" page.
+- A [background action](18-notifications.md#audit-log) is recorded the same way. The user, IP
+  address and user agent are taken from the moment it was started, all chunks of the run share one
+  `batch_id`, and the entries' `meta` holds the run id (`run`). In the log's JSON such an action has
+  `action.queued: true`.
 
 When the log is read, only the action fields that are in the action's current `fields()` and pass
 `canSee` are shown. When the action was removed from the Entity, only its name is shown.
@@ -501,4 +505,4 @@ table's growth is limited by `retention_days`, `max_value_length` and the 64 KB 
   `APP_KEY` without `APP_PREVIOUS_KEYS`, say) still throws from Eloquent's dirty check, before the log is
   involved (CRA-15).
 
-Next: [Extending](10-extending.md).
+Next: [Notifications and background actions](18-notifications.md).

@@ -41,6 +41,7 @@ class InstallCommand extends Command
 
         $this->components->info('Larsadmin installed. Visit '.url(config('larsadmin.path')).' to get started.');
         $this->components->info('To enable the audit log: run `php artisan migrate`, define the "viewLarsadminAudit" gate, set LARSADMIN_AUDIT=true and schedule `php artisan larsadmin:prune-audit`.');
+        $this->components->info('To enable notifications and queued actions: run `php artisan make:notifications-table` (unless the table exists) and `php artisan migrate`, set LARSADMIN_NOTIFICATIONS=true, run a worker (`php artisan queue:work`) and schedule `php artisan larsadmin:prune-notifications`. Realtime uses Reverb or Pusher when configured (LARSADMIN_REALTIME=false turns it off).');
     }
 
     /**

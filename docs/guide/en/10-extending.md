@@ -18,6 +18,9 @@ The backend is built on plain PHP classes that you already extend:
 | Deleting a record with files | `Entity::deleteRecord(Request)` in your actions | [Files and images](15-files.md#deleting-records) |
 | Global search through Scout | `Entity::usesScout()`, `Entity::scoutQuery()` | [Global search](16-search.md#laravel-scout) |
 | Reacting to audit log entries | the `Maxcxam\Larsadmin\Events\AuditRecorded` event | [Audit log](17-audit-log.md#the-auditrecorded-event) |
+| Notifications in the panel's bell | `Maxcxam\Larsadmin\Notifications\LarsadminNotification` (may be extended) | [Notifications](18-notifications.md#sending-notifications) |
+| Background action | `Action::$queued`, `queued()`, `onQueue()`, `onQueueConnection()`, `$timeout` | [Notifications: background actions](18-notifications.md#background-actions) |
+| Reacting to a finished background action | the `Maxcxam\Larsadmin\Events\ActionRunFinished` event, the `Maxcxam\Larsadmin\Actions\Queued\ActionRun` model (read-only) | [Notifications](18-notifications.md#the-actionrunfinished-event) |
 | Field | `Maxcxam\Larsadmin\Fields\Field` | below |
 
 A custom field class works on the server (rules, filling, serialization), but it must set `$component`

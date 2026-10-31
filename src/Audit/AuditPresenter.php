@@ -258,7 +258,7 @@ final class AuditPresenter
      *
      * @param  class-string<Entity>  $entity
      * @param  array<string, mixed>  $meta
-     * @return array{name: string, fields: list<array<string, mixed>>}
+     * @return array{name: string, fields: list<array<string, mixed>>, queued?: true}
      */
     private function action(string $entity, array $meta): array
     {
@@ -284,7 +284,8 @@ final class AuditPresenter
             }
         }
 
-        return ['name' => $name, 'fields' => $fields];
+        // A queued run's entries say so ("in the background"), as text only: no link to the run.
+        return ['name' => $name, 'fields' => $fields, ...(is_string($meta['run'] ?? null) ? ['queued' => true] : [])];
     }
 
     /**

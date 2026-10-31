@@ -86,6 +86,9 @@ Configure an action with properties or with the chainable methods of the same na
 | `onlyOnIndex()`, `onlyOnDetail()` | | only in the list menu / only on the detail page; they do not change `showInline` |
 | `onlyInline()` | | only in the row's "⋯" menu: `showOnIndex = false`, `showOnDetail = false`, `showInline = true` |
 | `chunkSize` | `200` | size of a record chunk |
+| `queued` / `queued(bool $queued = true)` | `false` | run in the background, on the queue ([Background actions](#background-actions)) |
+| `queue` / `onQueue(?string)`, `queueConnection` / `onQueueConnection(?string)` | `null` | queue and queue connection of a background action |
+| `timeout` | `null` | job timeout of a background action, in seconds |
 | `canSee(Closure)` | | `fn (Request $request): bool`, whether to show the action |
 | `canRun(Closure)` | | `fn (Request $request, ?Model $model): bool`; `null` is passed for a standalone action |
 
@@ -161,12 +164,29 @@ The pre-check only drives the UI. When the action runs, the server checks permis
 | `ActionResponse::danger(string)` | goes back with an error message |
 | `ActionResponse::redirect(string $url)` | navigates to the URL |
 | `ActionResponse::download(string $url, string $filename)` | the browser downloads the file |
+| `ActionResponse::file(string $disk, string $path, ?string $filename = null)` | the panel serves a file from a disk as a download |
 
 `redirect()` and `download()` accept only **internal** URLs: a relative path starting with a single `/`,
 or an absolute `http(s)` URL on the current host. Anything else throws an `InvalidArgumentException`.
 
 ```php
-return ActionResponse::download('/exports/posts.csv', 'posts.csv');
+return ActionResponse::download('/exports/posts-'.$exportId.'.csv', 'posts.csv');
+```
+
+`file()` needs no public URL: the panel serves the file from any configured disk, only to the user who
+ran the action. In a synchronous action the link is encrypted, bound to the user and valid for
+`files.url_ttl` minutes (30), and the file stays on the disk. In a background action the panel serves its
+own copy of the file (`larsadmin/runs/{run}/…` on `files.disk`) and deletes only that copy together with
+the run; clean up your file yourself. The path must be relative and without `..`, otherwise
+`InvalidArgumentException` is thrown. Give files unique names, so that runs of different users never write
+to the same file. See [`ActionResponse::file()`](18-notifications.md#actionresponsefile).
+
+```php
+$path = 'exports/posts-'.Str::ulid().'.csv';
+
+Storage::disk('local')->put($path, $csv);
+
+return ActionResponse::file('local', $path, 'posts.csv');
 ```
 
 ## How an action runs
@@ -200,7 +220,7 @@ So `handle()` should be idempotent, so that the action can be repeated.
 ### Which response the user sees
 
 If different chunks returned different responses, the **most severe** one wins: `danger`, then
-`redirect`/`download`, then `message`. At equal severity, the earlier one wins.
+`redirect`/`download`/`file`, then `message`. At equal severity, the earlier one wins.
 
 | Situation | Result |
 | --- | --- |
@@ -225,6 +245,39 @@ MarkLive::make()
     ->canSee(fn (Request $request) => $request->user()->can('moderate'))
     ->canRun(fn (Request $request, ?Model $post) => $post === null || $post->status !== 'live');
 ```
+
+## Background actions
+
+A long action can run on the queue: the user gets a confirmation at once, follows the progress in the
+bell, can cancel the run and gets a notification with the result.
+
+```php
+class RecalculateViews extends Action
+{
+    public bool $queued = true;
+
+    public int $chunkSize = 50;
+
+    public function handle(ActionFields $fields, Collection $models): ?ActionResponse
+    {
+        $models->each->recalculateViews();
+
+        return null;
+    }
+}
+```
+
+- It works only with notifications enabled (`LARSADMIN_NOTIFICATIONS=true`) and a running queue worker.
+  While notifications are off, an action with `$queued` runs synchronously, like any other.
+- The worker repeats every check as the user who started the action. `handle()` gets the records in
+  chunks, in transactions, as in a synchronous action.
+- Limits: up to 3 active runs per user, up to 10,000 records for "all matching"
+  (`actions.queued_max_all` instead of `actions.max_all`).
+- On the queue `session()` is a separate empty session of the run, and date field values arrive as
+  ISO-8601 strings.
+- The queue connection's `retry_after` must exceed the action's `$timeout` and the worker's `--timeout`.
+
+Details: [Notifications and background actions](18-notifications.md#background-actions).
 
 ## Audit log
 

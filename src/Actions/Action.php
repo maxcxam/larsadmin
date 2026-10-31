@@ -11,6 +11,7 @@ use LogicException;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Fields\Field;
 use Maxcxam\Larsadmin\Fields\File;
+use Maxcxam\Larsadmin\Larsadmin;
 use ReflectionMethod;
 
 /**
@@ -27,6 +28,9 @@ use ReflectionMethod;
  *   then message (the earlier one on a tie).
  * - A standalone action has no records: canRun() receives a null model, and without it the
  *   entity's create ability decides.
+ * - With $queued (and notifications enabled) the run goes to the queue (ADR-028): the selection is
+ *   capped by "larsadmin.actions.queued_max_all", every check above is repeated in the worker as the
+ *   user, handle() gets no session there and date field values arrive as ISO-8601 strings.
  */
 abstract class Action
 {
@@ -59,6 +63,26 @@ abstract class Action
     public bool $showInline = false;
 
     public int $chunkSize = 200;
+
+    /**
+     * Run the action on the queue: the user gets a confirmation at once, the progress shows in the panel
+     * and a notification arrives when it finished. Requires the notifications feature
+     * (config "larsadmin.notifications.enabled"); without it the action runs synchronously.
+     */
+    public bool $queued = false;
+
+    /** The queue name; null = config "larsadmin.actions.queue", then the connection's default queue. */
+    public ?string $queue = null;
+
+    /** The queue connection; null = config "larsadmin.actions.queue_connection", then queue.default. */
+    public ?string $queueConnection = null;
+
+    /**
+     * The job timeout in seconds; null = the worker's --timeout. The queue connection's "retry_after" must be
+     * larger (a warning is logged at dispatch otherwise). A run without a heartbeat for this long plus 60 s
+     * (else "larsadmin.actions.stale_after") counts as abandoned.
+     */
+    public ?int $timeout = null;
 
     protected ?Closure $canSeeCallback = null;
 
@@ -280,6 +304,35 @@ abstract class Action
         return $this->entity !== null && $this->entity::authorizedToCreate($request);
     }
 
+    public function queued(bool $queued = true): static
+    {
+        $this->queued = $queued;
+
+        return $this;
+    }
+
+    public function onQueue(?string $queue): static
+    {
+        $this->queue = $queue;
+
+        return $this;
+    }
+
+    public function onQueueConnection(?string $connection): static
+    {
+        $this->queueConnection = $connection;
+
+        return $this;
+    }
+
+    /**
+     * Whether this run goes to the queue: $queued and the notifications feature is enabled.
+     */
+    public function runsQueued(): bool
+    {
+        return $this->queued && Larsadmin::notificationsEnabled();
+    }
+
     public function destructive(bool $destructive = true): static
     {
         $this->destructive = $destructive;
@@ -417,6 +470,8 @@ abstract class Action
             'showOnDetail' => $this->showOnDetail,
             'showInline' => $this->showInline,
             'fields' => $fields,
+            // Only with the feature on, so the prop is unchanged while it is off.
+            ...(Larsadmin::notificationsEnabled() ? ['queued' => $this->runsQueued()] : []),
         ];
     }
 }
