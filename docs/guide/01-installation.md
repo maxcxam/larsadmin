@@ -26,12 +26,18 @@ php artisan larsadmin:install
 2. публікує асети (`larsadmin-assets`) у `public/vendor/larsadmin` з перезаписом;
 3. публікує сервіс-провайдер (`larsadmin-provider`) в `app/Providers/LarsadminServiceProvider.php`
    і додає його в `bootstrap/providers.php`;
-4. публікує міграцію журналу аудиту (`larsadmin-migrations`) у `database/migrations`;
+4. публікує міграції пакета (`larsadmin-migrations`) у `database/migrations`: журналу аудиту й запусків
+   фонових дій;
 5. копіює `lang/uk/validation.php`, **лише якщо такого файлу ще немає** (існуючий не змінюється).
 
 Міграцію не виконано: журнал аудиту вимкнено за замовчуванням. Щоб увімкнути його, виконайте
 `php artisan migrate`, визначте gate `viewLarsadminAudit` і задайте `LARSADMIN_AUDIT=true`
 (див. [Журнал аудиту](17-audit-log.md#швидкий-старт)).
+
+Сповіщення й фонові дії теж вимкнено. Щоб увімкнути їх, створіть таблицю `notifications`
+(`php artisan make:notifications-table`), виконайте `php artisan migrate`, задайте
+`LARSADMIN_NOTIFICATIONS=true`, запустіть обробник черги й заплануйте `larsadmin:prune-notifications`
+(див. [Сповіщення та фонові дії](18-notifications.md#швидкий-старт)).
 
 Після цього панель доступна за адресою `/admin` (див. ключ `path` нижче).
 
@@ -43,7 +49,8 @@ php artisan larsadmin:publish
 ```
 
 `larsadmin:publish` публікує конфіг (існуючий перезаписується лише з `--force`) і завжди
-перезаписує асети.
+перезаписує асети. Асети це не лише `app.js` і `app.css`: частина коду (дзвіночок, клієнт realtime)
+лежить у `chunks/` і вантажиться на вимогу, тож публікуйте весь каталог, а не окремі файли.
 
 Виправлення безпеки виходять патч-версіями останнього релізу 1.x, тож оновлюйтеся регулярно.
 Про вразливості повідомляйте приватно, не в публічних issue: див. [SECURITY.md](../../SECURITY.md).
@@ -56,7 +63,7 @@ php artisan larsadmin:publish
 | `larsadmin-assets` (також `laravel-assets`) | `public/vendor/larsadmin` |
 | `larsadmin-lang` | `lang/vendor/larsadmin` |
 | `larsadmin-provider` | `app/Providers/LarsadminServiceProvider.php` |
-| `larsadmin-migrations` | `database/migrations` (міграція таблиці журналу аудиту) |
+| `larsadmin-migrations` | `database/migrations` (міграції таблиць журналу аудиту й запусків фонових дій) |
 
 ```bash
 php artisan vendor:publish --tag=larsadmin-lang
@@ -80,6 +87,7 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `larsadmin:partition {name} [--force]` | створити метрику Partition в `app/Larsadmin/Metrics` |
 | `larsadmin:progress {name} [--force]` | створити метрику Progress в `app/Larsadmin/Metrics` |
 | `larsadmin:prune-audit [--days=]` | видалити записи журналу аудиту, старші за `audit.retention_days` (90 днів) ([Журнал аудиту](17-audit-log.md#очищення)) |
+| `larsadmin:prune-notifications [--days=]` | видалити сповіщення панелі, запуски фонових дій і їхні файли, старші за `notifications.retention_days` (30 днів) ([Сповіщення](18-notifications.md#очищення)) |
 
 ## Конфігурація (`config/larsadmin.php`)
 
@@ -99,9 +107,16 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `allow_without_policy` | | `true` | Моделі без політики: `true` дозволяє, `false` забороняє |
 | `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | У `APP_ENV=local` пускати в панель без gate `viewLarsadmin` |
 | `actions.max_all` | | `1000` | Максимум записів для дії з вибором «усі знайдені»; більше дає помилку валідації 422 |
+| `actions.queued_max_all`, `actions.queued_max_active` | | `10000`, `3` | Ліміти фонових дій: записів для «усіх знайдених» і активних запусків на користувача |
+| `actions.stale_after`, `actions.queued_stale_after` | | `3600`, `86400` | Через скільки секунд запуск без «серцебиття» (без `$timeout`, плюс 60 с) або в черзі вважається завислим ([Сповіщення](18-notifications.md#завислі-запуски)) |
+| `actions.queue`, `actions.queue_connection` | `LARSADMIN_QUEUE`, `LARSADMIN_QUEUE_CONNECTION` | `null` | Черга й з'єднання черги для фонових дій за замовчуванням |
 | `audit.enabled` | `LARSADMIN_AUDIT` | `false` | Вмикає журнал аудиту ([Журнал аудиту](17-audit-log.md#конфігурація)) |
 | `audit.connection` | `LARSADMIN_AUDIT_CONNECTION` | `null` | З'єднання БД журналу |
 | `audit.*` | | `retention_days` 90, `max_value_length` 1000, `per_page` 25, `throttle` 60 | Таблиця, зберігання IP і User-Agent, очищення; див. [Журнал аудиту](17-audit-log.md#конфігурація) |
+| `notifications.enabled` | `LARSADMIN_NOTIFICATIONS` | `false` | Вмикає дзвіночок і фонові дії ([Сповіщення](18-notifications.md#конфігурація)) |
+| `notifications.realtime` | `LARSADMIN_REALTIME` | `auto` | Realtime через Reverb/Pusher: `auto`, `true`, `false` |
+| `notifications.channel_prefix` | `LARSADMIN_CHANNEL_PREFIX` | `larsa_` | Префікс broadcast-каналів панелі |
+| `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Опитування, сторінка дзвіночка, очищення; див. [Сповіщення](18-notifications.md#конфігурація) |
 
 > **Увага.** Коли `allow_local` дорівнює `true` і `APP_ENV=local`, **кожен автентифікований
 > користувач** потрапляє в панель. Не запускайте спільні чи публічні сервери з `APP_ENV=local`,

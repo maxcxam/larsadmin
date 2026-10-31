@@ -86,6 +86,9 @@ class MarkLive extends Action
 | `onlyOnIndex()`, `onlyOnDetail()` | | лише в меню списку / лише на сторінці перегляду; `showInline` не змінюють |
 | `onlyInline()` | | лише в меню «⋯» рядка: `showOnIndex = false`, `showOnDetail = false`, `showInline = true` |
 | `chunkSize` | `200` | розмір пакета записів |
+| `queued` / `queued(bool $queued = true)` | `false` | виконувати у фоні, у черзі ([Фонові дії](#фонові-дії)) |
+| `queue` / `onQueue(?string)`, `queueConnection` / `onQueueConnection(?string)` | `null` | черга й з'єднання черги фонової дії |
+| `timeout` | `null` | таймаут job-а фонової дії в секундах |
 | `canSee(Closure)` | | `fn (Request $request): bool`, чи показувати дію |
 | `canRun(Closure)` | | `fn (Request $request, ?Model $model): bool`; `null` передається для standalone-дії |
 
@@ -160,12 +163,29 @@ PublishPost::make()
 | `ActionResponse::danger(string)` | повернення назад із повідомленням про помилку |
 | `ActionResponse::redirect(string $url)` | перехід на URL |
 | `ActionResponse::download(string $url, string $filename)` | браузер завантажує файл |
+| `ActionResponse::file(string $disk, string $path, ?string $filename = null)` | панель сама віддає файл з диска як завантаження |
 
 `redirect()` і `download()` приймають лише **внутрішні** URL: відносний шлях, що починається з одного
 `/`, або абсолютний `http(s)` URL на поточному хості. Інакше кидається `InvalidArgumentException`.
 
 ```php
-return ActionResponse::download('/exports/posts.csv', 'posts.csv');
+return ActionResponse::download('/exports/posts-'.$exportId.'.csv', 'posts.csv');
+```
+
+`file()` не потребує публічного URL: панель віддає файл з будь-якого налаштованого диска лише тому
+користувачу, що запустив дію. У синхронній дії посилання зашифроване, прив'язане до користувача й дійсне
+`files.url_ttl` хвилин (30), а файл лишається на диску. У фоновій дії панель віддає власну копію файлу
+(`larsadmin/runs/{run}/…` на `files.disk`) і видаляє лише її разом із запуском; ваш файл прибирайте самі.
+Шлях має бути відносним і без `..`, інакше кидається `InvalidArgumentException`. Давайте файлам унікальні
+назви, щоб запуски різних користувачів не писали в один файл. Див.
+[`ActionResponse::file()`](18-notifications.md#actionresponsefile).
+
+```php
+$path = 'exports/posts-'.Str::ulid().'.csv';
+
+Storage::disk('local')->put($path, $csv);
+
+return ActionResponse::file('local', $path, 'posts.csv');
 ```
 
 ## Як виконується дія
@@ -199,7 +219,7 @@ return ActionResponse::download('/exports/posts.csv', 'posts.csv');
 ### Яку відповідь побачить користувач
 
 Якщо різні пакети повернули різні відповіді, береться **найсуворіша**: `danger`, потім
-`redirect`/`download`, потім `message`. За однакової суворості перемагає раніша.
+`redirect`/`download`/`file`, потім `message`. За однакової суворості перемагає раніша.
 
 | Ситуація | Результат |
 | --- | --- |
@@ -224,6 +244,38 @@ MarkLive::make()
     ->canSee(fn (Request $request) => $request->user()->can('moderate'))
     ->canRun(fn (Request $request, ?Model $post) => $post === null || $post->status !== 'live');
 ```
+
+## Фонові дії
+
+Довгу дію можна виконувати в черзі: користувач одразу отримує підтвердження, бачить прогрес у дзвіночку,
+може скасувати запуск і отримує сповіщення з результатом.
+
+```php
+class RecalculateViews extends Action
+{
+    public bool $queued = true;
+
+    public int $chunkSize = 50;
+
+    public function handle(ActionFields $fields, Collection $models): ?ActionResponse
+    {
+        $models->each->recalculateViews();
+
+        return null;
+    }
+}
+```
+
+- Працює лише з увімкненими сповіщеннями (`LARSADMIN_NOTIFICATIONS=true`) і запущеним обробником черги.
+  Поки сповіщення вимкнено, дія з `$queued` виконується синхронно, як звичайна.
+- Обробник повторює всі перевірки від імені користувача, що запустив дію. `handle()` отримує записи
+  пакетами в транзакціях, як і в синхронній дії.
+- Ліміти: до 3 активних запусків на користувача, до 10 000 записів для «усіх знайдених»
+  (`actions.queued_max_all` замість `actions.max_all`).
+- У черзі `session()` це окрема порожня сесія запуску, а дати з полів приходять рядками ISO-8601.
+- `retry_after` з'єднання черги має бути більшим за `$timeout` дії й `--timeout` обробника.
+
+Докладно: [Сповіщення та фонові дії](18-notifications.md#фонові-дії).
 
 ## Журнал аудиту
 

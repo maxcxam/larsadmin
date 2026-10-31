@@ -198,6 +198,24 @@ protected function gate(): void
 
 See [Audit log](17-audit-log.md#who-can-see-the-log).
 
+## Notifications and background actions
+
+- **The bell** shows only notifications of type `larsadmin` addressed to the current user of the panel's
+  guard. Another user's or an unknown notification answers 404. There is no separate gate: panel access
+  is enough.
+- **A background action** is run by the queue worker as the user who started it, repeating every check
+  (fail closed): `viewLarsadmin`, `viewAny` on the Entity, the action's `canSee()`,
+  `authorizedToRunStandalone()` or `authorizedToRun()` for each record, `indexQuery()`/`detailQuery()`.
+  Rights revoked between starting and running take effect: records are skipped or the run fails. Before
+  every chunk the user is reloaded and panel access is checked again. `session()` in the worker is a
+  separate empty session of the run, so session-based scoping never sees another run's data.
+- **Runs** are visible to and cancellable by their owner only. Administrators do not see other users'
+  runs; only the owner downloads an `ActionResponse::file()` result.
+- **The panel's realtime channels** (`private-larsa_inbox.*`) are authorized only by the panel's
+  `POST {path}/broadcasting/auth`; the application's `/broadcasting/auth` does not authorize them.
+
+See [Notifications and background actions](18-notifications.md#security).
+
 ## Checklist
 
 - Restrict the `viewLarsadmin` gate to real conditions; turn `allow_local` off outside development.
@@ -207,4 +225,8 @@ See [Audit log](17-audit-log.md#who-can-see-the-log).
   fields hidden with `canSee`.
 - When the audit log is on, grant the `viewLarsadminAudit` gate only to those who may see the history of
   every record of the Entities they can reach.
+- For background actions, check that `canSee()`, `canRun()`, `fields()`, policies and `indexQuery()` do not
+  depend on the session or request headers: on the queue the session is empty and there are no headers.
+  Tenant scoping read from the session does not work there (it gets an empty value).
+- Do not use the `larsa_` prefix (`LARSADMIN_CHANNEL_PREFIX`) for the application's broadcast channels.
 - Do not run public servers with `APP_ENV=local`.

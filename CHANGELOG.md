@@ -7,6 +7,178 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-31
+
+### Added
+
+- **Сповіщення в панелі (FR-034).** Дзвіночок у шапці між пошуком та ім'ям користувача: лічильник
+  непрочитаних («99+»), випадний список (по 15, «Показати ще»), «Позначити всі прочитаними», позначення
+  прочитаним і видалення окремих сповіщень, спливні повідомлення для нових (до трьох одночасно). Дзвіночок
+  показує лише сповіщення типу `larsadmin` з таблиці `notifications` застосунку, адресовані користувачу
+  guard-а панелі з трейтом `Notifiable`. Без realtime лічильник опитується кожні 60 с, лише коли вкладка
+  видима (після помилок інтервал подвоюється до 5 хвилин). Доступність WCAG 2.1 AA, переклади uk/en.
+  Посібник: `docs/guide/18-notifications.md`.
+- **`Maxcxam\Larsadmin\Notifications\LarsadminNotification`**: `make()`, `title()`, `body()`, `level()`,
+  `info()`/`success()`/`warning()`/`danger()`, `icon()`, `url()`, `sendTo()`. Канал `database`,
+  `databaseType()` = `larsadmin`; клас можна наслідувати (наприклад, додати `mail`).
+- **Фонові дії (FR-057).** `Action::$queued` / `queued()`, `$queue` / `onQueue()`, `$queueConnection` /
+  `onQueueConnection()`, `$timeout`, `runsQueued()`. Дія виконується в черзі одним job-ом
+  `RunQueuedAction` на запуск (`tries = 1`, без повторів), пакетами по `chunkSize` у транзакціях;
+  прогрес і результат зберігаються в новій таблиці `larsadmin_action_runs`. Розділ «Фонові задачі» в
+  дзвіночку: прогрес (активні запуски опитуються кожні 3 с, через 2 хвилини кожні 10 с), «Скасувати»
+  (у черзі одразу, під час виконання після поточного пакета), «Очікує на обробник черги» через хвилину.
+  Після завершення власник отримує сповіщення: повідомлення дії, посилання «Відкрити» для `redirect()`,
+  «Завантажити» для `download()` і `file()`. Кожен запуск надсилає сповіщення рівно один раз, навіть за
+  повторної доставки job-а. З драйвером черги `sync` результат приходить одразу, як від синхронної дії.
+  Модальне вікно фонової дії попереджає про виконання у фоні.
+- **Завислі запуски.** Запуск `running` без «серцебиття» (`updated_at`, оновлюється після кожного пакета)
+  довше за `$timeout` дії (або `actions.stale_after`, 3600 с) плюс 60 с і запуск `queued` довше за
+  `actions.queued_stale_after` (86 400 с) завершуються один раз зі статусом `failed`, з повідомленням
+  власнику й стиранням `payload`. Перевірка відбувається під час підрахунку ліміту, опитування `status`, у
+  списку й перегляді запусків і в `larsadmin:prune-notifications`; завислий запуск скасовується одразу.
+- **Попередження про `retry_after`.** Якщо `$timeout` фонової дії не менший за `retry_after` з'єднання
+  черги, постановка пише попередження в лог.
+- **Сесія дзвіночка.** Фоновий запит, що отримав 401/419, не перезавантажує сторінку: опитування
+  зупиняється, показується повідомлення «Сеанс завершився». Позначення прочитаним, видалення й
+  скасування не відкочуються відповіддю списку, що була в дорозі.
+- **`ActionResponse::file(string $disk, string $path, ?string $filename = null)`**: панель сама віддає файл з
+  диска як завантаження. У фоновій дії файл віддає `GET {path}/runs/{run}/download` лише власнику, а
+  видаляє `larsadmin:prune-notifications` разом із запуском. У синхронній дії посилання
+  `GET {path}/downloads/{token}` зашифроване, прив'язане до користувача й дійсне `files.url_ttl` хвилин;
+  воно працює й з вимкненими сповіщеннями. У фоновій дії панель копіює файл у
+  `larsadmin/runs/{run}/{filename}` на `files.disk` і віддає та видаляє лише цю копію.
+- **Realtime (опційно).** Коли broadcaster за замовчуванням це Reverb або Pusher з ключем, панель отримує
+  сигнали миттєво (`notifications.realtime` = `auto`). Власне з'єднання лише на сторінках панелі,
+  приватний канал `private-larsa_inbox.{token}` з HMAC-токеном замість id користувача, подія
+  `.larsadmin.signal`. `laravel-echo` і `pusher-js` вбудовано в окремий файл `dist/chunks/echo-*.js`,
+  який вантажиться лише з увімкненим realtime.
+- **Подія `Maxcxam\Larsadmin\Events\ActionRunFinished`** (після кінцевого статусу запуску) і модель
+  `Maxcxam\Larsadmin\Actions\Queued\ActionRun` (лише для читання).
+- **Команда `larsadmin:prune-notifications {--days=}`**: завершує завислі запуски, потім видаляє
+  сповіщення панелі, запуски фонових дій і копії їхніх файлів `file()` (лише `larsadmin/runs/{run}/…`),
+  старші за `notifications.retention_days` (30 днів), пакетами по 1000. Розклад налаштовує застосунок.
+- **`Larsadmin::notificationsEnabled()`.**
+- **Конфіг `notifications`**: `enabled` (`LARSADMIN_NOTIFICATIONS`, `false`), `poll_interval` (60; `0` або
+  15..3600), `per_page` (15; 5..50), `retention_days` (30), `throttle` (120), `realtime`
+  (`LARSADMIN_REALTIME`, `auto`), `channel_prefix` (`LARSADMIN_CHANNEL_PREFIX`, `larsa_`),
+  `realtime_client.host|port|scheme` (`LARSADMIN_REALTIME_HOST|PORT|SCHEME`). У `actions`:
+  `queued_max_all` (10000), `queued_max_active` (3), `stale_after` (3600), `queued_stale_after` (86400),
+  `queue` (`LARSADMIN_QUEUE`), `queue_connection`
+  (`LARSADMIN_QUEUE_CONNECTION`), `runs_table` (`larsadmin_action_runs`), `runs_connection`
+  (`LARSADMIN_RUNS_CONNECTION`).
+- **Міграція** `create_larsadmin_action_runs_table` (тег `larsadmin-migrations`).
+- **Маршрути** (група `auth_middleware`, лімітер `larsadmin-notifications`): `GET api/notifications`,
+  `GET api/notifications/status`, `POST api/notifications/read`, `POST api/notifications/{id}/read`,
+  `DELETE api/notifications/{id}`, `GET api/runs`, `GET api/runs/{run}`, `POST api/runs/{run}/cancel`,
+  `POST broadcasting/auth`; з лімітером `larsadmin-files`: `GET runs/{run}/download`,
+  `GET downloads/{token}`. Спільні Inertia-пропи `larsadmin.notifications` і `larsadmin.run`; у пропах
+  дій з'являється `queued`, коли сповіщення ввімкнено.
+
+### Changed
+
+- Синхронні дії виконуються через винесений `ActionRunner` (`@internal`); поведінка не змінилася.
+  Найсуворіша відповідь тепер ранжує `file` нарівні з `redirect`/`download`.
+- Спливні повідомлення панелі показуються стеком (`ToastStack`); flash-повідомлення поводяться як раніше.
+- Журнал аудиту: `ActionAudit` приймає додаткові `meta`; записи фонової дії мають `meta.run`, у JSON
+  журналу дія позначається `action.queued: true`.
+- `larsadmin:install` публікує і нову міграцію та нагадує, як увімкнути сповіщення.
+- Опублікований стаб `LarsadminServiceProvider` містить закоментований приклад `LarsadminNotification`.
+
+### Security
+
+- **Повторна авторизація у фоновому обробнику.** Обробник діє як користувач, що запустив дію, і
+  повторює всі перевірки: `viewLarsadmin`, реєстрацію Entity, `viewAny`, `canSee()` дії,
+  `authorizedToRunStandalone()` або `authorizedToRun()` для кожного запису, `indexQuery()`/`detailQuery()`.
+  Невідомий користувач, Entity, дія чи помилка розшифрування завершують запуск помилкою (fail closed).
+  Вибір «усі знайдені» перебудовується з фільтрів і пошуку в обробнику.
+- **SECN-01: атомарний ліміт активних запусків.** Підрахунок і створення запуску виконуються під
+  блокуванням кешу для кожного користувача з повторним підрахунком, тож паралельні запити не перевищать
+  `queued_max_active`. Потрібне сховище кешу з блокуваннями.
+- **SECN-02: ізольована сесія.** У фоновій дії `session()`, фасад `Session` і `$request->session()` це
+  окрема порожня сесія в пам'яті для кожного запуску; значення одного запуску не видно наступному в тому
+  самому обробнику. Відтворений запит бере хост з `app.url` або `larsadmin.domain`, а не із заголовка
+  `Host`.
+- **SECN-03: файли `file()` фонових дій.** Панель віддає й видаляє лише власну копію в
+  `larsadmin/runs/{run}/`, файл застосунку не чіпає. Приклади в документації використовують унікальні
+  назви (ULID); додано пораду щодо ін'єкції формул у CSV.
+- **SECN-04: 404 без назви класу.** Відповіді 404 для сповіщень і запусків не містять назви класу
+  моделі; невалідний `cursor` дає 422.
+- **SECN-05: суворі регулярні вирази.** Перевірка URL (`PanelUrl`) і префікса каналу використовує `\z`,
+  тож завершальний `\n` більше не проходить.
+- **SECN-06: авторизація під час довгого запуску.** Перед кожним пакетом обробник перечитує користувача
+  й знову перевіряє доступ до панелі; ліміт `queued_max_all` перевіряється ще раз після перерахунку в
+  обробнику.
+- **Зашифрований payload.** Вибір і провалідовані значення полів (зокрема `Password`) зберігаються в
+  `payload`, зашифрованому `APP_KEY` (`encrypted:array`), і стираються після завершення запуску. У черзі
+  лежить лише id запуску. JSON запуску не містить ні `payload`, ні диска й шляху файлу.
+- **Лише власник.** Сповіщення шукаються лише серед сповіщень типу `larsadmin` поточного користувача,
+  запуски лише серед його запусків; чуже чи неіснуюче відповідає 404 (id валідуються як UUID/ULID).
+- **Ізольовані realtime-канали.** Канали `larsa_*` авторизує лише `POST {path}/broadcasting/auth` панелі,
+  який відхиляє (403) будь-який канал без префікса; `/broadcasting/auth` застосунку їх не авторизує.
+  Назва каналу містить HMAC-токен з міткою призначення, а не id користувача. Внутрішній хост Reverb
+  у браузер не передається; клієнт вважається підключеним лише після успішної підписки. Сигнали несуть лише ідентифікатори й прогрес,
+  без заголовків, текстів і посилань. Секрет і `app_id` broadcaster-а в браузер не передаються.
+  `window.Echo` і `window.Pusher` застосунку панель не чіпає.
+- **Посилання.** `LarsadminNotification::url()` і результати `redirect()`/`download()` фонових дій
+  приймають лише URL того самого застосунку і перевіряються ще раз під час читання; клієнт відкриває
+  лише посилання на тому самому origin. Тексти показуються як простий текст, рівні й іконки з білого
+  списку.
+- **Ліміти:** до `queued_max_active` (3) активних запусків на користувача, до `queued_max_all` (10 000)
+  записів для «усіх знайдених», лімітер `larsadmin-notifications` (120 на хвилину).
+- Усі JSON-відповіді мають `Cache-Control: no-store, private`; завантаження `file()` віддаються як
+  `attachment` з `nosniff`.
+
+### Upgrade notes
+
+- **Оновіть асети:** `php artisan vendor:publish --tag=larsadmin-assets --force` (або
+  `php artisan larsadmin:publish`). Публікуйте весь каталог: дзвіночок і клієнт realtime лежать в окремих
+  файлах `dist/chunks/`, які вантажаться на вимогу.
+- **Можливість вимкнено за замовчуванням**, `composer update` нічого не змінює: нові маршрути
+  відповідають 404, а дії з `$queued` виконуються синхронно. Щоб увімкнути: `php artisan
+  make:notifications-table` (якщо таблиці ще немає), `php artisan vendor:publish --tag=larsadmin-migrations`,
+  `php artisan migrate`, `LARSADMIN_NOTIFICATIONS=true`, обробник черги (`php artisan queue:work`) і
+  `Schedule::command('larsadmin:prune-notifications')->daily()`. Модель користувача панелі має
+  використовувати `Notifiable`.
+- **Налаштуйте `retry_after`** з'єднання черги більшим за `--timeout` обробника й `$timeout` кожної
+  фонової дії (інакше в лозі з'явиться попередження, а черга видаватиме job повторно).
+- Якщо `REVERB_HOST` внутрішній, задайте `LARSADMIN_REALTIME_HOST` (і за потреби `_PORT`, `_SCHEME`):
+  внутрішній хост у браузер не передається.
+- **Нова міграція** `create_larsadmin_action_runs_table`. Назву таблиці й з'єднання
+  (`actions.runs_table`, `actions.runs_connection`) задавайте до `migrate`.
+- **Нові члени базового `Action`, що можуть конфліктувати з членами ваших дій:** властивості
+  `public bool $queued`, `public ?string $queue`, `public ?string $queueConnection`, `public ?int $timeout`
+  і методи `queued(bool $queued = true): static`, `onQueue(?string $queue): static`,
+  `onQueueConnection(?string $connection): static`, `runsQueued(): bool`. Якщо ваша дія вже оголошує член з
+  такою назвою, перейменуйте його або приведіть до сумісної сигнатури: властивість з іншим типом
+  призводить до fatal error під час завантаження класу, а наявна властивість `$queued = true` перемкне дію
+  у фоновий режим після ввімкнення сповіщень.
+- **`laravel-echo` і `pusher-js` вбудовано в `dist/`**: застосунку нічого встановлювати не треба. Realtime
+  вмикається сам, якщо `BROADCAST_CONNECTION` це `reverb` або `pusher`; `LARSADMIN_REALTIME=false`
+  вимикає його. Якщо застосунок задає CSP, додайте адресу WebSocket у `connect-src`.
+- Не використовуйте префікс `larsa_` для broadcast-каналів застосунку (або змініть
+  `LARSADMIN_CHANNEL_PREFIX`).
+- Опублікований `config/larsadmin.php` не потребує змін; щоб налаштувати можливість, додайте секцію
+  `notifications` і ключі `actions.*` (див. `docs/guide/18-notifications.md`).
+
+### Known issues
+
+- Дзвіночок показує лише сповіщення типу `larsadmin` для моделі користувача guard-а панелі з
+  `Notifiable`; інші сповіщення застосунку в панелі не видно.
+- Адміністратори не бачать і не можуть скасувати чужі фонові запуски.
+- У `handle()` фонової дії немає сесії, cookies і заголовків оригінального запиту, а дати з полів
+  приходять рядками ISO-8601. `canSee()`, `canRun()` і `fields()`, що залежать від сесії, отримають
+  порожні значення.
+- Поля `File` і `Image` у діях, зокрема фонових, не підтримуються.
+- Фонова дія не повторюється автоматично; з драйвером `sync` не діють таймаут і скасування.
+- Файл `ActionResponse::file()` застосунку лишається на диску і в синхронній, і у фоновій дії: його
+  прибирає застосунок (панель видаляє лише свою копію).
+- Таймаут для визначення завислого запуску читається із зашифрованого `payload`, а не з окремої колонки.
+- Завислий запуск визначається лише під час перевірки (ліміт, опитування, список запусків, prune).
+- Ліміт активних запусків атомарний лише зі сховищем кешу, що підтримує блокування.
+- Зміна `APP_KEY` змінює токени realtime-каналів: відкриті вкладки втрачають realtime до
+  перезавантаження (опитування працює).
+- Сторінки журналу аудиту поки не показують позначку «у фоні» для записів фонової дії (є лише в JSON).
+
 ## [1.3.1] - 2026-10-31
 
 ### Fixed
@@ -488,7 +660,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/maxcxam/larsadmin/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/maxcxam/larsadmin/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/maxcxam/larsadmin/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/maxcxam/larsadmin/compare/v1.1.0...v1.2.0

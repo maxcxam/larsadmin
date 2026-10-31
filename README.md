@@ -21,6 +21,11 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
 - **Audit log** (opt-in): who changed what through the panel, with "before → after" values per field,
   written in the same transaction as the change; masking of sensitive fields, a history panel on each
   record and an "Audit log" page behind its own gate, retention with `larsadmin:prune-audit`.
+- **Notifications and background actions** (opt-in): a bell in the header with the user's panel
+  notifications, sent by your code with `LarsadminNotification`; actions marked `$queued` run on the
+  Laravel queue as the user who started them, with progress, cancelling, a result notification and
+  owner-only file downloads (`ActionResponse::file()`); stale runs of a lost worker are failed. Polls by default, realtime through Reverb or
+  Pusher when configured, with the client bundled (nothing to install).
 - **Relations**: `BelongsTo` (searchable), `HasMany` and `BelongsToMany` panels with attach/detach.
 - **Field blocks**: group form and detail fields into panels (one or two columns, collapsible) and tabs.
 - **Filters**: select, boolean and date range filters, plus your own.
@@ -51,8 +56,10 @@ php artisan larsadmin:install
 
 `larsadmin:install` publishes `config/larsadmin.php`, the assets (`public/vendor/larsadmin`) and
 `app/Providers/LarsadminServiceProvider.php` (registered in `bootstrap/providers.php`), publishes the
-audit log migration, and copies `lang/uk/validation.php` if your app does not have one yet. The audit
-log stays off until you run the migration and enable it (see the [audit log guide](docs/guide/en/17-audit-log.md#quick-start)).
+package migrations (audit log, background action runs), and copies `lang/uk/validation.php` if your app
+does not have one yet. The audit log stays off until you run the migration and enable it (see the
+[audit log guide](docs/guide/en/17-audit-log.md#quick-start)). Notifications and background actions are
+off too (see the [notifications guide](docs/guide/en/18-notifications.md#quick-start)).
 
 The panel lives at `/admin`. After updating the package, refresh the assets:
 
@@ -229,10 +236,17 @@ protected function dashboards(): array
 | `allow_without_policy` | | `true` | Allow models that have no policy |
 | `allow_local` | `LARSADMIN_ALLOW_LOCAL` | `true` | Skip the gate when `APP_ENV=local` |
 | `actions.max_all` | | `1000` | Limit for "run on all matching records" |
+| `actions.queued_max_all`, `actions.queued_max_active` | | `10000`, `3` | Background action limits: "all matching" records, active runs per user |
+| `actions.stale_after`, `actions.queued_stale_after` | | `3600`, `86400` | Seconds after which a running run without `$timeout` (no heartbeat, plus 60 s) or a queued run counts as stale and is failed |
+| `actions.queue`, `actions.queue_connection` | `LARSADMIN_QUEUE`, `LARSADMIN_QUEUE_CONNECTION` | `null` | Default queue and connection of background actions |
 | `search.*` | | `limit` 5, `min_length` 2, `throttle` 60 | Global search; see the [search guide](docs/guide/en/16-search.md#configuration) |
 | `audit.enabled` | `LARSADMIN_AUDIT` | `false` | Turn the audit log on (publish and run the migration first) |
 | `audit.connection` | `LARSADMIN_AUDIT_CONNECTION` | `null` | Database connection of the audit log |
 | `audit.*` | | `retention_days` 90, `store_ip` / `store_user_agent` `true`, `max_value_length` 1000, `per_page` 25, `throttle` 60 | Audit log; see the [audit log guide](docs/guide/en/17-audit-log.md#configuration) |
+| `notifications.enabled` | `LARSADMIN_NOTIFICATIONS` | `false` | Turn on the bell and background actions (run the migrations first) |
+| `notifications.realtime` | `LARSADMIN_REALTIME` | `auto` | Realtime through Reverb/Pusher: `auto`, `true` or `false` |
+| `notifications.channel_prefix` | `LARSADMIN_CHANNEL_PREFIX` | `larsa_` | Prefix of the panel's broadcast channels |
+| `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Notifications; see the [notifications guide](docs/guide/en/18-notifications.md#configuration) |
 
 ## Authorization
 
@@ -257,6 +271,9 @@ protected function dashboards(): array
   nobody sees the log until you define it (`allow_local` does not apply). The global "Audit log" page
   is not row-scoped: a holder of the gate sees every entry of each Entity they have `viewAny` on, also
   outside their `indexQuery()`.
+- **Background actions** re-authorize everything in the queue worker as the user who started them and
+  fail closed. Bell notifications and runs are visible to their owner only; the panel's realtime
+  channels are authorized only by the panel's own endpoint.
 
 ## Localization
 
@@ -286,7 +303,7 @@ its translation.
 | [04. Relations](docs/guide/en/04-relations.md) | BelongsTo, HasMany, BelongsToMany |
 | [05. Authorization](docs/guide/en/05-authorization.md) | panel gate, policies, row scoping |
 | [06. Filters](docs/guide/en/06-filters.md) | built-in and custom filters |
-| [07. Actions](docs/guide/en/07-actions.md) | bulk and row actions, responses, generator |
+| [07. Actions](docs/guide/en/07-actions.md) | bulk and row actions, responses, background actions, generator |
 | [08. Localization](docs/guide/en/08-i18n.md) | languages, translations, switcher |
 | [09. Theming](docs/guide/en/09-theming.md) | tokens, light/dark/system |
 | [10. Extending](docs/guide/en/10-extending.md) | what is public and what is planned |
@@ -297,6 +314,7 @@ its translation.
 | [15. Files and images](docs/guide/en/15-files.md) | File and Image fields, disks, private files, pruning |
 | [16. Global search](docs/guide/en/16-search.md) | Ctrl/⌘+K palette, opt-in, subtitles, Laravel Scout, authorization |
 | [17. Audit log](docs/guide/en/17-audit-log.md) | enabling, what is recorded, masking, gate, history UI, pruning, `AuditRecorded` |
+| [18. Notifications and background actions](docs/guide/en/18-notifications.md) | the bell, `LarsadminNotification`, queued actions, `ActionResponse::file()`, realtime (Reverb/Pusher), pruning |
 
 ## Changelog
 

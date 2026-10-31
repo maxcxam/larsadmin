@@ -18,6 +18,9 @@
 | Видалення запису з файлами | `Entity::deleteRecord(Request)` у власних діях | [Файли й зображення](15-files.md#видалення-записів) |
 | Глобальний пошук через Scout | `Entity::usesScout()`, `Entity::scoutQuery()` | [Глобальний пошук](16-search.md#laravel-scout) |
 | Реакція на записи журналу аудиту | подія `Maxcxam\Larsadmin\Events\AuditRecorded` | [Журнал аудиту](17-audit-log.md#подія-auditrecorded) |
+| Сповіщення в дзвіночку панелі | `Maxcxam\Larsadmin\Notifications\LarsadminNotification` (можна наслідувати) | [Сповіщення](18-notifications.md#надсилання-сповіщень) |
+| Фонова дія | `Action::$queued`, `queued()`, `onQueue()`, `onQueueConnection()`, `$timeout` | [Сповіщення: фонові дії](18-notifications.md#фонові-дії) |
+| Реакція на завершення фонової дії | подія `Maxcxam\Larsadmin\Events\ActionRunFinished`, модель `Maxcxam\Larsadmin\Actions\Queued\ActionRun` (лише читання) | [Сповіщення](18-notifications.md#подія-actionrunfinished) |
 | Поле | `Maxcxam\Larsadmin\Fields\Field` | нижче |
 
 Власний клас поля працює на сервері (правила, заповнення, серіалізація), але має вказати
