@@ -49,8 +49,10 @@ php artisan larsadmin:publish
 ```
 
 `larsadmin:publish` публікує конфіг (існуючий перезаписується лише з `--force`) і завжди
-перезаписує асети. Асети це не лише `app.js` і `app.css`: частина коду (дзвіночок, клієнт realtime)
-лежить у `chunks/` і вантажиться на вимогу, тож публікуйте весь каталог, а не окремі файли.
+перезаписує асети. Асети це не лише `app.js` і `app.css`: з 1.5 `app.js` лише невеликий вхідний
+модуль, а код панелі, Vue й Inertia лежать у `chunks/` (`shared-*`, `vue-*`, `inertia-*`, а також дзвіночок і
+клієнт realtime, що вантажаться на вимогу), модулі для розширень у `runtime/`. Публікуйте весь каталог, а
+не окремі файли.
 
 Виправлення безпеки виходять патч-версіями останнього релізу 1.x, тож оновлюйтеся регулярно.
 Про вразливості повідомляйте приватно, не в публічних issue: див. [SECURITY.md](../../SECURITY.md).
@@ -86,6 +88,10 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `larsadmin:trend {name} [--force]` | створити метрику Trend в `app/Larsadmin/Metrics` |
 | `larsadmin:partition {name} [--force]` | створити метрику Partition в `app/Larsadmin/Metrics` |
 | `larsadmin:progress {name} [--force]` | створити метрику Progress в `app/Larsadmin/Metrics` |
+| `larsadmin:extension {name} [--path=packages] [--field=] [--card=] [--force]` | створити пакет розширення в `PATH/VENDOR/PACKAGE` ([Розширення](19-extensions.md#швидкий-старт)) |
+| `larsadmin:field {name} [--extension=] [--force]` | створити власне поле: PHP-клас і Vue-компоненти форми й відображення |
+| `larsadmin:card {name} [--extension=] [--data] [--force]` | створити власну картку (`Card` чи з `--data` `DataCard`) і її Vue-компонент |
+| `larsadmin:tool {name} [--extension=] [--force]` | створити сторінку меню (`Tool`) і її Vue-компонент |
 | `larsadmin:prune-audit [--days=]` | видалити записи журналу аудиту, старші за `audit.retention_days` (90 днів) ([Журнал аудиту](17-audit-log.md#очищення)) |
 | `larsadmin:prune-notifications [--days=]` | видалити сповіщення панелі, запуски фонових дій і їхні файли, старші за `notifications.retention_days` (30 днів) ([Сповіщення](18-notifications.md#очищення)) |
 
@@ -117,6 +123,8 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `notifications.realtime` | `LARSADMIN_REALTIME` | `auto` | Realtime через Reverb/Pusher: `auto`, `true`, `false` |
 | `notifications.channel_prefix` | `LARSADMIN_CHANNEL_PREFIX` | `larsa_` | Префікс broadcast-каналів панелі |
 | `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Опитування, сторінка дзвіночка, очищення; див. [Сповіщення](18-notifications.md#конфігурація) |
+| `extensions.source_maps` | `LARSADMIN_EXTENSION_SOURCE_MAPS` | `false` | Віддавати source maps (`*.map`) розширень; лише для налагодження ([Розширення](19-extensions.md#http-ендпоінти)) |
+| `extensions.max_age` | | `31536000` | Строк кешу браузера для версійованих файлів розширень, секунд |
 
 > **Увага.** Коли `allow_local` дорівнює `true` і `APP_ENV=local`, **кожен автентифікований
 > користувач** потрапляє в панель. Не запускайте спільні чи публічні сервери з `APP_ENV=local`,
@@ -134,6 +142,13 @@ LARSADMIN_ALLOW_LOCAL=false
 
 Панель має власну сторінку входу (`/admin/login`) з обмеженням частоти: 5 спроб на хвилину
 для пари email + IP і 30 на хвилину для одного IP.
+
+## Content Security Policy
+
+Якщо застосунок задає CSP, увімкніть nonce стандартним `Vite::useCspNonce()` у middleware, що виконується
+до рендера сторінок панелі: inline-скрипт теми, import map розширень, тег `app.js` і теги `modulepreload`
+отримують атрибут `nonce`. Без nonce сувора CSP блокує import map, і розширення не завантажуються (панель працює). Приклад:
+[Розширення: CSP і nonce](19-extensions.md#csp-і-nonce).
 
 ## Кеш маршрутів
 

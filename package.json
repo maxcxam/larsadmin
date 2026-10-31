@@ -4,14 +4,17 @@
     "type": "module",
     "scripts": {
         "dev": "vite build --watch --mode development",
-        "build": "vite build",
+        "build": "vite build && vite build -c vite.kit.config.js",
         "test": "vitest run",
-        "i18n": "node scripts/i18n.mjs"
+        "i18n": "node scripts/i18n.mjs",
+        "check:api": "node kit/check-public-api.mjs"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^3.9.1",
         "@tailwindcss/vite": "^4.3.3",
         "@vitejs/plugin-vue": "^6.0.10",
+        "@vue/test-utils": "^2.5.1",
+        "jsdom": "^29.1.1",
         "laravel-echo": "^2.6.1",
         "pusher-js": "^8.6.0",
         "tailwindcss": "^4.3.3",

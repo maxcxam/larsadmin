@@ -3,15 +3,19 @@
     "file": "app.css",
     "src": "_app.css"
   },
-  "_rolldown-runtime-XKyaHtl9.js": {
-    "file": "chunks/rolldown-runtime-XKyaHtl9.js",
-    "name": "rolldown-runtime"
+  "_inertia-CYMx6RIt.js": {
+    "file": "chunks/inertia-CYMx6RIt.js",
+    "name": "inertia",
+    "imports": [
+      "_vue-CeeZ2KaX.js"
+    ]
   },
-  "_shared-Dm7I3ung.js": {
-    "file": "chunks/shared-Dm7I3ung.js",
+  "_shared-DbU3EN3Z.js": {
+    "file": "chunks/shared-DbU3EN3Z.js",
     "name": "shared",
     "imports": [
-      "_rolldown-runtime-XKyaHtl9.js"
+      "_vue-CeeZ2KaX.js",
+      "_inertia-CYMx6RIt.js"
     ],
     "dynamicImports": [
       "resources/js/realtime/echo.js",
@@ -21,31 +25,64 @@
       "app.css"
     ]
   },
+  "_vue-CeeZ2KaX.js": {
+    "file": "chunks/vue-CeeZ2KaX.js",
+    "name": "vue"
+  },
   "resources/js/app.js": {
     "file": "app.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_shared-Dm7I3ung.js"
+      "_vue-CeeZ2KaX.js",
+      "_inertia-CYMx6RIt.js",
+      "_shared-DbU3EN3Z.js"
     ]
   },
   "resources/js/components/notifications/NotificationPanel.vue": {
-    "file": "chunks/NotificationPanel-CKnlwLVm.js",
+    "file": "chunks/NotificationPanel-DZMeOxmp.js",
     "name": "NotificationPanel",
     "src": "resources/js/components/notifications/NotificationPanel.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-Dm7I3ung.js"
+      "_vue-CeeZ2KaX.js",
+      "_inertia-CYMx6RIt.js",
+      "_shared-DbU3EN3Z.js"
     ]
   },
   "resources/js/realtime/echo.js": {
-    "file": "chunks/echo-Daa6Bb2B.js",
+    "file": "chunks/echo-Cc4s9lhg.js",
     "name": "echo",
     "src": "resources/js/realtime/echo.js",
-    "isDynamicEntry": true,
+    "isDynamicEntry": true
+  },
+  "resources/js/runtime/inertia.js": {
+    "file": "runtime/inertia.js",
+    "name": "runtime/inertia",
+    "src": "resources/js/runtime/inertia.js",
+    "isEntry": true,
     "imports": [
-      "_rolldown-runtime-XKyaHtl9.js"
+      "_inertia-CYMx6RIt.js"
+    ]
+  },
+  "resources/js/runtime/vue.js": {
+    "file": "runtime/vue.js",
+    "name": "runtime/vue",
+    "src": "resources/js/runtime/vue.js",
+    "isEntry": true,
+    "imports": [
+      "_vue-CeeZ2KaX.js"
+    ]
+  },
+  "resources/js/sdk/index.js": {
+    "file": "runtime/larsadmin.js",
+    "name": "runtime/larsadmin",
+    "src": "resources/js/sdk/index.js",
+    "isEntry": true,
+    "imports": [
+      "_vue-CeeZ2KaX.js",
+      "_shared-DbU3EN3Z.js"
     ]
   }
 }

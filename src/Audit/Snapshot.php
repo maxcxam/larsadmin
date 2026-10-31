@@ -55,6 +55,21 @@ final class Snapshot
         foreach ($fields as $field) {
             $source = $field instanceof File ? $field->attribute : $field->fillAttribute();
 
+            // Fields without a column (extension fields, ADR-035) describe their state themselves.
+            if ($field->hasAuditValue()) {
+                $masked = AuditValues::isMasked($field, $record, $source);
+                $value = $field->auditValue($record);
+
+                $entries[$field->attribute] = [
+                    'masked' => $masked,
+                    'value' => $masked ? null : $value,
+                    'fingerprint' => $masked ? AuditValues::fingerprint($value) : null,
+                    'empty' => $value === null || $value === [],
+                ];
+
+                continue;
+            }
+
             // Computed fields without a column are not recorded.
             if (! array_key_exists($source, $attributes) && ! array_key_exists($source, $original)) {
                 continue;

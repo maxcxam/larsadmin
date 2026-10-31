@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { usePanelPage } from '../sdk/page'
 
 // Bundled fallback: generated from lang/uk/ui.php by `npm run i18n` (tests/Feature/UiTranslationsTest.php guards drift).
 import ukMessages from '../i18n/uk.json'
@@ -19,6 +19,18 @@ export function flatten(object, prefix = '', into = {}) {
 
 const fallback = ukMessages
 
+// Extension translations (design 1.5 §12): { 'acme-rating': { stars: '…', group: { key: '…' } } } becomes
+// `acme-rating::stars`, `acme-rating::group.key`. Panel keys never contain `::`, so they cannot collide.
+export function flattenNamespaces(namespaces) {
+    const into = {}
+
+    for (const [namespace, lines] of Object.entries(namespaces ?? {})) {
+        if (lines !== null && typeof lines === 'object') flatten(lines, `${namespace}::`, into)
+    }
+
+    return into
+}
+
 // Laravel-style replacements: :name, :Name (ucfirst), :NAME (uppercase). Longer names first.
 export function replace(message, params) {
     return Object.entries(params)
@@ -34,10 +46,14 @@ export function replace(message, params) {
 }
 
 export function useI18n() {
-    const page = usePage()
+    const page = usePanelPage()
 
-    const locale = computed(() => page.props.larsadmin?.locale ?? DEFAULT_LOCALE)
-    const messages = computed(() => ({ ...fallback, ...flatten(page.props.larsadmin?.translations) }))
+    const locale = computed(() => page.props?.larsadmin?.locale ?? DEFAULT_LOCALE)
+    const messages = computed(() => ({
+        ...fallback,
+        ...flatten(page.props?.larsadmin?.translations),
+        ...flattenNamespaces(page.props?.larsadmin?.extensionTranslations),
+    }))
 
     function t(key, params = {}) {
         const message = messages.value[key]

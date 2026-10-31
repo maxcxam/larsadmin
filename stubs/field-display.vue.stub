@@ -1,0 +1,11 @@
+<script setup>
+// Index and detail display of the "{{ component }}" field; on the index displayedAs is already truncated.
+defineProps({
+    field: { type: Object, required: true },
+    context: { type: String, default: 'detail' },
+})
+</script>
+
+<template>
+    <span>{{ field.displayedAs ?? field.value ?? '—' }}</span>
+</template>

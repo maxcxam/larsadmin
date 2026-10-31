@@ -1,20 +1,24 @@
-import SelectFilter from './SelectFilter.vue'
-import BooleanFilter from './BooleanFilter.vue'
-import DateRangeFilter from './DateRangeFilter.vue'
+import { isExtensionKey, registry } from '../extensions/registry'
+import { ensureBuiltins, SelectFilter } from '../extensions/builtins'
+import { bounded, placeholder } from '../extensions/components'
 
-// Maps a filter's server-side `component` key to the Vue component that renders it.
-const filterComponents = {
-    'select-filter': SelectFilter,
-    'boolean-filter': BooleanFilter,
-    'date-range-filter': DateRangeFilter,
-}
-
+// Maps a filter's server-side `component` key to the Vue component that renders it (thin wrapper over the
+// component registry, design 1.5 §10). Unknown keys without `/` keep the 1.4 fallback (SelectFilter).
 export function filterComponent(filter) {
-    return filterComponents[filter.component] ?? SelectFilter
+    ensureBuiltins()
+
+    const key = filter?.component
+    const resolved = registry.resolve('filters', key)
+
+    if (!resolved) return isExtensionKey(key) ? placeholder('filter') : SelectFilter
+    if (resolved.source === 'builtin') return resolved.component
+
+    return bounded('filters', key, resolved, { fallback: resolved.source === 'override' ? (resolved.builtin ?? SelectFilter) : null, mode: 'filter' })
 }
 
 export function registerFilter(component, vueComponent) {
-    filterComponents[component] = vueComponent
+    ensureBuiltins()
+    registry.register('filters', component, vueComponent, { builtin: true })
 }
 
 function isEmpty(value) {

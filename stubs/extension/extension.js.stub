@@ -1,0 +1,16 @@
+import { defineExtension } from 'larsadmin'
+import '../css/extension.css'
+import {{ field }}Input from './fields/{{ field }}Input.vue'
+import {{ field }}Display from './fields/{{ field }}Display.vue'
+import {{ cardVue }} from './cards/{{ cardVue }}.vue'
+
+export default defineExtension({
+    name: '{{ name }}',
+    requires: '^{{ apiVersion }}',
+    fields: {
+        '{{ fieldKey }}': { form: {{ field }}Input, display: {{ field }}Display },
+    },
+    cards: {
+        '{{ cardKey }}': {{ cardVue }},
+    },
+})

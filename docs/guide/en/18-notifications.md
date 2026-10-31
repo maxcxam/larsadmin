@@ -726,4 +726,4 @@ The runs table has indexes for a user's runs and for pruning. The realtime clien
 - A stale run is detected only when something checks it (the limit, polling, the run list,
   `larsadmin:prune-notifications`). Schedule `larsadmin:prune-notifications` daily.
 
-Next: [Extending](10-extending.md).
+Next: [Extensions: the public API](19-extensions.md).

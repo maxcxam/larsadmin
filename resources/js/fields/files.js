@@ -103,11 +103,18 @@ export function precheck(files, field, { kept = 0, pending = [] } = {}) {
     return { accepted, rejected }
 }
 
-// Field-level message from the Inertia error bag (§4.3): `cover`, then `cover.upload`, `cover.keep`.
+// Field-level message from the Inertia error bag (§4.3): `cover`, then `cover.upload`, `cover.keep`, `cover.present`,
+// then the first per-upload message `cover.upload.N` (1.5 §18 A6b: a form whose only error is on one upload
+// still shows the field as invalid).
 export function fieldError(errors, attribute) {
     const bag = errors ?? {}
+    const direct = bag[attribute] ?? bag[`${attribute}.upload`] ?? bag[`${attribute}.keep`] ?? bag[`${attribute}.present`]
 
-    return bag[attribute] ?? bag[`${attribute}.upload`] ?? bag[`${attribute}.keep`] ?? bag[`${attribute}.present`] ?? null
+    if (direct !== undefined && direct !== null) return direct
+
+    const upload = Object.entries(uploadErrors(bag, attribute)).sort(([a], [b]) => Number(a) - Number(b))[0]
+
+    return upload ? upload[1] : null
 }
 
 // Per-upload messages: { 0: '…', 2: '…' } from `cover.upload.0`, `cover.upload.2`.
@@ -126,13 +133,11 @@ export function uploadErrors(errors, attribute) {
     return out
 }
 
+// File / Image fields: the built-in keys, or the explicit `fileField: true` that File::jsonSerialize() sends (1.5 §18
+// A6c), so File subclasses with their own key keep the §4.1 wire format. No value-shape heuristic: an extension
+// field whose value merely looks like { present, upload } is sent as it is.
 export function isFileField(field) {
-    if (FILE_COMPONENTS.includes(field?.component)) return true
-
-    // Custom subclasses with their own component keep the §4.1 value shape.
-    const value = field?.value
-
-    return !!value && typeof value === 'object' && 'present' in value && 'upload' in value && Array.isArray(field?.files)
+    return FILE_COMPONENTS.includes(field?.component) || field?.fileField === true
 }
 
 export function hasFileFields(fields) {
@@ -148,20 +153,48 @@ export function isExpired(field, now = Date.now(), skew = 5000) {
     return Number.isFinite(at) && at - skew <= now
 }
 
+// Fields with `multipart: true` (design 1.5 §4.3) upload files of their own: the form switches to multipart too, and
+// their value is sent as it is (Inertia turns File objects into FormData entries).
+export function isMultipartField(field) {
+    return isFileField(field) || field?.multipart === true
+}
+
+// Validation messages of an attribute and its nested keys, keyed (`{ gallery: '…', 'gallery.upload.1': '…' }`):
+// the `errorsByKey` form prop (1.5 §18 A6b). Only `attribute` and `attribute.*` keys.
+export function fieldErrorsByKey(errors, attribute) {
+    const prefix = `${attribute}.`
+
+    return Object.fromEntries(Object.entries(errors ?? {}).filter(([key]) => key === attribute || key.startsWith(prefix)))
+}
+
+// The same messages as a list, in order: the `errors` form prop.
+export function fieldErrors(errors, attribute) {
+    return Object.values(fieldErrorsByKey(errors, attribute))
+}
+
 /**
  * How EntityForm sends its data (§4.2, ADR-014). Forms without file fields: exactly today's request (same method,
  * same data object, JSON). Forms with file fields: multipart POST, updates spoofed with `_method=PUT`; every file
  * field is sent as { present, known, keep, upload } (CRF-1: `known` = tokens the form had at load, sent unchanged,
  * so the server only removes files this form knew about).
+ *
+ * `exclude`: attributes left out of the payload (1.5, ADR-032: extension fields whose component is unavailable
+ * fail closed, so the server keeps the stored value). Excluded fields do not switch the form to multipart.
  */
-export function buildSubmission(fields, method, data) {
-    if (!hasFileFields(fields)) return { method, data, multipart: false }
+export function buildSubmission(fields, method, data, { exclude = [] } = {}) {
+    const excluded = new Set(exclude)
+    const active = excluded.size ? fields.filter((field) => !excluded.has(field?.attribute)) : fields
+    let payload = data
+
+    if (payload && excluded.size) payload = Object.fromEntries(Object.entries(payload).filter(([key]) => !excluded.has(key)))
+
+    if (!active.some(isMultipartField)) return { method, data: payload, multipart: false }
 
     const verb = String(method ?? 'post').toLowerCase()
-    const out = data === null || data === undefined ? data : { ...data }
+    const out = payload === null || payload === undefined ? payload : { ...payload }
 
     if (out) {
-        for (const field of fields) {
+        for (const field of active) {
             if (isFileField(field) && field.attribute in out) out[field.attribute] = fileValue(out[field.attribute], field)
         }
     }

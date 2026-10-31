@@ -132,6 +132,9 @@ abstract class Filter
     /**
      * The index prop for this filter.
      *
+     * Stable override hook: an extension filter adds its own props by merging
+     * them into parent::serialize(); it must keep the base keys.
+     *
      * @return array<string, mixed>
      */
     public function serialize(Request $request, mixed $value): array

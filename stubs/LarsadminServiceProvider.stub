@@ -15,6 +15,18 @@ class LarsadminServiceProvider extends LarsadminApplicationServiceProvider
      * set LARSADMIN_ALLOW_LOCAL=false to always enforce the gate.
      */
 
+    /*
+     * Sidebar tools (pages rendered by an extension's Vue component, `php artisan larsadmin:tool Backups`)
+     * are registered in boot():
+     *
+     *     public function boot(): void
+     *     {
+     *         parent::boot();
+     *
+     *         \Maxcxam\Larsadmin\Larsadmin::tools([\App\Larsadmin\Tools\Backups::class]);
+     *     }
+     */
+
     /**
      * The dashboards of the panel, in menu order; the first one the user may see is the home page.
      * Generate more with `php artisan larsadmin:dashboard`.

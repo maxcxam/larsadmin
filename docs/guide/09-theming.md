@@ -65,15 +65,29 @@ Tailwind-псевдоніми `--color-*`.
 Шрифти: `--font-sans` (системний стек: `-apple-system`, `Segoe UI`, `Noto Sans`, ...) та `--font-mono`.
 Базовий розмір шрифту 14px.
 
+## CSS-контракт для розширень
+
+З 1.5 токени `--la-*` вище і класи `larsadmin-input`, `larsadmin-input-invalid`, `larsadmin-checkbox`,
+`larsadmin-btn`, `larsadmin-btn-primary`, `larsadmin-btn-secondary`, `larsadmin-btn-danger`,
+`larsadmin-btn-sm`, `larsadmin-box`, `larsadmin-box-header`, `larsadmin-label`, `larsadmin-label-success`,
+`larsadmin-label-accent`, `larsadmin-counter` є **стабільним контрактом 1.x**: розширення можуть на них
+спиратися. Utility-класи Tailwind з `dist/app.css` контрактом не є.
+
+Розширення збирає власні utility-класи з темою `vendor/maxcxam/larsadmin/kit/theme.css`: вона відображає
+кольори Tailwind (`text-fg`, `bg-canvas`, `border-default`, `text-danger-fg`, …) на токени `--la-*`, тож
+стилі розширення самі змінюються зі світлою й темною темою. Див.
+[Розширення: стилі й теми](19-extensions.md#стилі-й-теми).
+
 ## Кастомізація
 
-Публічного API для зміни теми поки немає: пакет постачається зі зібраним CSS (`dist/app.css`,
-публікується в `public/vendor/larsadmin`), а `larsadmin:publish` перезаписує асети. Токени вище
-описано для довідки й для роботи з вихідним кодом пакета (`resources/css/app.css`).
+Публічного API для зміни самої теми панелі немає: пакет постачається зі зібраним CSS (`dist/app.css`,
+публікується в `public/vendor/larsadmin`), а `larsadmin:publish` перезаписує асети.
 
 Користувацькі стилі можна додати власним шаблоном. Кореневий шаблон панелі є звичайним
 представленням `larsadmin::app`, тож його можна перевизначити стандартним механізмом Laravel
 (`resources/views/vendor/larsadmin/app.blade.php`) і підключити свій CSS після `app.css`.
-Це не підтримуваний API: структура CSS і назви токенів можуть змінюватися між версіями.
+Це не підтримуваний API: структура CSS може змінюватися між версіями. Перевизначений шаблон має
+зберегти import map і атрибути `nonce` шаблону пакета, інакше розширення не завантажаться: після
+оновлення панелі порівняйте його з `resources/views/app.blade.php` пакета.
 
 Далі: [Розширення](10-extending.md).

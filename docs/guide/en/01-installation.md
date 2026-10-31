@@ -49,8 +49,10 @@ php artisan larsadmin:publish
 ```
 
 `larsadmin:publish` publishes the config (an existing file is overwritten only with `--force`) and always
-overwrites the assets. The assets are more than `app.js` and `app.css`: some code (the bell, the realtime
-client) lives in `chunks/` and loads on demand, so publish the whole directory, not single files.
+overwrites the assets. The assets are more than `app.js` and `app.css`: since 1.5 `app.js` is only a small
+entry module, while the panel code, Vue and Inertia live in `chunks/` (`shared-*`, `vue-*`, `inertia-*`, plus
+the bell and the realtime client, which load on demand), and the modules for extensions in `runtime/`. Publish
+the whole directory, not single files.
 
 Security fixes ship as patch versions of the latest 1.x release, so keep the package up to date.
 Report vulnerabilities privately, not in public issues: see [SECURITY.md](../../../SECURITY.md).
@@ -86,6 +88,10 @@ translations (see [Localization](08-i18n.md)).
 | `larsadmin:trend {name} [--force]` | create a Trend metric in `app/Larsadmin/Metrics` |
 | `larsadmin:partition {name} [--force]` | create a Partition metric in `app/Larsadmin/Metrics` |
 | `larsadmin:progress {name} [--force]` | create a Progress metric in `app/Larsadmin/Metrics` |
+| `larsadmin:extension {name} [--path=packages] [--field=] [--card=] [--force]` | create an extension package in `PATH/VENDOR/PACKAGE` ([Extensions](19-extensions.md#quick-start)) |
+| `larsadmin:field {name} [--extension=] [--force]` | create a custom field: a PHP class and Vue form and display components |
+| `larsadmin:card {name} [--extension=] [--data] [--force]` | create a custom card (`Card`, or with `--data` a `DataCard`) and its Vue component |
+| `larsadmin:tool {name} [--extension=] [--force]` | create a sidebar page (`Tool`) and its Vue component |
 | `larsadmin:prune-audit [--days=]` | delete audit log entries older than `audit.retention_days` (90 days) ([Audit log](17-audit-log.md#pruning)) |
 | `larsadmin:prune-notifications [--days=]` | delete panel notifications, background action runs and their files older than `notifications.retention_days` (30 days) ([Notifications](18-notifications.md#pruning)) |
 
@@ -117,6 +123,8 @@ translations (see [Localization](08-i18n.md)).
 | `notifications.realtime` | `LARSADMIN_REALTIME` | `auto` | Realtime through Reverb/Pusher: `auto`, `true`, `false` |
 | `notifications.channel_prefix` | `LARSADMIN_CHANNEL_PREFIX` | `larsa_` | Prefix of the panel's broadcast channels |
 | `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Polling, bell page size, pruning; see [Notifications](18-notifications.md#configuration) |
+| `extensions.source_maps` | `LARSADMIN_EXTENSION_SOURCE_MAPS` | `false` | Serve the extensions' source maps (`*.map`); debugging only ([Extensions](19-extensions.md#http-endpoints)) |
+| `extensions.max_age` | | `31536000` | Browser cache lifetime of versioned extension files, in seconds |
 
 > **Warning.** When `allow_local` is `true` and `APP_ENV=local`, **every authenticated user** gets
 > into the panel. Do not run shared or public servers with `APP_ENV=local`, or set
@@ -134,6 +142,13 @@ LARSADMIN_ALLOW_LOCAL=false
 
 The panel has its own login page (`/admin/login`) with rate limiting: 5 attempts per minute
 per email + IP pair and 30 per minute per IP.
+
+## Content Security Policy
+
+If the application sets a CSP, turn on nonces with the standard `Vite::useCspNonce()` in a middleware that
+runs before panel pages render: the theme inline script, the extensions' import map, the `app.js` tag and the
+`modulepreload` tags get a `nonce` attribute. Without a nonce a strict CSP blocks the import map and extensions do not load (the panel
+works). Example: [Extensions: CSP and nonces](19-extensions.md#csp-and-nonces).
 
 ## Route cache
 

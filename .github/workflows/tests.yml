@@ -74,5 +74,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Check that dist/ is up to date
-        run: git diff --exit-code dist
+      - name: Check that dist/ and kit/sdk.js are up to date
+        run: git diff --exit-code dist kit/sdk.js
+
+      # Public extension API (design 1.5 §18.3 X6, ADR-034): the `larsadmin` SDK, dist/runtime, kit, stable PHP
+      # members and the props/events of overridable built-ins (§5.6) must match kit/public-api.json.
+      # Removals fail (frozen for 1.x); additions need `npm run check:api -- --update`.
+      - name: Check the public extension API
+        run: npm run check:api

@@ -1,0 +1,6 @@
+<?php
+
+use {{ namespace }}\Tests\TestCase;
+use Maxcxam\Larsadmin\Testing\InteractsWithLarsadmin;
+
+pest()->extend(TestCase::class)->use(InteractsWithLarsadmin::class)->in(__DIR__);

@@ -1,31 +1,92 @@
 import '../css/app.css'
 import { createApp, h } from 'vue'
-import { createInertiaApp } from '@inertiajs/vue3'
+import { createInertiaApp, router } from '@inertiajs/vue3'
 import AppLayout from './Layouts/AppLayout.vue'
+import { registry } from './extensions/registry'
+import { ensureBuiltins } from './extensions/builtins'
+import { createLoader } from './extensions/loader'
+import { useToasts } from './composables/useToasts'
+import { flatten, replace } from './composables/useI18n'
+import ukMessages from './i18n/uk.json'
 
-const pages = import.meta.glob('./Pages/**/*.vue', { eager: true })
+// `import: 'default'`: the components themselves, not module namespace objects, which would need a Rolldown runtime
+// helper chunk and one more sequential request before boot (CRX-05).
+const pages = import.meta.glob('./Pages/**/*.vue', { eager: true, import: 'default' })
 const panelName = document.querySelector('meta[name="larsadmin-name"]')?.content ?? 'Admin'
 
-createInertiaApp({
-    title: (title) => (title ? `${title} – ${panelName}` : panelName),
-    resolve: (name) => {
-        const page = pages[`./Pages/${name}.vue`]
+ensureBuiltins()
 
-        if (!page) {
-            throw new Error(`Larsadmin page not found: ${name}`)
-        }
+// The initial Inertia page (inertia-laravel v3 renders it as JSON in a script tag): the extension list must be known
+// before the first mount (design 1.5 §5.3).
+function readInitialPage() {
+    try {
+        const json = document.querySelector('script[data-page="app"][type="application/json"]')?.textContent
+            ?? document.getElementById('app')?.dataset.page
 
-        // Only default when the page declares nothing: an explicit `layout: null` (e.g. Login) means "no layout".
-        if (page.default.layout === undefined) page.default.layout = AppLayout
+        return json ? JSON.parse(json) : null
+    } catch {
+        return null
+    }
+}
 
-        return page
-    },
-    setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .mount(el)
-    },
-    progress: {
-        color: '#0969da',
+let currentPage = readInitialPage()
+
+const larsadmin = () => currentPage?.props?.larsadmin ?? {}
+
+function translate(key, params) {
+    const message = { ...ukMessages, ...flatten(larsadmin().translations) }[key] ?? key
+
+    return replace(message, params)
+}
+
+// Extensions: console + placeholder always; a toast only when app.debug is on (Q-71).
+const loader = createLoader({
+    registry,
+    isDebug: () => larsadmin().debug === true,
+    notify(name, reason, details) {
+        const message = reason === 'incompatible'
+            ? translate('extension_incompatible', { name, requires: details.requires ?? '?', version: details.version ?? '?' })
+            : translate('extension_failed', { name })
+
+        useToasts().push({ type: 'error', message, timeout: 8000 })
     },
 })
+
+// The first sign-in (login -> dashboard) is an Inertia visit, not a page load: pick up extensions listed later.
+router.on('navigate', (event) => {
+    currentPage = event.detail.page
+    loader.load(larsadmin().extensions)
+})
+
+function boot() {
+    createInertiaApp({
+        title: (title) => (title ? `${title} – ${panelName}` : panelName),
+        resolve: (name) => {
+            const page = pages[`./Pages/${name}.vue`]
+
+            if (!page) {
+                throw new Error(`Larsadmin page not found: ${name}`)
+            }
+
+            // Only default when the page declares nothing: an explicit `layout: null` (e.g. Login) means "no layout".
+            if (page.layout === undefined) page.layout = AppLayout
+
+            return page
+        },
+        setup({ el, App, props, plugin }) {
+            const app = createApp({ render: () => h(App, props) }).use(plugin)
+
+            loader.attach(app)
+            app.mount(el)
+        },
+        progress: {
+            color: '#0969da',
+        },
+    })
+}
+
+// Without extensions the panel boots exactly as in 1.4. With extensions it waits for them (at most 5 s).
+const extensions = larsadmin().extensions
+
+if (Array.isArray(extensions) && extensions.length > 0) loader.load(extensions).then(boot)
+else boot()

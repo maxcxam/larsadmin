@@ -11,6 +11,7 @@ use Inertia\Inertia;
 use Inertia\Middleware;
 use Inertia\Ssr\DisablesSsr;
 use Inertia\Ssr\Gateway;
+use Maxcxam\Larsadmin\Extensions\ExtensionAssets;
 use Maxcxam\Larsadmin\Http\Controllers\AuditController;
 use Maxcxam\Larsadmin\Larsadmin;
 use Maxcxam\Larsadmin\Notifications\Inbox;
@@ -61,7 +62,7 @@ class HandleInertiaRequests extends Middleware
 
         $locale = app()->getLocale();
 
-        return [
+        $shared = [
             ...parent::share($request),
             'larsadmin' => [
                 'name' => Larsadmin::name(),
@@ -96,6 +97,59 @@ class HandleInertiaRequests extends Middleware
             'dashboards' => fn () => $user && Larsadmin::check($request) ? Larsadmin::dashboardNavigation($request) : [],
             'toast' => fn () => $request->session()->get('larsadmin.toast'),
         ];
+
+        // Extensions and tools (1.5) add their props only when registered, so a panel without them is exactly as in 1.4.
+        if (Larsadmin::registeredExtensions() !== []) {
+            $shared['larsadmin'] += $this->extensionProps($request, $user, $locale);
+        }
+
+        if (Larsadmin::registeredTools() !== []) {
+            $shared['tools'] = fn () => $user && Larsadmin::check($request) ? $this->toolNavigation($request) : [];
+        }
+
+        return $shared;
+    }
+
+    /**
+     * The extension list, their translations and the debug flag: empty for guests and users without the panel
+     * gate, so the login page never loads extension code (ADR-031).
+     *
+     * @return array<string, mixed>
+     */
+    protected function extensionProps(Request $request, ?Authenticatable $user, string $locale): array
+    {
+        $allowed = fn (): bool => $user !== null && Larsadmin::check($request);
+
+        return [
+            'extensions' => fn () => $allowed() ? ExtensionAssets::clientList() : [],
+            'extensionTranslations' => $allowed()
+                ? Inertia::once(fn () => ExtensionAssets::translations())->as('larsadmin.ext-translations.'.$locale.'.'.ExtensionAssets::fingerprint())
+                : null,
+            'debug' => fn () => $allowed() && (bool) config('app.debug'),
+        ];
+    }
+
+    /**
+     * The sidebar entries of the tools the request may see.
+     *
+     * @return list<array{name: string, uriKey: string, icon: string|null, url: string}>
+     */
+    protected function toolNavigation(Request $request): array
+    {
+        $entries = [];
+
+        foreach (Larsadmin::registeredTools() as $tool) {
+            if ($tool->authorizedToSee($request)) {
+                $entries[] = [
+                    'name' => $tool->name(),
+                    'uriKey' => $tool->uriKey(),
+                    'icon' => $tool->navigationIcon(),
+                    'url' => route('larsadmin.tools.show', $tool->uriKey(), false),
+                ];
+            }
+        }
+
+        return $entries;
     }
 
     /**

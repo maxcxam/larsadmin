@@ -1,14 +1,18 @@
 # 10. Extending
 🇺🇦 [Українська](../10-extending.md)
 
-> **There is no public API for extending the frontend in 1.0.** It is planned for future versions.
-> Everything described below is internal and may change without notice and without a CHANGELOG entry.
+The panel can be extended on two levels:
 
-## What you can extend in PHP
+- **PHP classes** you already extend in your application (entities, actions, filters, metrics,
+  events). They need no JavaScript, and the pages below describe each of them.
+- **The public extension API** (since 1.5): your own Vue components for fields, cards, filters and
+  sidebar pages, your own routes and translations, and overriding the UI of built-in components. An
+  extension is a Composer package (or a directory in the application) and plugs in without rebuilding
+  the panel. Guide: [Extensions: the public API](19-extensions.md).
 
-The backend is built on plain PHP classes that you already extend:
+## What you can extend
 
-| What | Base class | Section |
+| What | Base class or API | Section |
 | --- | --- | --- |
 | Entity | `Maxcxam\Larsadmin\Entity` | [Entities](02-entities.md) |
 | Action | `Maxcxam\Larsadmin\Actions\Action` | [Actions](07-actions.md) |
@@ -21,11 +25,18 @@ The backend is built on plain PHP classes that you already extend:
 | Notifications in the panel's bell | `Maxcxam\Larsadmin\Notifications\LarsadminNotification` (may be extended) | [Notifications](18-notifications.md#sending-notifications) |
 | Background action | `Action::$queued`, `queued()`, `onQueue()`, `onQueueConnection()`, `$timeout` | [Notifications: background actions](18-notifications.md#background-actions) |
 | Reacting to a finished background action | the `Maxcxam\Larsadmin\Events\ActionRunFinished` event, the `Maxcxam\Larsadmin\Actions\Queued\ActionRun` model (read-only) | [Notifications](18-notifications.md#the-actionrunfinished-event) |
-| Field | `Maxcxam\Larsadmin\Fields\Field` | below |
+| Field with a built-in component | `Maxcxam\Larsadmin\Fields\Field` | below |
+| Field with its own Vue component | `Field` + `defineExtension({ fields })` | [Custom fields](19-extensions.md#custom-fields) |
+| Card (static or with data) | `Maxcxam\Larsadmin\Metrics\Card`, `DataCard` | [Cards](19-extensions.md#cards) |
+| Filter with its own component | `Filter` + `defineExtension({ filters })` | [Filters](19-extensions.md#filters) |
+| Sidebar page | `Maxcxam\Larsadmin\Tools\Tool` | [Tools](19-extensions.md#tools-sidebar-pages) |
+| Your own HTTP routes | `Larsadmin::routes()`, `findRecord()`, `findField()`, `audited()` | [Extension routes](19-extensions.md#extension-routes) |
+| UI of a built-in field, filter or metric | `override: true` | [Overrides](19-extensions.md#overriding-built-in-components) |
 
-A custom field class works on the server (rules, filling, serialization), but it must set `$component`
-to one of the **existing** frontend components, because the package ships with a prebuilt bundle.
-For example, a subclass of `Text` uses `text-field`.
+## A field with a built-in component
+
+A custom field class that only changes server behaviour (rules, filling, formatting) can use the
+component of a built-in field. For example, a subclass of `Text` uses `text-field`:
 
 ```php
 use Maxcxam\Larsadmin\Fields\Text;
@@ -39,38 +50,36 @@ class Slug extends Text
 }
 ```
 
-The protected methods of `Field` (`resolveValue`, `formatForDisplay`, `fillValue`, `typeRules`) are
-meant for subclasses, but are formally not part of the stable API.
+Since 1.5 the protected hooks of `Field` (`resolveValue()`, `formatForDisplay()`, `fillValue()`,
+`fillString()`, `typeRules()`, `implicitRules()`, `acceptsNullInput()`, `defaultAlign()`), the public hooks
+and `jsonSerialize()` are **stable API** for subclasses (the full list is in
+[Custom fields](19-extensions.md#the-php-class)). A field with its own Vue component is described there too.
 
 ### Custom array fields and forms with files
 
-A form that contains a `File` or `Image` field is sent as `multipart/form-data` (see
-[Files and images](15-files.md)). Such a request does not carry empty arrays at all: if the user
-cleared a custom field whose value is an array, the field's key is missing, and `fill()` keeps the
-old value. In a JSON form without file fields the same field receives `[]`. Built-in fields are not
-affected. If your field takes an array, either send a presence flag with it (like the `present` key
-of file fields) or treat a missing key as an empty array.
+A form that contains a `File` or `Image` field, or a field with `multipart: true` (see
+[Fields that upload files](19-extensions.md#fields-that-upload-files)), is sent as `multipart/form-data`
+(see [Files and images](15-files.md)). Such a request does not carry empty arrays at all: if the user
+cleared a custom field whose value is an array, the field's key is missing, and `fill()` keeps the old
+value. In a JSON form without such fields the same field receives `[]`. Built-in fields are not affected.
+If your field takes an array, either send a presence flag with it (like the `present` key of file fields)
+or treat a missing key as an empty array.
 
-## Internal component registry
+## The component registry
 
-The frontend source (`resources/js/fields/index.js`) has a `registerField` function that maps the
-`component` key of a server-side field to Vue components:
+The server-side `component` key of a field, filter or card is matched to a Vue component through the
+panel's registry. Since 1.5 the registry is open to extensions through `defineExtension()` of the
+`larsadmin` module, and the built-in components register in it the same way. The internal functions
+`registerField`, `registerFilter` and `registerCard` remain as wrappers and are not API.
 
-```js
-registerField(component, { display, form, panel })
-```
+How the panel handles a key:
 
-Likewise, `registerFilter(component, vueComponent)` in `resources/js/filters/index.js` and
-`registerCard(component, vueComponent)` in `resources/js/components/cards/index.js`.
-
-What this means in practice:
-
-- The registries are **internal**: they live inside the package bundle and are not exported to `window`.
-- You cannot call them from your application. Your own Vue components get into the panel only by
-  changing the package code and rebuilding it (`npm run build` in the package repository).
-- An unknown `component` key does not raise an error anywhere: a field renders as plain text (display)
-  and a text input (form), a filter as a select. A card with an unknown key shows a visible error,
-  "Unknown card component: …".
+| Key | Behaviour |
+| --- | --- |
+| built-in (`text-field`, `select-filter`, …) | the built-in component or its [override](19-extensions.md#overriding-built-in-components) |
+| `vendor/name`, registered by an extension | the extension's component |
+| `vendor/name`, not registered (the extension did not load, is incompatible or crashed) | an "Unavailable" placeholder; in a form the value is **not sent** ([fail closed](19-extensions.md#unavailable-and-crashed-extensions)) |
+| without `/`, unknown to the panel | a field renders as plain text (display) and a text input (form), a filter as a select, as in 1.4; a card shows the error "Unknown card component: …" |
 
 Keys of the built-in components:
 
@@ -80,11 +89,7 @@ Keys of the built-in components:
 | Filters | `select-filter`, `boolean-filter`, `date-range-filter` |
 | Cards | `value-metric`, `trend-metric`, `partition-metric`, `progress-metric` |
 
-## What is planned
-
-A public extension API (plugging your own Vue components for fields, filters and cards in from the
-application, without rebuilding the package) is planned for future versions. Until then, rely only on
-the documented sections of this guide.
-
 How to build and test the package itself: the "Developing the package" section of
 [Installation](01-installation.md#developing-the-package).
+
+Next: [List interface](11-ui.md).

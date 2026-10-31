@@ -1,0 +1,14 @@
+<script setup>
+// The "{{ component }}" tool page, rendered in the panel layout under the title tool.name.
+// `props` are the PHP Tool::props(); load anything else from routes registered with Larsadmin::routes().
+defineProps({
+    tool: { type: Object, required: true },
+    props: { type: Object, default: () => ({}) },
+})
+</script>
+
+<template>
+    <div class="larsadmin-box p-4">
+        <p>{{ props.message }}</p>
+    </div>
+</template>

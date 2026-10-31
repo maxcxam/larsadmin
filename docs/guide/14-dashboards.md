@@ -132,6 +132,26 @@ public function cards(Request $request): array
 - Ті самі класи метрик можна використовувати й на дашбордах. Кеш (`cacheFor()`) ведеться окремо
   для кожного власника картки.
 
+## Власні картки
+
+І `Dashboard::cards()`, і `Entity::cards()` приймають, крім метрик, картки розширень (з 1.5): статичні
+спадкоємці `Card` і картки з даними `DataCard`. Картка з даними проходить ті самі перевірки, що й
+метрика (видимість дашборда чи `viewAny` Entity, `canSee()`), а її параметри валідуються `rules()`.
+Додаткові props будь-якій картці дає `withMeta()`:
+
+```php
+public function cards(Request $request): array
+{
+    return [
+        NewPosts::make(),
+        TopRated::make()->width('1/2'),                       // DataCard розширення
+        Welcome::make()->withMeta(['links' => $this->links()]), // статична картка
+    ];
+}
+```
+
+Див. [Розширення: картки](19-extensions.md#картки).
+
 ## Часовий пояс
 
 Періоди всіх метрик рахуються в часовому поясі панелі: `Larsadmin::timezoneUsing()`, далі

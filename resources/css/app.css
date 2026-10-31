@@ -97,6 +97,8 @@
     }
 }
 
+/* Same mapping as kit/theme.css (extensions); kit/vite.test.js checks they stay identical. Not imported from there:
+ * kit/theme.css also loads Tailwind's theme as a reference, which would stop the panel emitting its theme variables. */
 @theme inline {
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;

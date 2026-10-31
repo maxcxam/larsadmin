@@ -65,15 +65,29 @@ A few values for reference (light / dark):
 Fonts: `--font-sans` (system stack: `-apple-system`, `Segoe UI`, `Noto Sans`, ...) and `--font-mono`.
 The base font size is 14px.
 
+## CSS contract for extensions
+
+Since 1.5 the `--la-*` tokens above and the classes `larsadmin-input`, `larsadmin-input-invalid`,
+`larsadmin-checkbox`, `larsadmin-btn`, `larsadmin-btn-primary`, `larsadmin-btn-secondary`,
+`larsadmin-btn-danger`, `larsadmin-btn-sm`, `larsadmin-box`, `larsadmin-box-header`, `larsadmin-label`,
+`larsadmin-label-success`, `larsadmin-label-accent`, `larsadmin-counter` are a **stable 1.x contract**:
+extensions may rely on them. The Tailwind utility classes in `dist/app.css` are not a contract.
+
+An extension builds its own utility classes with the `vendor/maxcxam/larsadmin/kit/theme.css` theme: it
+maps Tailwind colours (`text-fg`, `bg-canvas`, `border-default`, `text-danger-fg`, …) onto the `--la-*`
+tokens, so the extension's styles follow the light and dark themes. See
+[Extensions: styles and theming](19-extensions.md#styles-and-theming).
+
 ## Customization
 
-There is no public API for changing the theme yet: the package ships with prebuilt CSS (`dist/app.css`,
-published to `public/vendor/larsadmin`), and `larsadmin:publish` overwrites the assets. The tokens
-above are documented for reference and for working on the package source (`resources/css/app.css`).
+There is no public API for changing the panel's own theme: the package ships with prebuilt CSS
+(`dist/app.css`, published to `public/vendor/larsadmin`), and `larsadmin:publish` overwrites the assets.
 
 You can add your own styles with your own template. The panel's root template is a regular
 `larsadmin::app` view, so you can override it with the standard Laravel mechanism
 (`resources/views/vendor/larsadmin/app.blade.php`) and include your CSS after `app.css`.
-This is not a supported API: the CSS structure and token names may change between versions.
+This is not a supported API: the CSS structure may change between versions. An overridden template must
+keep the import map and the `nonce` attributes of the package's template, or extensions will not load:
+after updating the panel, compare it with the package's `resources/views/app.blade.php`.
 
 Next: [Extending](10-extending.md).

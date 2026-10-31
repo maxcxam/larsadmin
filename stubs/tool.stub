@@ -1,0 +1,35 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Tools\Tool;
+
+class {{ class }} extends Tool
+{
+    /**
+     * The extension component that renders the page ("vendor/name", registered with defineExtension()).
+     */
+    public string $component = '{{ component }}';
+
+    /**
+     * The sidebar icon: one of Tool::ICONS; null uses the default icon.
+     */
+    public function icon(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * The page props of the component (JSON encodable). Only the panel gate and canSee() were checked:
+     * authorize anything else here and in the routes the page calls (Larsadmin::routes()).
+     *
+     * @return array<string, mixed>
+     */
+    public function props(Request $request): array
+    {
+        return [
+            'message' => __('{{ class }}'),
+        ];
+    }
+}

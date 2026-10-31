@@ -1,63 +1,60 @@
-import TextDisplay from './display/TextDisplay.vue'
-import TextareaDisplay from './display/TextareaDisplay.vue'
-import BooleanDisplay from './display/BooleanDisplay.vue'
-import TextInput from './form/TextInput.vue'
-import TextareaInput from './form/TextareaInput.vue'
-import NumberInput from './form/NumberInput.vue'
-import BooleanInput from './form/BooleanInput.vue'
-import SelectInput from './form/SelectInput.vue'
-import DateInput from './form/DateInput.vue'
-import BelongsToDisplay from './display/BelongsToDisplay.vue'
-import BelongsToInput from './form/BelongsToInput.vue'
-import FileDisplay from './display/FileDisplay.vue'
-import ImageDisplay from './display/ImageDisplay.vue'
-import FileInput from './form/FileInput.vue'
-import RelatedPanel from '../components/RelatedPanel.vue'
+import { isExtensionKey, registry } from '../extensions/registry'
+import { ensureBuiltins, TextDisplay, TextInput } from '../extensions/builtins'
+import { bounded, isWrapped, placeholder } from '../extensions/components'
 
-// Maps a field's server-side `component` key to the Vue components that render it.
-// Fields without a display component fall back to plain text.
-const displayComponents = {
-    'textarea-field': TextareaDisplay,
-    'boolean-field': BooleanDisplay,
-    'belongs-to-field': BelongsToDisplay,
-    'file-field': FileDisplay,
-    'image-field': ImageDisplay,
+// Thin internal wrappers over the component registry (design 1.5 §10). They map a field's server-side `component`
+// key to the Vue component that renders it in a context. Keys without `/` that are not registered keep the 1.4
+// fallback (plain text display, text input); unknown `vendor/name` keys render a placeholder (fail closed).
+
+function pick(field, part, fallback, mode) {
+    ensureBuiltins()
+
+    const key = field?.component
+    const resolved = registry.resolve('fields', key, part)
+
+    if (!resolved) {
+        if (isExtensionKey(key)) return placeholder(mode)
+
+        return fallback
+    }
+
+    if (resolved.source === 'builtin') return resolved.component
+
+    return bounded('fields', key, resolved, {
+        fallback: resolved.source === 'override' ? (resolved.builtin ?? fallback) : null,
+        mode,
+    })
 }
 
-const formComponents = {
-    'text-field': TextInput,
-    'password-field': TextInput,
-    'textarea-field': TextareaInput,
-    'number-field': NumberInput,
-    'boolean-field': BooleanInput,
-    'select-field': SelectInput,
-    'date-field': DateInput,
-    'datetime-field': DateInput,
-    'belongs-to-field': BelongsToInput,
-    'file-field': FileInput,
-    'image-field': FileInput,
+// context: 'index' | 'detail' (both fall back to the `display` part); omitted = `display`.
+export function displayComponent(field, context = null) {
+    const part = context === 'index' || context === 'detail' ? context : 'display'
+
+    return pick(field, part, TextDisplay, 'display')
 }
 
-// Detail-page panels (fields with `panel: true`), rendered under the field list.
-const panelComponents = {
-    'has-many-field': RelatedPanel,
-    'belongs-to-many-field': RelatedPanel,
-}
-
-export function displayComponent(field) {
-    return displayComponents[field.component] ?? TextDisplay
+// Props of the display contract (design 1.5 §5.4) for extension / override components only; built-in components
+// keep exactly their 1.4 props.
+export function displayProps(component, context) {
+    return isWrapped(component) ? { context } : {}
 }
 
 export function formComponent(field) {
-    return formComponents[field.component] ?? TextInput
+    return pick(field, 'form', TextInput, 'form')
 }
 
 export function panelComponent(field) {
-    return panelComponents[field.component] ?? null
+    return pick(field, 'panel', null, 'panel')
+}
+
+// Fail closed (ADR-032): an extension field whose form component is missing or crashed is not submitted.
+export function isFieldUnavailable(field) {
+    ensureBuiltins()
+
+    return registry.isUnavailable('fields', field?.component, 'form')
 }
 
 export function registerField(component, { display, form, panel } = {}) {
-    if (display) displayComponents[component] = display
-    if (form) formComponents[component] = form
-    if (panel) panelComponents[component] = panel
+    ensureBuiltins()
+    registry.register('fields', component, { display, form, panel }, { builtin: true })
 }

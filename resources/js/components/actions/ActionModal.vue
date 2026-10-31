@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { formComponent } from '../../fields'
+import { actionPayload } from './actionPayload'
 import { useI18n } from '../../composables/useI18n'
 import { useLarsadmin } from '../../composables/useLarsadmin'
 import IconAlert from '../icons/IconAlert.vue'
@@ -49,9 +50,13 @@ function close() {
 }
 
 function submit() {
-    form.post(entityUrl(props.entity, 'actions', props.action.uriKey), {
+    // Fail closed: unavailable extension fields are not sent; file fields make the request multipart.
+    const { multipart } = actionPayload(fields.value, null)
+
+    form.transform((data) => actionPayload(fields.value, data).data).post(entityUrl(props.entity, 'actions', props.action.uriKey), {
         preserveScroll: true,
         preserveState: true,
+        ...(multipart ? { forceFormData: true } : {}),
         onSuccess: close,
         onError: () => {
             // Immediate runs have no dialog to show errors in; the server toast carries the message

@@ -8,6 +8,10 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use JsonSerializable;
 
+/**
+ * A dashboard or entity index card. Stable for subclasses since 1.5: $component, $width, name(), uriKey(),
+ * width(), help(), canSee(), withMeta() and jsonSerialize().
+ */
 abstract class Card implements JsonSerializable
 {
     /**
@@ -32,6 +36,13 @@ abstract class Card implements JsonSerializable
     protected ?Closure $canSee = null;
 
     protected ?string $endpoint = null;
+
+    /**
+     * Extra props merged into the serialized card after the base keys (withMeta()).
+     *
+     * @var array<string, mixed>
+     */
+    protected array $meta = [];
 
     public static function make(mixed ...$args): static
     {
@@ -90,6 +101,33 @@ abstract class Card implements JsonSerializable
     }
 
     /**
+     * The serialization keys meta may not replace: the client and the endpoint depend on them.
+     *
+     * @var list<string>
+     */
+    protected const array BASE_KEYS = ['component', 'uriKey', 'name', 'width', 'helpText', 'endpoint'];
+
+    /**
+     * Merge extra props into the serialized card, after the base keys.
+     *
+     * @param  array<string, mixed>  $meta
+     *
+     * @throws InvalidArgumentException for a base key (component, uriKey, name, width, helpText, endpoint)
+     */
+    public function withMeta(array $meta): static
+    {
+        $reserved = array_intersect(array_map('strval', array_keys($meta)), self::BASE_KEYS);
+
+        if ($reserved !== []) {
+            throw new InvalidArgumentException('Card meta cannot replace the base keys ['.implode(', ', $reserved).']; use the matching methods.');
+        }
+
+        $this->meta = array_merge($this->meta, $meta);
+
+        return $this;
+    }
+
+    /**
      * Set the URL the card loads its data from; done by the owner while serializing.
      */
     public function withEndpoint(string $url): static
@@ -104,13 +142,13 @@ abstract class Card implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        return array_merge([
             'component' => $this->component,
             'uriKey' => $this->uriKey(),
             'name' => $this->name(),
             'width' => $this->width,
             'helpText' => $this->helpText,
             'endpoint' => $this->endpoint,
-        ];
+        ], $this->meta);
     }
 }

@@ -1,0 +1,4 @@
+/* Utilities only: the panel provides the base styles and the theme variables (kit/theme.css references them). */
+@import "tailwindcss/utilities";
+@import "larsadmin-kit/theme.css";
+@source "../js";

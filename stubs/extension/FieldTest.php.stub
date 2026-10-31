@@ -1,0 +1,20 @@
+<?php
+
+use {{ namespace }}\Fields\{{ field }};
+use Illuminate\Database\Eloquent\Model;
+
+it('serializes the field for its component', function () {
+    $record = new class extends Model
+    {
+        protected $guarded = [];
+    };
+    $record->forceFill(['{{ attribute }}' => 'value']);
+
+    expect($this->serializeField({{ field }}::make('{{ field }}', '{{ attribute }}'), $record))
+        ->toMatchArray(['component' => '{{ fieldKey }}', 'value' => 'value']);
+});
+
+it('validates the value', function () {
+    expect({{ field }}::make('{{ field }}', '{{ attribute }}')->rulesFor('update'))
+        ->toBe(['{{ attribute }}' => ['string', 'max:255']]);
+});

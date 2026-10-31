@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { displayComponent, panelComponent } from '../../fields'
+import { displayComponent, displayProps, panelComponent } from '../../fields'
 import { useLarsadmin } from '../../composables/useLarsadmin'
 import { useI18n } from '../../composables/useI18n'
 import ActionMenu from '../../components/actions/ActionMenu.vue'
@@ -64,7 +64,7 @@ function destroy() {
             <div :class="stacked ? 'grid gap-1 px-4 py-3' : 'grid gap-1 px-4 py-3 md:grid-cols-4 md:gap-4'">
                 <div class="font-semibold text-fg-muted">{{ field.name }}</div>
                 <div :class="['min-w-0 break-words', stacked ? '' : 'md:col-span-3']">
-                    <component :is="displayComponent(field)" :field="field" />
+                    <component :is="displayComponent(field, 'detail')" :field="field" v-bind="displayProps(displayComponent(field, 'detail'), 'detail')" />
                 </div>
             </div>
         </template>

@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
-import { formComponent } from '../fields'
-import { buildSubmission, fieldError, formatSize, isFileField, uploadErrors } from '../fields/files'
+import { formComponent, isFieldUnavailable } from '../fields'
+import { buildSubmission, fieldError, fieldErrors, fieldErrorsByKey, formatSize, isFileField, isMultipartField, uploadErrors } from '../fields/files'
+import { isWrapped } from '../extensions/components'
 import { useI18n } from '../composables/useI18n'
 import FieldBlocks from './layout/FieldBlocks.vue'
 import IconAlert from './icons/IconAlert.vue'
@@ -39,11 +40,17 @@ const submitUrl = computed(() => {
 
 const form = useForm(Object.fromEntries(props.fields.map((field) => [field.attribute, field.value])))
 
+// Fail closed (ADR-032): extension fields whose component is missing or crashed are left out of the payload, so the
+// server keeps the stored value. Reactive: a late extension makes its fields available again.
+const excluded = computed(() => props.fields.filter(isFieldUnavailable).map((field) => field.attribute))
+
 function submit() {
-    const { method, multipart } = buildSubmission(props.fields, props.method, null)
+    const exclude = excluded.value
+    const { method, multipart } = buildSubmission(props.fields, props.method, null, { exclude })
 
     if (!multipart) {
-        form.submit(method, submitUrl.value, {
+        // Without exclusions the transform returns the same data object: the request is the 1.4 one.
+        form.transform((data) => buildSubmission(props.fields, props.method, data, { exclude }).data).submit(method, submitUrl.value, {
             preserveScroll: true,
         })
 
@@ -52,7 +59,7 @@ function submit() {
 
     // Forms with File/Image fields (ADR-014): multipart POST, updates spoofed with _method=PUT (PHP does not
     // parse multipart bodies of real PUT requests). Wire format per field: {attr}[present|keep|upload].
-    form.transform((data) => buildSubmission(props.fields, props.method, data).data).submit(method, submitUrl.value, {
+    form.transform((data) => buildSubmission(props.fields, props.method, data, { exclude }).data).submit(method, submitUrl.value, {
         preserveScroll: true,
         forceFormData: true,
         onHttpException: (response) => {
@@ -66,7 +73,22 @@ function submit() {
     })
 }
 
-const multipartForm = computed(() => props.fields.some(isFileField))
+const multipartForm = computed(() => props.fields.some(isMultipartField))
+
+// id for aria-describedby: the error message, else the help text.
+function describedBy(field) {
+    if (fieldError(form.errors, field.attribute)) return `${field.attribute}-error`
+
+    return field.help ? `${field.attribute}-help` : null
+}
+
+// Extension and override components get the full form contract (design 1.5 §5.4); built-in components get
+// exactly the 1.4 props, so nothing new falls through onto their root element.
+function contractProps(field, component) {
+    if (!isWrapped(component)) return {}
+
+    return { errors: fieldErrors(form.errors, field.attribute), errorsByKey: fieldErrorsByKey(form.errors, field.attribute), describedBy: describedBy(field) }
+}
 
 function requestLimit() {
     const limits = props.fields.filter(isFileField).map((field) => field.uploadLimit?.request).filter((limit) => limit > 0)
@@ -96,12 +118,12 @@ const uploadPercent = computed(() => Math.round(form.progress?.percentage ?? 0))
                             :invalid="!!fieldError(form.errors, field.attribute)"
                             :context="context"
                             :resource-id="resourceId"
-                            v-bind="isFileField(field) ? { uploadErrors: uploadErrors(form.errors, field.attribute) } : {}"
+                            v-bind="{ ...(isFileField(field) ? { uploadErrors: uploadErrors(form.errors, field.attribute) } : {}), ...contractProps(field, formComponent(field)) }"
                         />
                         <p v-if="fieldError(form.errors, field.attribute)" :id="`${field.attribute}-error`" class="mt-1.5 flex items-center gap-1 text-xs text-danger-fg" role="alert">
                             <IconAlert />{{ fieldError(form.errors, field.attribute) }}
                         </p>
-                        <p v-else-if="field.help" class="mt-1.5 text-xs text-fg-muted">{{ field.help }}</p>
+                        <p v-else-if="field.help" :id="`${field.attribute}-help`" class="mt-1.5 text-xs text-fg-muted">{{ field.help }}</p>
                     </div>
                 </div>
             </template>

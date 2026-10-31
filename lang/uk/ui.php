@@ -100,6 +100,14 @@ return [
     'collapse' => 'Згорнути',
     'tab_errors' => ':count помилка|:count помилки|:count помилок',
 
+    // Extensions and tools
+    'extension_unavailable' => 'Недоступно: розширення не завантажено',
+    'extension_loading' => 'Завантаження розширення…',
+    'extension_failed' => 'Розширення :name не завантажено',
+    'extension_incompatible' => 'Розширення :name потребує API :requires, а панель надає :version',
+    'field_unavailable_hint' => 'Значення цього поля не буде змінено під час збереження.',
+    'tools' => 'Інструменти',
+
     // Dashboards and metrics
     'dashboards' => 'Дашборди',
     'metric_range' => 'Період',

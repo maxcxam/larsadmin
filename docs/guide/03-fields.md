@@ -265,4 +265,14 @@ Password::make('Пароль', 'password')
 Повідомлення валідації беруться з `lang/{locale}/validation.php`, а підписи полів з їх назв.
 Українські повідомлення встановлює `larsadmin:install` ([Локалізація](08-i18n.md)).
 
+## Власні поля
+
+Власне поле є спадкоємцем `Field` (або `Text`, `Number`, …). З 1.5 його захищені хуки
+(`resolveValue()`, `formatForDisplay()`, `fillValue()`, `fillString()`, `typeRules()`, `implicitRules()`,
+`acceptsNullInput()`, `defaultAlign()`), публічні хуки (`fill()`, `fillInto()`, `fillAttribute()`,
+`resolve()`, `eagerLoads()`, `applySort()`, `bindTo()`, `hasAuditValue()`, `auditValue()`), `withMeta()`,
+`jsonSerialize()` і `$component` є стабільним API. Поле з вбудованим компонентом описано в
+[Розширення](10-extending.md#поле-з-вбудованим-компонентом), поле з власним Vue-компонентом, зокрема
+поле, що надсилає файли (`multipart()`), у [Розширення: публічний API](19-extensions.md#власні-поля).
+
 Далі: [Зв'язки](04-relations.md).

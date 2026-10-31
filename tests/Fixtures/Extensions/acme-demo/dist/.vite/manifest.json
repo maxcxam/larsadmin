@@ -1,0 +1,7 @@
+{
+  "resources/js/extension.js": {
+    "file": "extension.js",
+    "isEntry": true,
+    "src": "resources/js/extension.js"
+  }
+}

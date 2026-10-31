@@ -36,9 +36,14 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
 - **Security by default**: panel gate, model policies that fail closed, server-built record URLs.
 - **UI**: GitHub-like interface with light, dark and system themes, column picker, responsive layout.
 - **i18n**: Ukrainian (default) and English, with a language switcher.
-- **Generators** for entities, actions, filters, metrics and dashboards.
+- **Extensions** (public API since 1.5): Composer packages add their own Vue fields, dashboard cards
+  (static or with data from an authorized, cached endpoint), filters and sidebar pages, their own routes
+  and translations, and can override the UI of selected built-in components. Installed with
+  `composer require` alone; fail closed when an extension is missing or broken. Scaffolds, a Vite preset
+  and test helpers for authors.
+- **Generators** for entities, actions, filters, metrics, dashboards and extensions.
 
-The frontend ships prebuilt: your application does not need Node.js.
+The frontend ships prebuilt: your application does not need Node.js, also with extensions installed.
 
 Inspired by the developer experience of Laravel Nova: an Entity plays the role of a Nova Resource.
 
@@ -218,6 +223,38 @@ protected function dashboards(): array
 > and aggregates every row it can reach: use it for global numbers only and hide the card with
 > `canSee()` when needed.
 
+### An extension
+
+```bash
+php artisan larsadmin:extension acme/larsadmin-rating
+composer config repositories.acme-larsadmin-rating path packages/acme/larsadmin-rating
+composer require acme/larsadmin-rating:@dev
+cd packages/acme/larsadmin-rating && npm install && npm run build
+```
+
+The package registers itself in its service provider and ships its built files:
+
+```php
+Larsadmin::extension('acme/larsadmin-rating', __DIR__.'/../dist')->translations('acme-rating');
+```
+
+```js
+// resources/js/extension.js
+import { defineExtension } from 'larsadmin'
+import RatingInput from './fields/RatingInput.vue'
+import RatingDisplay from './fields/RatingDisplay.vue'
+
+export default defineExtension({
+    name: 'acme/larsadmin-rating',
+    requires: '^1.5',
+    fields: { 'acme/rating': { form: RatingInput, display: RatingDisplay } },
+})
+```
+
+A field class with `public string $component = 'acme/rating'` is then used like any other field. Extension
+code is trusted code that runs with the administrator's rights; the server still authorizes everything. See
+the [extensions guide](docs/guide/en/19-extensions.md).
+
 ## Configuration
 
 `config/larsadmin.php`:
@@ -247,6 +284,8 @@ protected function dashboards(): array
 | `notifications.realtime` | `LARSADMIN_REALTIME` | `auto` | Realtime through Reverb/Pusher: `auto`, `true` or `false` |
 | `notifications.channel_prefix` | `LARSADMIN_CHANNEL_PREFIX` | `larsa_` | Prefix of the panel's broadcast channels |
 | `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Notifications; see the [notifications guide](docs/guide/en/18-notifications.md#configuration) |
+| `extensions.source_maps` | `LARSADMIN_EXTENSION_SOURCE_MAPS` | `false` | Serve extensions' source maps (debugging only) |
+| `extensions.max_age` | | `31536000` | Browser cache lifetime of versioned extension files, in seconds |
 
 ## Authorization
 
@@ -288,7 +327,9 @@ php artisan vendor:publish --tag=larsadmin-lang
 ## Theming
 
 Light, dark and system themes, switchable in the header and on the login page. The choice is kept in
-the browser. There is no public theming API yet; see the [theming guide](docs/guide/en/09-theming.md) for the design tokens.
+the browser. The panel's own theme cannot be changed through an API; the `--la-*` design tokens and the
+`larsadmin-*` component classes are a stable contract for extensions since 1.5. See the
+[theming guide](docs/guide/en/09-theming.md).
 
 ## Documentation
 
@@ -305,8 +346,8 @@ its translation.
 | [06. Filters](docs/guide/en/06-filters.md) | built-in and custom filters |
 | [07. Actions](docs/guide/en/07-actions.md) | bulk and row actions, responses, background actions, generator |
 | [08. Localization](docs/guide/en/08-i18n.md) | languages, translations, switcher |
-| [09. Theming](docs/guide/en/09-theming.md) | tokens, light/dark/system |
-| [10. Extending](docs/guide/en/10-extending.md) | what is public and what is planned |
+| [09. Theming](docs/guide/en/09-theming.md) | tokens, light/dark/system, CSS contract for extensions |
+| [10. Extending](docs/guide/en/10-extending.md) | extension points in PHP, the component registry, built-in keys |
 | [11. List UI](docs/guide/en/11-ui.md) | column picker, responsive layout |
 | [12. Field blocks](docs/guide/en/12-layout.md) | panels, tabs, two columns |
 | [13. Metrics](docs/guide/en/13-metrics.md) | Value, Trend, Partition, Progress, scoping, caching |
@@ -315,6 +356,7 @@ its translation.
 | [16. Global search](docs/guide/en/16-search.md) | Ctrl/⌘+K palette, opt-in, subtitles, Laravel Scout, authorization |
 | [17. Audit log](docs/guide/en/17-audit-log.md) | enabling, what is recorded, masking, gate, history UI, pruning, `AuditRecorded` |
 | [18. Notifications and background actions](docs/guide/en/18-notifications.md) | the bell, `LarsadminNotification`, queued actions, `ActionResponse::file()`, realtime (Reverb/Pusher), pruning |
+| [19. Extensions: the public API](docs/guide/en/19-extensions.md) | scaffolds, `Larsadmin::extension()`, `defineExtension`, custom fields, `DataCard`, tools, extension routes, overrides, fail closed, CSP, versioning, testing |
 
 ## Changelog
 

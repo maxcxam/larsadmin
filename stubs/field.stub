@@ -1,0 +1,33 @@
+<?php
+
+namespace {{ namespace }};
+
+use Maxcxam\Larsadmin\Fields\Field;
+
+class {{ class }} extends Field
+{
+    /**
+     * The extension component that renders the field ("vendor/name", registered with defineExtension()).
+     */
+    public string $component = '{{ component }}';
+
+    /**
+     * Validation implied by the field type, applied before the rules given with ->rules().
+     *
+     * @return array<int, mixed>
+     */
+    protected function typeRules(): array
+    {
+        return ['string', 'max:255'];
+    }
+
+    /**
+     * The field as the Vue components receive it: add your own props after the base keys.
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [...parent::jsonSerialize()];
+    }
+}

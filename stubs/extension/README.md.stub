@@ -1,0 +1,37 @@
+# {{ name }}
+
+A larsadmin extension with the field `{{ fieldKey }}` and the data card `{{ cardKey }}`.
+
+## Development
+
+Run these from the application root:
+
+```bash
+composer config repositories.{{ repository }} path {{ directory }}
+composer require {{ name }}:@dev
+cd {{ directory }} && npm install && npm run build
+```
+
+`npm run dev` rebuilds the extension after every change. Commit the built `dist/` directory, so the application needs no npm.
+
+Use the field and the card in the application:
+
+```php
+use {{ namespace }}\Cards\{{ card }};
+use {{ namespace }}\Fields\{{ field }};
+
+{{ field }}::make('{{ field }}', '{{ attribute }}'), // in an entity's fields()
+{{ card }}::make(),                                  // in a dashboard's or an entity's cards()
+```
+
+## Tests
+
+```bash
+composer install && vendor/bin/pest   # PHP
+npm test                              # Vue components (vitest, jsdom)
+```
+
+## Security
+
+An extension's JavaScript runs in the browser with the signed-in administrator's rights. Authorize every record
+on the server: use `Larsadmin::findRecord()` in each route you register with `Larsadmin::routes()`.

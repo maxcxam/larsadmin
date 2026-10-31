@@ -1,0 +1,28 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Support\ServiceProvider;
+use Maxcxam\Larsadmin\Larsadmin;
+
+class {{ provider }} extends ServiceProvider
+{
+    public function boot(): void
+    {
+        $this->loadTranslationsFrom(__DIR__.'/../lang', '{{ langNamespace }}');
+
+        // dist/ is created by `npm run build`; until then the extension is not registered.
+        if (is_dir(__DIR__.'/../dist')) {
+            Larsadmin::extension('{{ name }}', __DIR__.'/../dist')
+                ->translations('{{ langNamespace }}');
+        }
+
+        // Sidebar pages (`php artisan larsadmin:tool Backups --extension={{ directory }}`):
+        // Larsadmin::tools([Tools\Backups::class]);
+
+        // JSON routes for your components, behind the panel gate; authorize records with Larsadmin::findRecord():
+        // Larsadmin::routes(function () {
+        //     \Illuminate\Support\Facades\Route::get('{{ langNamespace }}/ping', fn () => ['ok' => true])->name('{{ langNamespace }}.ping');
+        // });
+    }
+}

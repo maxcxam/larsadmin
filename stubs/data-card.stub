@@ -1,0 +1,42 @@
+<?php
+
+namespace {{ namespace }};
+
+use Maxcxam\Larsadmin\Metrics\CardRequest;
+use Maxcxam\Larsadmin\Metrics\DataCard;
+
+class {{ class }} extends DataCard
+{
+    /**
+     * The extension component that renders the card ("vendor/name", registered with defineExtension()).
+     */
+    public string $component = '{{ component }}';
+
+    /**
+     * The query parameters the card accepts; anything else is dropped and invalid values answer 422.
+     *
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:20'],
+        ];
+    }
+
+    /**
+     * The card's data (JSON encodable). The panel checked its gate, the dashboard or entity the card belongs to
+     * and canSee(); query records through $this->entityQuery(), which applies the entity's indexQuery() scope
+     * and its viewAny (403 without it):
+     *
+     *     $this->entityQuery($request, \App\Larsadmin\Post::class, fn ($query) => $query->where('status', 'live'))
+     *         ->latest()->limit($limit)->pluck('title')->all()
+     */
+    public function data(CardRequest $request): mixed
+    {
+        return [
+            'items' => [],
+            'limit' => (int) $request->get('limit', 5),
+        ];
+    }
+}

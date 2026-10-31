@@ -1,0 +1,20 @@
+<?php
+
+namespace {{ namespace }}\Tests\Fixtures;
+
+use {{ namespace }}\Cards\{{ card }};
+use Illuminate\Http\Request;
+use Maxcxam\Larsadmin\Dashboards\Dashboard;
+
+/**
+ * A dashboard showing the extension's card, so its JSON endpoint can be called in tests.
+ */
+class TestDashboard extends Dashboard
+{
+    public function cards(Request $request): array
+    {
+        return [
+            {{ card }}::make(),
+        ];
+    }
+}
