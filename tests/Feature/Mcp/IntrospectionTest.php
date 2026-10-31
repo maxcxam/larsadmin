@@ -34,6 +34,7 @@ use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\CanaryValue;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\IntrospectedPost;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\IntrospectedTag;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\IntrospectedUser;
+use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpResult;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\McpSpy;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\PublishPost;
 use Maxcxam\Larsadmin\Tests\Fixtures\Mcp\UserBoundEntity;
@@ -57,17 +58,13 @@ beforeEach(function () {
 });
 
 /**
- * The structured content of a tool response.
+ * The JSON result of a tool response (version-neutral: the text content, checked against structured content).
  *
  * @return array<string, mixed>
  */
 function mcpStructured(TestResponse $response): array
 {
-    $content = (fn () => $this->structuredContent())->call($response);
-
-    expect($content)->toBeArray();
-
-    return $content;
+    return McpResult::json($response);
 }
 
 it('registers the five introspection tools as read-only and idempotent', function () {

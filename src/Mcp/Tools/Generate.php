@@ -151,6 +151,6 @@ final class Generate extends Tool
             $result['truncated'] = true;
         }
 
-        return Response::structured($result);
+        return JsonResult::make($result);
     }
 }

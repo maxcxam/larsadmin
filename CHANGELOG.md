@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-10-31
+
+### Fixed
+
+- MCP-інструменти повертають результат через спільний помічник: `Response::structured()`, коли він є, інакше JSON-текст.
+  Набір тестів MCP тепер проходить на всьому підтримуваному діапазоні `laravel/mcp` (`^0.7.1` … `^1.0`); у 1.6.0 тести
+  клітинки `laravel/mcp` 0.7 падали, бо використовували `TestResponse::structuredContent()`, якого в 0.7 немає.
+  На роботу інструментів у застосунках це не впливало.
+- Тест паритету генераторів більше не залежить від ОС: шлях до кореня застосунку прибирається з виводу консолі
+  незалежно від роздільника, тож еталон однаковий для Linux і Windows.
+
 ## [1.6.0] - 2026-10-31
 
 ### Added
@@ -966,7 +977,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/maxcxam/larsadmin/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/maxcxam/larsadmin/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/maxcxam/larsadmin/compare/v1.4.0...v1.4.1

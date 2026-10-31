@@ -7,6 +7,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Tool;
 use Maxcxam\Larsadmin\Mcp\McpGate;
+use Maxcxam\Larsadmin\Mcp\Tools\JsonResult;
 use Throwable;
 
 /**
@@ -49,8 +50,8 @@ abstract class IntrospectionTool extends Tool
      * @param  array<string, mixed>  $payload
      * @param  list<string>  $lists
      */
-    protected function respond(array $payload, array $lists = []): ResponseFactory
+    protected function respond(array $payload, array $lists = []): Response|ResponseFactory
     {
-        return Response::structured(Metadata::fit($payload, $lists));
+        return JsonResult::make(Metadata::fit($payload, $lists));
     }
 }

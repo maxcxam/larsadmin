@@ -94,6 +94,6 @@ final class ReadDocs extends Tool
             $document['content'] = mb_substr($document['content'], 0, self::MAX_CONTENT);
         }
 
-        return Response::structured([...$document, 'truncated' => $truncated]);
+        return JsonResult::make([...$document, 'truncated' => $truncated]);
     }
 }
