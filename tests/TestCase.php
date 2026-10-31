@@ -43,6 +43,16 @@ abstract class TestCase extends Orchestra
         // The package's publishable migrations (audit log table), loaded in tests only.
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
+        // The host's standard notifications table (php artisan make:notifications-table).
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('type');
+            $table->morphs('notifiable');
+            $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');

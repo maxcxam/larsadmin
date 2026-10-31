@@ -168,11 +168,60 @@ return [
     | "max_all" caps how many records an action may run on when the user selects
     | "all matching" records (synchronous, chunked); above it the request fails
     | validation and the user must narrow the search or filters.
+    | Queued actions ($queued = true, with notifications enabled) use "queued_max_all"
+    | instead and may have at most "queued_max_active" queued or running runs per user.
+    | "queue" / "queue_connection" are the defaults when the action sets none (null:
+    | the connection's default queue / queue.default). Their progress is stored in
+    | "runs_table" on "runs_connection" (null: the default connection).
+    | A running run writes a heartbeat after every chunk; with none for its action's
+    | $timeout (else "stale_after" seconds) plus 60 s it counts as abandoned and is
+    | failed, as is a run still queued after "queued_stale_after" seconds. The queue
+    | connection's "retry_after" must exceed every queued action's $timeout.
     |
     */
 
     'actions' => [
         'max_all' => 1000,
+        'queued_max_all' => 10000,
+        'queued_max_active' => 3,
+        'queue' => env('LARSADMIN_QUEUE'),
+        'queue_connection' => env('LARSADMIN_QUEUE_CONNECTION'),
+        'runs_table' => 'larsadmin_action_runs',
+        'runs_connection' => env('LARSADMIN_RUNS_CONNECTION'),
+        'stale_after' => 3600,
+        'queued_stale_after' => 86400,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications and queued actions
+    |--------------------------------------------------------------------------
+    |
+    | The bell lists the panel user's notifications of type "larsadmin" from the host's "notifications" table
+    | (php artisan make:notifications-table). Queued actions store their progress in "larsadmin_action_runs"
+    | (php artisan vendor:publish --tag=larsadmin-migrations). Run both migrations before enabling.
+    | Without broadcasting the bell polls every "poll_interval" seconds (0 = only on page loads). "realtime":
+    | 'auto' uses Reverb/Pusher when BROADCAST_CONNECTION is one of them; true forces, false disables it.
+    | "channel_prefix" prefixes the panel's broadcast channels (lowercase, ends with "_"); do not use it for
+    | channels of your own. "realtime_client" overrides the public WebSocket host/port/scheme the browser
+    | connects to. "retention_days" is used by `php artisan larsadmin:prune-notifications` (null keeps
+    | everything). "throttle" limits the bell endpoints to that many requests per minute per user.
+    |
+    */
+
+    'notifications' => [
+        'enabled' => env('LARSADMIN_NOTIFICATIONS', false),
+        'poll_interval' => 60,
+        'per_page' => 15,
+        'retention_days' => 30,
+        'throttle' => 120,
+        'realtime' => env('LARSADMIN_REALTIME', 'auto'),
+        'channel_prefix' => env('LARSADMIN_CHANNEL_PREFIX', 'larsa_'),
+        'realtime_client' => [
+            'host' => env('LARSADMIN_REALTIME_HOST'),
+            'port' => env('LARSADMIN_REALTIME_PORT'),
+            'scheme' => env('LARSADMIN_REALTIME_SCHEME'),
+        ],
     ],
 
     /*

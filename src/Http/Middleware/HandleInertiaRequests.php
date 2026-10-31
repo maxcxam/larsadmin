@@ -3,6 +3,9 @@
 namespace Maxcxam\Larsadmin\Http\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -10,6 +13,8 @@ use Inertia\Ssr\DisablesSsr;
 use Inertia\Ssr\Gateway;
 use Maxcxam\Larsadmin\Http\Controllers\AuditController;
 use Maxcxam\Larsadmin\Larsadmin;
+use Maxcxam\Larsadmin\Notifications\Inbox;
+use Maxcxam\Larsadmin\Realtime\Realtime;
 use Maxcxam\Larsadmin\Search\GlobalSearch;
 
 class HandleInertiaRequests extends Middleware
@@ -75,6 +80,12 @@ class HandleInertiaRequests extends Middleware
                     ? ['url' => route('larsadmin.audit.index', [], false)]
                     : null,
                 'translations' => Inertia::once(fn () => trans('larsadmin::ui'))->as('larsadmin.translations.'.$locale),
+                // Null hides the bell: notifications are disabled (no query then), or the user cannot receive them.
+                'notifications' => fn () => $user && Larsadmin::notificationsEnabled() && Larsadmin::check($request)
+                    ? $this->notifications($request, $user)
+                    : null,
+                // The run just queued (flashed by ActionController): the client starts tracking it.
+                'run' => fn () => Larsadmin::notificationsEnabled() ? $request->session()->get('larsadmin.run') : null,
             ],
             'user' => $user ? [
                 'id' => $user->getAuthIdentifier(),
@@ -84,6 +95,42 @@ class HandleInertiaRequests extends Middleware
             'navigation' => fn () => $user && Larsadmin::check($request) ? Larsadmin::navigation($request) : [],
             'dashboards' => fn () => $user && Larsadmin::check($request) ? Larsadmin::dashboardNavigation($request) : [],
             'toast' => fn () => $request->session()->get('larsadmin.toast'),
+        ];
+    }
+
+    /**
+     * The bell's configuration; the unread count is null when the notifications table is missing (reported),
+     * so pages keep working until the migrations are run.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function notifications(Request $request, Authenticatable $user): ?array
+    {
+        if (! Inbox::supports($user)) {
+            return null;
+        }
+
+        /** @var Model $user */
+        try {
+            $unread = Inbox::unreadCount($user);
+        } catch (QueryException $e) {
+            if (! Inbox::isMissingTable($e)) {
+                throw $e;
+            }
+
+            report($e);
+            $unread = null;
+        }
+
+        return [
+            'unread' => $unread,
+            'poll' => Inbox::pollInterval(),
+            'urls' => [
+                'list' => route('larsadmin.api.notifications', [], false),
+                'status' => route('larsadmin.api.notifications.status', [], false),
+                'runs' => route('larsadmin.api.runs', [], false),
+            ],
+            'realtime' => Realtime::clientConfig($request, $user),
         ];
     }
 }

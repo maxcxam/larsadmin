@@ -1,25 +1,25 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { useLarsadmin } from '../composables/useLarsadmin'
 import { useI18n } from '../composables/useI18n'
 import { useDownload } from '../composables/useDownload'
+import { useNotifications } from '../composables/useNotifications'
 import { isDashboardActive } from './navigation'
-import IconAlert from '../components/icons/IconAlert.vue'
-import IconCheck from '../components/icons/IconCheck.vue'
 import IconDatabase from '../components/icons/IconDatabase.vue'
 import IconHistory from '../components/icons/IconHistory.vue'
 import IconHome from '../components/icons/IconHome.vue'
 import IconMenu from '../components/icons/IconMenu.vue'
 import IconSignOut from '../components/icons/IconSignOut.vue'
-import IconX from '../components/icons/IconX.vue'
 import LocaleSwitcher from '../components/LocaleSwitcher.vue'
 import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 import GlobalSearch from '../components/search/GlobalSearch.vue'
+import NotificationBell from '../components/notifications/NotificationBell.vue'
+import ToastStack from '../components/toasts/ToastStack.vue'
 
 const page = usePage()
 const { url, entityUrl } = useLarsadmin()
-const { t } = useI18n()
+const { t, tc } = useI18n()
 
 const larsadmin = computed(() => page.props.larsadmin)
 const user = computed(() => page.props.user)
@@ -53,23 +53,26 @@ router.on('navigate', () => (drawerOpen.value = false))
 
 useDownload()
 
-const toast = ref(null)
-let toastTimeout
+// Bell + background tasks: the shared prop is null when notifications are disabled / unsupported.
+const notifications = useNotifications()
 
 watch(
-    () => page.props.toast,
-    (value) => {
-        if (!value) return
-
-        // Accepts a plain string or { message, type }
-        toast.value = typeof value === 'string' ? { message: value, type: 'success' } : { type: 'success', ...value }
-        clearTimeout(toastTimeout)
-        toastTimeout = setTimeout(() => (toast.value = null), 4000)
-    },
+    () => larsadmin.value?.notifications,
+    (value) => notifications.init(value ?? null, { t, tc }),
     { immediate: true },
 )
 
+// Flash after a queued action was dispatched: follow that run until it finishes.
+watch(
+    () => larsadmin.value?.run?.id,
+    (id) => id && notifications.trackRun(id),
+    { immediate: true },
+)
+
+onBeforeUnmount(() => notifications.stop())
+
 function logout() {
+    notifications.stop()
     router.post(url('logout'))
 }
 
@@ -99,6 +102,7 @@ const linkActive =
 
             <div class="ml-auto flex items-center gap-3 text-xs">
                 <GlobalSearch />
+                <NotificationBell />
                 <span v-if="user" class="hidden sm:inline text-header-fg/70">{{ user.name ?? user.email }}</span>
                 <LocaleSwitcher />
                 <ThemeSwitcher />
@@ -183,24 +187,6 @@ const linkActive =
             </main>
         </div>
 
-        <Transition
-            enter-from-class="translate-y-2 opacity-0"
-            enter-active-class="transition"
-            leave-to-class="opacity-0"
-            leave-active-class="transition"
-        >
-            <div
-                v-if="toast"
-                class="fixed bottom-4 left-4 z-40 flex max-w-sm items-center gap-2 rounded-md border border-default bg-canvas py-2 pr-2 pl-3 text-sm shadow-overlay"
-                :role="toast.type === 'error' ? 'alert' : 'status'"
-            >
-                <IconAlert v-if="toast.type === 'error'" class="text-danger-fg" />
-                <IconCheck v-else class="text-success-fg" />
-                <span>{{ toast.message }}</span>
-                <button type="button" class="rounded p-1 text-fg-muted hover:bg-neutral-muted" :aria-label="t('dismiss')" @click="toast = null">
-                    <IconX />
-                </button>
-            </div>
-        </Transition>
+        <ToastStack />
     </div>
 </template>

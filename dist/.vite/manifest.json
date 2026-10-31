@@ -4,8 +4,30 @@
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
+    "dynamicImports": [
+      "resources/js/realtime/echo.js",
+      "resources/js/components/notifications/NotificationPanel.vue"
+    ],
     "css": [
       "app.css"
+    ]
+  },
+  "resources/js/components/notifications/NotificationPanel.vue": {
+    "file": "chunks/NotificationPanel-9Z2vPWUX.js",
+    "name": "NotificationPanel",
+    "src": "resources/js/components/notifications/NotificationPanel.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/realtime/echo.js": {
+    "file": "chunks/echo-CuOBT1iV.js",
+    "name": "echo",
+    "src": "resources/js/realtime/echo.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
     ]
   }
 }

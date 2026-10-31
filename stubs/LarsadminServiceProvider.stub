@@ -39,6 +39,10 @@ class LarsadminServiceProvider extends LarsadminApplicationServiceProvider
             ]);
         });
 
+        // Panel notifications (LARSADMIN_NOTIFICATIONS=true) are sent from anywhere in the application, e.g.:
+        // \Maxcxam\Larsadmin\Notifications\LarsadminNotification::make('Import finished')
+        //     ->body('120 products added.')->success()->sendTo($user);
+
         // Who may read the audit log (config "larsadmin.audit.enabled"). Undefined means nobody:
         // Gate::define('viewLarsadminAudit', function ($user) {
         //     return in_array($user->email, [

@@ -5,6 +5,7 @@ import { formComponent } from '../../fields'
 import { useI18n } from '../../composables/useI18n'
 import { useLarsadmin } from '../../composables/useLarsadmin'
 import IconAlert from '../icons/IconAlert.vue'
+import IconHistory from '../icons/IconHistory.vue'
 import IconX from '../icons/IconX.vue'
 
 // Accessible dialog that runs an action. Mount with v-if="pendingAction"; emits `close` when done/cancelled.
@@ -25,11 +26,16 @@ const { entityUrl } = useLarsadmin()
 
 const titleId = useId()
 const descId = useId()
+const queuedId = useId()
 const dialog = ref(null)
 const returnTarget = document.activeElement
 
 const fields = computed(() => props.action.fields ?? [])
 const immediate = computed(() => props.action.withoutConfirmation && fields.value.length === 0)
+// Queued actions (1.4): the dialog says the run continues in the background; after dispatch the server
+// answers with the 'queued' toast and the run is followed in the bell (shared prop larsadmin.run).
+const queued = computed(() => props.action.queued === true)
+const describedBy = computed(() => [props.action.confirmText ? descId : null, queued.value ? queuedId : null].filter(Boolean).join(' ') || undefined)
 
 const form = useForm({
     resources: props.action.standalone ? [] : props.resources,
@@ -102,7 +108,7 @@ onBeforeUnmount(() => {
                 role="dialog"
                 aria-modal="true"
                 :aria-labelledby="titleId"
-                :aria-describedby="action.confirmText ? descId : undefined"
+                :aria-describedby="describedBy"
                 class="larsadmin-box w-full max-w-lg bg-canvas shadow-overlay"
                 @keydown="onKeydown"
             >
@@ -116,6 +122,9 @@ onBeforeUnmount(() => {
 
                     <div class="space-y-4 px-4 py-4">
                         <p v-if="action.confirmText" :id="descId" class="text-sm">{{ action.confirmText }}</p>
+                        <p v-if="queued" :id="queuedId" class="flex items-center gap-1.5 text-xs text-fg-muted">
+                            <IconHistory />{{ t('actions_queued_hint') }}
+                        </p>
 
                         <div v-for="field in fields" :key="field.attribute" class="grid gap-1.5">
                             <label :for="field.attribute" class="font-semibold">

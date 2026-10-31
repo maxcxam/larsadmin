@@ -2,8 +2,11 @@
 
 namespace Maxcxam\Larsadmin;
 
+use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -17,9 +20,12 @@ use Maxcxam\Larsadmin\Console\InstallCommand;
 use Maxcxam\Larsadmin\Console\PartitionCommand;
 use Maxcxam\Larsadmin\Console\ProgressCommand;
 use Maxcxam\Larsadmin\Console\PruneAuditCommand;
+use Maxcxam\Larsadmin\Console\PruneNotificationsCommand;
 use Maxcxam\Larsadmin\Console\PublishCommand;
 use Maxcxam\Larsadmin\Console\TrendCommand;
 use Maxcxam\Larsadmin\Console\ValueCommand;
+use Maxcxam\Larsadmin\Realtime\Realtime;
+use Maxcxam\Larsadmin\Realtime\SignalNotificationSent;
 
 class LarsadminServiceProvider extends ServiceProvider
 {
@@ -44,6 +50,7 @@ class LarsadminServiceProvider extends ServiceProvider
 
         $this->registerRateLimiting();
         $this->registerRoutes();
+        $this->registerNotifications();
 
         if ($this->app->runningInConsole()) {
             $this->registerPublishing();
@@ -60,6 +67,7 @@ class LarsadminServiceProvider extends ServiceProvider
                 InstallCommand::class,
                 PublishCommand::class,
                 PruneAuditCommand::class,
+                PruneNotificationsCommand::class,
             ]);
         }
     }
@@ -76,6 +84,7 @@ class LarsadminServiceProvider extends ServiceProvider
         RateLimiter::for('larsadmin-files', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.files.throttle', 600)));
         RateLimiter::for('larsadmin-search', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.search.throttle', 60)));
         RateLimiter::for('larsadmin-audit', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.audit.throttle', 60)));
+        RateLimiter::for('larsadmin-notifications', fn (Request $request) => $this->perUserLimit($request, config('larsadmin.notifications.throttle', 120)));
 
         RateLimiter::for('larsadmin-login', function (Request $request) {
             $email = $request->input('email');
@@ -85,6 +94,22 @@ class LarsadminServiceProvider extends ServiceProvider
                 Limit::perMinute(5)->by($email.'|'.$request->ip()),
                 Limit::perMinute(30)->by((string) $request->ip()),
             ];
+        });
+    }
+
+    /**
+     * Notifications (ADR-026, ADR-027): realtime signals for panel notifications (the listener does nothing
+     * while realtime is off) and the inbox channel, registered on the broadcaster when it is resolved with
+     * realtime on, so an application without broadcasting never resolves it.
+     */
+    protected function registerNotifications(): void
+    {
+        Event::listen(NotificationSent::class, SignalNotificationSent::class);
+
+        $this->callAfterResolving(BroadcastManager::class, function (BroadcastManager $manager) {
+            if (Realtime::enabled()) {
+                Realtime::registerChannel($manager);
+            }
         });
     }
 

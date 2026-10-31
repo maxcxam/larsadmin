@@ -28,10 +28,11 @@ final class ActionAudit
     /**
      * @var array<string, mixed>|null
      */
-    private ?array $meta = null;
+    private ?array $resolvedMeta = null;
 
     /**
      * @param  class-string<Entity>  $entity
+     * @param  array<string, mixed>  $meta  merged into every entry's meta, e.g. ['run' => $id] of a queued run
      */
     public function __construct(
         private readonly string $entity,
@@ -40,6 +41,7 @@ final class ActionAudit
         private readonly Request $request,
         private readonly AuditActor $actor,
         private readonly AuditRecorder $recorder,
+        private readonly array $meta = [],
     ) {}
 
     /**
@@ -130,8 +132,8 @@ final class ActionAudit
      */
     private function meta(): array
     {
-        if ($this->meta !== null) {
-            return $this->meta;
+        if ($this->resolvedMeta !== null) {
+            return $this->resolvedMeta;
         }
 
         $fields = [];
@@ -142,10 +144,11 @@ final class ActionAudit
                 : AuditValues::truncate(AuditValues::normalize($this->values->get($field->attribute)))[0];
         }
 
-        return $this->meta = [
+        return $this->resolvedMeta = [
             'action' => $this->action->uriKey(),
             'action_name' => $this->action->name(),
             ...($fields === [] ? [] : ['fields' => $fields]),
+            ...$this->meta,
         ];
     }
 }

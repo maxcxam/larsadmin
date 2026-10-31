@@ -4,15 +4,19 @@ use Illuminate\Support\Facades\Route;
 use Maxcxam\Larsadmin\Http\Controllers\ActionController;
 use Maxcxam\Larsadmin\Http\Controllers\AttachController;
 use Maxcxam\Larsadmin\Http\Controllers\AuditController;
+use Maxcxam\Larsadmin\Http\Controllers\BroadcastAuthController;
 use Maxcxam\Larsadmin\Http\Controllers\DashboardController;
+use Maxcxam\Larsadmin\Http\Controllers\DownloadController;
 use Maxcxam\Larsadmin\Http\Controllers\EntityController;
 use Maxcxam\Larsadmin\Http\Controllers\FileController;
 use Maxcxam\Larsadmin\Http\Controllers\GlobalSearchController;
 use Maxcxam\Larsadmin\Http\Controllers\LocaleController;
 use Maxcxam\Larsadmin\Http\Controllers\LoginController;
 use Maxcxam\Larsadmin\Http\Controllers\MetricController;
+use Maxcxam\Larsadmin\Http\Controllers\NotificationController;
 use Maxcxam\Larsadmin\Http\Controllers\RelatableController;
 use Maxcxam\Larsadmin\Http\Controllers\RelatedController;
+use Maxcxam\Larsadmin\Http\Controllers\RunController;
 
 Route::get('login', [LoginController::class, 'show'])->name('login');
 Route::post('login', [LoginController::class, 'store'])->middleware('throttle:larsadmin-login')->name('login.store');
@@ -33,6 +37,26 @@ Route::middleware(config('larsadmin.auth_middleware', []))->group(function () {
     Route::get('api/entities/{entity}/{id}/audit', [AuditController::class, 'record'])->middleware('throttle:larsadmin-audit')->name('api.audit');
 
     Route::get('audit', [AuditController::class, 'index'])->middleware('throttle:larsadmin-audit')->name('audit.index');
+
+    // Notifications and queued actions (1.4): the bell and run routes answer 404 while "larsadmin.notifications.enabled" is off.
+    Route::middleware('throttle:larsadmin-notifications')->group(function () {
+        Route::get('api/notifications', [NotificationController::class, 'index'])->name('api.notifications');
+        Route::get('api/notifications/status', [NotificationController::class, 'status'])->name('api.notifications.status');
+        Route::post('api/notifications/read', [NotificationController::class, 'readAll'])->name('api.notifications.read-all');
+        Route::post('api/notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('api.notifications.read');
+        Route::delete('api/notifications/{notification}', [NotificationController::class, 'destroy'])->whereUuid('notification')->name('api.notifications.destroy');
+
+        Route::get('api/runs', [RunController::class, 'index'])->name('api.runs');
+        Route::get('api/runs/{run}', [RunController::class, 'show'])->whereUlid('run')->name('api.runs.show');
+        Route::post('api/runs/{run}/cancel', [RunController::class, 'cancel'])->whereUlid('run')->name('api.runs.cancel');
+
+        Route::post('broadcasting/auth', BroadcastAuthController::class)->name('broadcasting.auth');
+    });
+
+    Route::middleware('throttle:larsadmin-files')->group(function () {
+        Route::get('runs/{run}/download', [RunController::class, 'download'])->whereUlid('run')->name('runs.download');
+        Route::get('downloads/{token}', DownloadController::class)->where('token', '[A-Za-z0-9_\-=]+')->name('downloads.show');
+    });
 
     Route::get('files/{entity}/{id}/{field}/{token}', [FileController::class, 'show'])
         ->where('token', '[a-f0-9]{32}')

@@ -3,29 +3,27 @@
 namespace Maxcxam\Larsadmin\Http\Controllers;
 
 use Closure;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Maxcxam\Larsadmin\Actions\Action;
 use Maxcxam\Larsadmin\Actions\ActionFields;
 use Maxcxam\Larsadmin\Actions\ActionRegistry;
 use Maxcxam\Larsadmin\Actions\ActionResponse;
+use Maxcxam\Larsadmin\Actions\ActionRunner;
+use Maxcxam\Larsadmin\Actions\Queued\ActionRun;
+use Maxcxam\Larsadmin\Actions\Queued\QueuedDispatcher;
+use Maxcxam\Larsadmin\Actions\Queued\RunPresenter;
 use Maxcxam\Larsadmin\Audit\ActionAudit;
 use Maxcxam\Larsadmin\Audit\AuditActor;
 use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Larsadmin;
-use Maxcxam\Larsadmin\Query\EntityQuery;
-use Throwable;
 
 class ActionController
 {
     /**
-     * Run an action on the selected records (or all matching the index query).
+     * Run an action on the selected records (or all matching the index query), or queue it.
      */
     public function run(Request $request, string $entity, string $action): RedirectResponse
     {
@@ -42,6 +40,10 @@ class ActionController
         $resources = $this->resources($request, $entity, $action);
         $fields = $action->validatedFields($request);
 
+        if ($action->runsQueued()) {
+            return $this->queue($request, $entity, $action, $resources, $fields);
+        }
+
         if (! $entity::audited()) {
             return $this->execute($request, $entity, $action, $resources, $fields, null);
         }
@@ -54,29 +56,29 @@ class ActionController
     }
 
     /**
-     * Run the action: standalone in one transaction, otherwise per chunk of authorized records, each
-     * in its own transaction together with its audit entries.
+     * Run the action synchronously through the ActionRunner: standalone in one transaction, otherwise per
+     * chunk of authorized records, each in its own transaction together with its audit entries.
      *
      * @param  class-string<Entity>  $entity
      * @param  'all'|list<int|string>  $resources
      */
     protected function execute(Request $request, string $entity, Action $action, string|array $resources, ActionFields $fields, ?ActionAudit $audit): RedirectResponse
     {
+        $runner = app(ActionRunner::class);
+
         if ($action->standalone) {
-            $model = $entity::newModel();
+            $result = $runner->run($request, $entity, $action, null, $fields, $audit);
 
-            return $this->respond($request, $entity, $model->getConnection()->transaction(function () use ($action, $fields, $model, $audit) {
-                $result = $action->handle($fields, $model->newCollection());
-                $audit?->standalone();
+            if ($result->error !== null) {
+                throw $result->error;
+            }
 
-                return $result;
-            }), 0);
+            return $this->respond($request, $entity, $result->response, 0);
         }
 
-        $builder = $this->builder($request, $entity, $resources);
-        $model = $builder->getModel();
+        $builder = ActionRunner::builder($request, $entity, $resources);
 
-        $total = (clone $builder)->reorder()->count();
+        $total = $runner->count($builder);
         $max = max(1, (int) config('larsadmin.actions.max_all', 1000));
 
         if ($resources === 'all' && $total > $max) {
@@ -89,71 +91,80 @@ class ActionController
             return $this->respond($request, $entity, ActionResponse::danger(__('larsadmin::actions.nothing_matched')), 0);
         }
 
-        $response = null;
-        $ran = 0;
-        $skipped = 0;
+        $result = $runner->run($request, $entity, $action, $builder, $fields, $audit, total: $total);
 
-        try {
-            $builder->reorder()->chunkById(
-                max(1, $action->chunkSize),
-                function (EloquentCollection $chunk) use ($request, $action, $fields, $audit, &$response, &$ran, &$skipped) {
-                    $allowed = $chunk->filter(fn (Model $record) => $action->authorizedToRun($request, $record))->values();
-
-                    $skipped += $chunk->count() - $allowed->count();
-
-                    if ($allowed->isEmpty()) {
-                        return;
-                    }
-
-                    $result = $allowed->first()->getConnection()->transaction(function () use ($action, $fields, $allowed, $audit) {
-                        // Snapshots first: handle() may change the models it receives.
-                        $snapshots = $audit?->before($allowed);
-                        $result = $action->handle($fields, $allowed);
-
-                        $audit?->after($snapshots ?? []);
-
-                        return $result;
-                    });
-
-                    $ran += $allowed->count();
-                    $response = $this->mostSevere($response, $result);
-                },
-                $model->getQualifiedKeyName(),
-                $model->getKeyName(),
-            );
-        } catch (Throwable $e) {
+        if ($result->error !== null) {
             // Nothing committed: let the exception handler deal with it as usual.
-            if ($ran === 0) {
-                throw $e;
+            if ($result->ran === 0) {
+                throw $result->error;
             }
 
-            report($e);
+            report($result->error);
 
             return $this->respond($request, $entity, ActionResponse::danger(
-                __('larsadmin::actions.partial', ['done' => $ran, 'total' => $total]),
-            ), $skipped);
+                __('larsadmin::actions.partial', ['done' => $result->ran, 'total' => $total]),
+            ), $result->skipped);
         }
 
         // Rows matched but none was authorized (nothing matching is answered above).
-        abort_if($ran === 0, 403);
+        abort_if($result->ran === 0, 403);
 
-        return $this->respond($request, $entity, $response, $skipped);
+        return $this->respond($request, $entity, $result->response, $result->skipped);
     }
 
     /**
-     * Of two responses keep the more severe one: danger, then redirect/download, then message.
-     * On a tie the earlier response wins.
+     * Queue the run (ADR-028). With the "sync" queue driver it has already finished: answer like a
+     * synchronous run; otherwise confirm and let the client track it.
+     *
+     * @param  class-string<Entity>  $entity
+     * @param  'all'|list<int|string>  $resources
      */
-    protected function mostSevere(?ActionResponse $current, ?ActionResponse $next): ?ActionResponse
+    protected function queue(Request $request, string $entity, Action $action, string|array $resources, ActionFields $fields): RedirectResponse
     {
-        $rank = fn (?ActionResponse $response) => match ($response?->type) {
-            ActionResponse::DANGER => 3,
-            ActionResponse::REDIRECT, ActionResponse::DOWNLOAD => 2,
-            ActionResponse::MESSAGE => 1,
-            default => 0,
-        };
+        $run = app(QueuedDispatcher::class)->dispatch($request, $entity, $action, $resources, $fields);
 
-        return $rank($next) > $rank($current) ? $next : $current;
+        if ($run instanceof ActionResponse) {
+            return $this->respond($request, $entity, $run, 0);
+        }
+
+        if ($run->isFinished()) {
+            return $this->respondFinished($request, $entity, $run);
+        }
+
+        return redirect($this->backUrl($request, $entity))
+            ->with('larsadmin.run', ['id' => (string) $run->getKey()])
+            ->with('larsadmin.toast', [
+                'message' => __('larsadmin::actions.queued', ['action' => $run->action_name]),
+                'type' => 'success',
+            ]);
+    }
+
+    /**
+     * The answer to a run that finished before the response (the "sync" queue driver).
+     *
+     * @param  class-string<Entity>  $entity
+     */
+    protected function respondFinished(Request $request, string $entity, ActionRun $run): RedirectResponse
+    {
+        $result = is_array($run->result) ? $run->result : [];
+        $url = RunPresenter::resultUrl($run);
+
+        $redirect = ($result['type'] ?? null) === ActionResponse::REDIRECT && $url !== null
+            ? redirect($url)
+            : redirect($this->backUrl($request, $entity));
+
+        if ($url !== null && RunPresenter::isDownload($run)) {
+            $redirect->with('larsadmin.download', ['url' => $url, 'filename' => RunPresenter::filename($run)]);
+        }
+
+        if ($run->message !== null) {
+            $redirect->with('larsadmin.toast', [
+                'message' => $run->message,
+                'type' => $run->status === ActionRun::COMPLETED && $run->level === 'success' ? 'success' : 'error',
+            ]);
+        }
+
+        return $redirect;
     }
 
     /**
@@ -196,39 +207,6 @@ class ActionController
 
     /**
      * @param  class-string<Entity>  $entity
-     * @param  'all'|list<int|string>  $resources
-     */
-    protected function builder(Request $request, string $entity, string|array $resources): Builder
-    {
-        $query = EntityQuery::for($entity, $request);
-
-        if ($resources === 'all') {
-            $filters = $request->input('filters');
-            $search = $request->input('search');
-
-            return $query->scope('index')
-                ->filter(is_array($filters) ? $filters : [])
-                ->search(is_string($search) ? $search : '')
-                ->builder();
-        }
-
-        $model = $entity::newModel();
-        $integerKey = $model->getIncrementing() && in_array($model->getKeyType(), ['int', 'integer'], true);
-
-        $ids = collect($resources)
-            ->map(fn ($id) => (string) $id)
-            ->when($integerKey, fn (Collection $ids) => $ids
-                ->filter(fn (string $id) => ctype_digit($id) && strlen($id) <= 18)
-                ->map(fn (string $id) => (int) $id))
-            ->unique()
-            ->values()
-            ->all();
-
-        return $query->scope('detail')->builder()->whereIn($model->getQualifiedKeyName(), $ids);
-    }
-
-    /**
-     * @param  class-string<Entity>  $entity
      */
     protected function respond(Request $request, string $entity, ?ActionResponse $response, int $skipped): RedirectResponse
     {
@@ -240,6 +218,10 @@ class ActionController
 
         if ($response->type === ActionResponse::DOWNLOAD) {
             $redirect->with('larsadmin.download', ['url' => $response->url, 'filename' => $response->filename]);
+        }
+
+        if ($response->type === ActionResponse::FILE) {
+            $redirect->with('larsadmin.download', ['url' => DownloadController::url($request, $response), 'filename' => $response->filename]);
         }
 
         $message = $response->message;
