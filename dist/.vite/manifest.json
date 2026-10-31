@@ -1,9 +1,18 @@
 {
-  "resources/js/app.js": {
-    "file": "app.js",
-    "name": "app",
-    "src": "resources/js/app.js",
-    "isEntry": true,
+  "_app.css": {
+    "file": "app.css",
+    "src": "_app.css"
+  },
+  "_rolldown-runtime-XKyaHtl9.js": {
+    "file": "chunks/rolldown-runtime-XKyaHtl9.js",
+    "name": "rolldown-runtime"
+  },
+  "_shared-Dm7I3ung.js": {
+    "file": "chunks/shared-Dm7I3ung.js",
+    "name": "shared",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js"
+    ],
     "dynamicImports": [
       "resources/js/realtime/echo.js",
       "resources/js/components/notifications/NotificationPanel.vue"
@@ -12,22 +21,31 @@
       "app.css"
     ]
   },
+  "resources/js/app.js": {
+    "file": "app.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_shared-Dm7I3ung.js"
+    ]
+  },
   "resources/js/components/notifications/NotificationPanel.vue": {
-    "file": "chunks/NotificationPanel-9Z2vPWUX.js",
+    "file": "chunks/NotificationPanel-CKnlwLVm.js",
     "name": "NotificationPanel",
     "src": "resources/js/components/notifications/NotificationPanel.vue",
     "isDynamicEntry": true,
     "imports": [
-      "resources/js/app.js"
+      "_shared-Dm7I3ung.js"
     ]
   },
   "resources/js/realtime/echo.js": {
-    "file": "chunks/echo-CuOBT1iV.js",
+    "file": "chunks/echo-Daa6Bb2B.js",
     "name": "echo",
     "src": "resources/js/realtime/echo.js",
     "isDynamicEntry": true,
     "imports": [
-      "resources/js/app.js"
+      "_rolldown-runtime-XKyaHtl9.js"
     ]
   }
 }
