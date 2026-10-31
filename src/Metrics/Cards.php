@@ -7,6 +7,8 @@ use InvalidArgumentException;
 
 /**
  * Helpers shared by the owners of cards (dashboards and entities).
+ *
+ * @internal Not part of the public API.
  */
 final class Cards
 {

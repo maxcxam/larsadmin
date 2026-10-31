@@ -2,12 +2,14 @@
 
 namespace Maxcxam\Larsadmin\Console;
 
-use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:action')]
-class ActionCommand extends GeneratorCommand
+class ActionCommand extends ClassGeneratorCommand
 {
     protected $name = 'larsadmin:action';
 
@@ -15,23 +17,14 @@ class ActionCommand extends GeneratorCommand
 
     protected $type = 'Action';
 
-    protected function getStub(): string
+    protected function kind(): string
     {
-        return __DIR__.'/../../stubs/action.stub';
+        return 'action';
     }
 
-    protected function getDefaultNamespace($rootNamespace): string
+    protected function scaffoldOptions(): array
     {
-        return $rootNamespace.'\\Larsadmin\\Actions';
-    }
-
-    protected function buildClass($name): string
-    {
-        return str_replace(
-            '{{ destructive }}',
-            $this->option('destructive') ? 'true' : 'false',
-            parent::buildClass($name),
-        );
+        return ['destructive' => (bool) $this->option('destructive')];
     }
 
     protected function getOptions(): array

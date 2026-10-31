@@ -12,6 +12,8 @@ use Maxcxam\Larsadmin\Larsadmin;
 /**
  * Resolves the parent record and the relation panel of a panel endpoint (ADR-005, ADR-006).
  * The viewAny checks run first so unauthorized users cannot probe for records.
+ *
+ * @internal Not part of the public API.
  */
 trait ResolvesPanel
 {

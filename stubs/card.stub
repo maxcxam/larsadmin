@@ -18,6 +18,6 @@ class {{ class }} extends Card
      */
     public function jsonSerialize(): array
     {
-        return [...parent::jsonSerialize(), 'message' => __('{{ class }}')];
+        return [...parent::jsonSerialize(), 'message' => __('{{ label }}')];
     }
 }

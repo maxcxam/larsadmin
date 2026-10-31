@@ -22,13 +22,17 @@
         "symfony/finder": "^7.2|^8.0"
     },
     "require-dev": {
+        "laravel/mcp": "^0.7.1|^0.8|^0.9|^1.0",
         "laravel/pint": "^1.20",
         "laravel/scout": "^11.0",
         "orchestra/testbench": "^10.0|^11.0",
         "pestphp/pest": "^4.0|^5.0",
-        "pestphp/pest-plugin-laravel": "^4.0|^5.0"
+        "pestphp/pest-plugin-laravel": "^4.0|^5.0",
+        "symfony/yaml": "^7.2|^8.0"
     },
     "suggest": {
+        "laravel/boost": "Installs the larsadmin AI guidelines and skills for AI coding assistants (^2.0).",
+        "laravel/mcp": "Runs the local larsadmin MCP server for AI assistants via php artisan larsadmin:mcp (^0.7.1|^1.0, Laravel 12 needs 12.41.1+).",
         "laravel/scout": "Searches models using Laravel\\Scout\\Searchable through their search engine in the global search (^11.0)."
     },
     "autoload": {

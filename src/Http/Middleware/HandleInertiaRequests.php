@@ -18,6 +18,9 @@ use Maxcxam\Larsadmin\Notifications\Inbox;
 use Maxcxam\Larsadmin\Realtime\Realtime;
 use Maxcxam\Larsadmin\Search\GlobalSearch;
 
+/**
+ * @internal Not part of the public API.
+ */
 class HandleInertiaRequests extends Middleware
 {
     /**

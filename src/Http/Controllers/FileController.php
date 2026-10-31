@@ -18,6 +18,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * in time: every request is re-authorized like the record's detail page (404 before 403 rules of
  * EntityController), and the file is found by its token among the record's current files, never
  * by a path from the request.
+ *
+ * @internal Not part of the public API.
  */
 class FileController
 {

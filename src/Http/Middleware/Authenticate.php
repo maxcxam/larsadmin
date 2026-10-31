@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Maxcxam\Larsadmin\Larsadmin;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @internal Not part of the public API.
+ */
 class Authenticate
 {
     /**

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * Shared constructor / naming for the column-bound built-in filters:
  * Filter::make('Status', 'status', 'optional-key').
+ *
+ * @internal Not part of the public API.
  */
 trait ColumnFilter
 {

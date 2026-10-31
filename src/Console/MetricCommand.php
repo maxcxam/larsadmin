@@ -2,29 +2,15 @@
 
 namespace Maxcxam\Larsadmin\Console;
 
-use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 /**
  * Base of the metric generators: larsadmin:value, larsadmin:trend, larsadmin:partition and larsadmin:progress.
+ *
+ * @internal
  */
-abstract class MetricCommand extends GeneratorCommand
+abstract class MetricCommand extends ClassGeneratorCommand
 {
-    /**
-     * The stub file name, without directory.
-     */
-    abstract protected function stubName(): string;
-
-    protected function getStub(): string
-    {
-        return __DIR__.'/../../stubs/'.$this->stubName();
-    }
-
-    protected function getDefaultNamespace($rootNamespace): string
-    {
-        return $rootNamespace.'\\Larsadmin\\Metrics';
-    }
-
     protected function getOptions(): array
     {
         return [

@@ -11,6 +11,9 @@ use Maxcxam\Larsadmin\Fields\HasMany;
 use Maxcxam\Larsadmin\Http\Controllers\Concerns\ResolvesPanel;
 use Maxcxam\Larsadmin\Query\EntityQuery;
 
+/**
+ * @internal Not part of the public API.
+ */
 class RelatedController
 {
     use ResolvesPanel;

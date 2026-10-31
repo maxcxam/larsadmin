@@ -20,6 +20,9 @@ use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Larsadmin;
 
+/**
+ * @internal Not part of the public API.
+ */
 class ActionController
 {
     /**

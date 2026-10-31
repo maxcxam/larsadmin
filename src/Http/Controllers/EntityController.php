@@ -15,6 +15,9 @@ use Maxcxam\Larsadmin\Larsadmin;
 use Maxcxam\Larsadmin\Metrics\Cards;
 use Maxcxam\Larsadmin\Query\EntityQuery;
 
+/**
+ * @internal Not part of the public API.
+ */
 class EntityController
 {
     /**

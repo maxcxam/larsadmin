@@ -9,6 +9,8 @@ use InvalidArgumentException;
 /**
  * Calendar buckets of a trend, computed in PHP so boundaries are exact across DST changes and
  * non-hour offsets on every database (ADR-012). Each bucket is [start, end) in the timezone of $now.
+ *
+ * @internal Not part of the public API.
  */
 final class TrendBuckets
 {

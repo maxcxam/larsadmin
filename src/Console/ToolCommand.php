@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:tool')]
 class ToolCommand extends ExtensionArtifactCommand
 {
@@ -16,34 +19,11 @@ class ToolCommand extends ExtensionArtifactCommand
 
     protected function kind(): string
     {
-        return 'Tools';
+        return 'tool';
     }
 
-    protected function files(ExtensionScaffold $scaffold, string $class, array $target): array
+    protected function label(): string
     {
-        return [
-            "{$target['php']}/{$class}.php" => $scaffold->render('tool.stub', ['namespace' => $target['namespace'], 'class' => $class, 'component' => $target['key']]),
-            "{$target['js']}/{$this->vueName($class)}.vue" => $scaffold->render('tool.vue.stub', ['component' => $target['key']]),
-        ];
-    }
-
-    protected function registration(string $class, array $target): array
-    {
-        $vue = $this->vueName($class);
-
-        return [
-            "import {$vue} from './tools/{$vue}.vue'",
-            "tools: { '{$target['key']}': {$vue} },",
-        ];
-    }
-
-    protected function phpRegistration(string $class, array $target): array
-    {
-        return ["Larsadmin::tools([\\{$target['namespace']}\\{$class}::class]);"];
-    }
-
-    protected function vueName(string $class): string
-    {
-        return str_ends_with($class, 'Page') ? $class : $class.'Page';
+        return 'Tool';
     }
 }

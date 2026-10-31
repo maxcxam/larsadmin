@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:value')]
 class ValueCommand extends MetricCommand
 {
@@ -13,8 +16,8 @@ class ValueCommand extends MetricCommand
 
     protected $type = 'Value metric';
 
-    protected function stubName(): string
+    protected function kind(): string
     {
-        return 'value.stub';
+        return 'value';
     }
 }

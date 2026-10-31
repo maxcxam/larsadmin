@@ -13,6 +13,9 @@ use Maxcxam\Larsadmin\Entity;
 use Maxcxam\Larsadmin\Fields\Field;
 use Maxcxam\Larsadmin\Filters\Filter;
 
+/**
+ * @internal Not part of the public API.
+ */
 final class EntityQuery
 {
     public const int MAX_SEARCH_LENGTH = 100;

@@ -1,0 +1,16 @@
+{
+    "name": "acme/rating",
+    "description": "CANARY-COMPOSER-DESCRIPTION",
+    "autoload": {
+        "psr-4": {
+            "Acme\\Rating\\": "src/",
+            "CANARY bad namespace": "x/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": "echo CANARY-COMPOSER-SCRIPT"
+    },
+    "extra": {
+        "token": "CANARY-COMPOSER-TOKEN"
+    }
+}

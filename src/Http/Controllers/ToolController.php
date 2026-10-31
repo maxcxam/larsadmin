@@ -7,6 +7,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Maxcxam\Larsadmin\Larsadmin;
 
+/**
+ * @internal Not part of the public API.
+ */
 class ToolController
 {
     /**

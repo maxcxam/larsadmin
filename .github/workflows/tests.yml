@@ -19,16 +19,31 @@ jobs:
         #   Laravel 13.*     -> orchestra/testbench 11 (requires laravel/framework ^13)
         # The pin below plus --with-all-dependencies lets composer switch
         # testbench/pest majors instead of failing on the locked/default ones.
+        #   laravel/mcp (require-dev, ^0.7.1|^0.8|^0.9|^1.0) needs illuminate/* ^12.41.1|^13.0;
+        #   the 12.* leg resolves to the latest 12.x, so it is always satisfied.
         php: ['8.3', '8.4', '8.5']
         laravel: ['12.*', '13.*']
+        # 'latest' = whatever composer resolves from the require-dev range.
+        mcp: ['latest']
         # Coverage runs in exactly one cell (pcov, fails below 90% line coverage);
         # every other cell runs the plain suite with coverage: none.
         include:
           - php: '8.4'
             laravel: '13.*'
             coverage: true
+          # Lower bound of the supported laravel/mcp range (design 1.6 §10, ADR-037).
+          # Overriding the original `mcp` value makes this a new (7th) cell instead of
+          # merging into the coverage cell.
+          - php: '8.4'
+            laravel: '13.*'
+            mcp: '0.7.*'
+          # laravel/mcp is optional (suggest only): the package must work without it.
+          # MCP tests that need the package skip themselves here.
+          - php: '8.3'
+            laravel: '12.*'
+            mcp: 'none'
 
-    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}${{ matrix.mcp != 'latest' && format(' / laravel/mcp {0}', matrix.mcp) || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +56,11 @@ jobs:
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" --no-update --no-interaction
+          if [ "${{ matrix.mcp }}" = "none" ]; then
+            composer remove --dev laravel/mcp --no-update --no-interaction
+          elif [ "${{ matrix.mcp }}" != "latest" ]; then
+            composer require --dev "laravel/mcp:${{ matrix.mcp }}" --no-update --no-interaction
+          fi
           composer update --prefer-dist --no-interaction --no-progress --with-all-dependencies
 
       - name: Run tests
