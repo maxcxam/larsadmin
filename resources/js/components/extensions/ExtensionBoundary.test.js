@@ -94,6 +94,21 @@ describe('field wrappers over the registry', () => {
         // For the rest of the page session the built-in is resolved directly.
         expect(isWrapped(formComponent(field))).toBe(false)
     })
+
+    it('gives a crashed override in an action modal the 1.4 action props only (no action, context, resourceId)', async () => {
+        registry.register('fields', 'password-field', { form: Throws }, { extension: 'acme/over-action', override: true })
+
+        const field = { component: 'password-field', attribute: 'secret', value: '', inAction: true }
+        const action = { uriKey: 'rate', entity: 'posts' }
+        const wrapper = mount(formComponent(field), { props: { field, modelValue: '', errors: [], errorsByKey: {}, describedBy: null, context: 'create', resourceId: 5, action } })
+        await nextTick()
+
+        const input = wrapper.find('input#secret')
+        expect(input.exists()).toBe(true)
+        for (const attribute of ['action', 'context', 'resourceid', 'resource-id', 'errors', 'errorsbykey', 'describedby']) {
+            expect(input.attributes(attribute)).toBeUndefined()
+        }
+    })
 })
 
 describe('non-render errors (CRX-01)', () => {

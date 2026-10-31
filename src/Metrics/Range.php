@@ -6,6 +6,8 @@ use Carbon\CarbonImmutable;
 
 /**
  * Calendar-aligned metric periods, computed in the timezone of $now.
+ *
+ * @internal Not part of the public API.
  */
 final class Range
 {

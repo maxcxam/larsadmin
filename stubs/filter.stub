@@ -18,7 +18,7 @@ class {{ class }} extends Filter
      */
     public function name(): string
     {
-        return __('{{ class }}');
+        return __('{{ label }}');
     }
 
     /**

@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:partition')]
 class PartitionCommand extends MetricCommand
 {
@@ -13,8 +16,8 @@ class PartitionCommand extends MetricCommand
 
     protected $type = 'Partition metric';
 
-    protected function stubName(): string
+    protected function kind(): string
     {
-        return 'partition.stub';
+        return 'partition';
     }
 }

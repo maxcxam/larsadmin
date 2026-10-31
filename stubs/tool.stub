@@ -29,7 +29,7 @@ class {{ class }} extends Tool
     public function props(Request $request): array
     {
         return [
-            'message' => __('{{ class }}'),
+            'message' => __('{{ label }}'),
         ];
     }
 }

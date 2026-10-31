@@ -273,6 +273,10 @@ class RecalculateViews extends Action
 - Ліміти: до 3 активних запусків на користувача, до 10 000 записів для «усіх знайдених»
   (`actions.queued_max_all` замість `actions.max_all`).
 - У черзі `session()` це окрема порожня сесія запуску, а дати з полів приходять рядками ISO-8601.
+- Значення полів зберігаються зашифрованим JSON: дозволено скаляри, масиви, дати (рядки ISO-8601) і enum
+  (їхнє значення). Інше значення (наприклад, модель чи об'єкт з `actionValue()` поля розширення) кидає
+  `LogicException` з ім'ям поля ще під час запуску, до створення запису запуску; обробник отримує вже
+  збережені значення.
 - `retry_after` з'єднання черги має бути більшим за `$timeout` дії й `--timeout` обробника.
 
 Докладно: [Сповіщення та фонові дії](18-notifications.md#фонові-дії).
@@ -287,8 +291,9 @@ class RecalculateViews extends Action
 
 ## Файли в діях
 
-Поля `File` і `Image` у `fields()` дії не підтримуються: перший виклик полів дії кидає
-`LogicException`. Дія видалення записів із файлами має викликати `Entity::deleteRecord()` замість
+Поля `File` і `Image`, а також будь-яке поле з `multipart: true` (поле розширення, що надсилає файли), у
+`fields()` дії не підтримуються: перший виклик полів дії кидає `LogicException`. Дія заповнює тимчасову
+модель, тож збережені завантаження лишилися б без власника. Дія видалення записів із файлами має викликати `Entity::deleteRecord()` замість
 `$model->delete()`, інакше файли лишаться на диску. Див.
 [Файли й зображення](15-files.md#видалення-записів).
 
@@ -298,5 +303,59 @@ class RecalculateViews extends Action
 `GET {path}/api/entities/{entity}/fields/{field}/options?context=action&action=<uriKey дії>`;
 діють `relatableQuery` пов'язаної Entity та її `viewAny`, а видимість дії визначає `canSee()`.
 Значення валідується `RelatableExists`, як і у формах. У `ActionFields` потрапляє зовнішній ключ.
+
+## Поля розширень у модальному вікні
+
+З 1.6 у `fields()` дії можна використовувати власні поля й поля [розширень](19-extensions.md#власні-поля) з
+Vue-компонентом `vendor/name`, а також перевизначення вбудованих компонентів. Модальне вікно рендерить їх
+через той самий реєстр і `ExtensionBoundary`, що й форма запису.
+
+```php
+use Acme\LarsadminRating\Fields\Rating;
+
+public function fields(Request $request): array
+{
+    return [
+        Rating::make('Рейтинг', 'rating')->max(5)->rules('required'),
+    ];
+}
+
+public function handle(ActionFields $fields, Collection $models): ?ActionResponse
+{
+    $models->each->update(['rating' => $fields->rating]);
+
+    return null;
+}
+```
+
+**PHP.** Поле дії має `inAction() === true`, а його `context` лишається `create` (поля, написані для 1.5,
+продовжують працювати). Правила беруться з `rulesFor(Field::CREATE)`, назви для повідомлень з
+`validationAttributeNames()` (зокрема вкладені ключі на кшталт `range.min`). `authorizedTo()` у дії завжди
+`false`.
+
+Значення для `ActionFields` повертає `actionValue(Request $request): mixed`. За замовчуванням поле
+заповнює тимчасову модель через `fill()` і читає атрибут `fillAttribute()`, як у 1.5. Замикання, яке
+повертає `fill()`, у дії не виконується: запису для збереження немає. Якщо `fill()` пише значення не в
+`fillAttribute()` (наприклад, у два атрибути), перевизначте `actionValue()`:
+
+```php
+public function actionValue(Request $request): mixed
+{
+    $range = $request->input($this->attribute);
+
+    return is_array($range) ? ['min' => (int) ($range['min'] ?? 0), 'max' => (int) ($range['max'] ?? 0)] : null;
+}
+```
+
+Для [фонової дії](#фонові-дії) значення має переживати JSON (скаляр, масив, дата чи enum).
+
+**Vue.** Компонент форми отримує той самий контракт, що й у формі запису: `field` (з `inAction: true`),
+`modelValue`, `invalid`, `errors`, `errorsByKey`, `describedBy`, `context: 'create'`, `resourceId` (ключ
+запису, якщо дія виконується над одним записом і не є standalone, інакше `null`) і новий prop
+`action: { uriKey, entity }` (форма запису його не передає: оголосіть prop з `default: null`). Недоступне
+чи зламане розширення показує «Недоступно: розширення не завантажено», а значення поля не надсилається
+(fail closed). У vitest: `mountField(Component, { action: { uriKey, entity } })` ([Розширення: тестування](19-extensions.md#vitest-vue)).
+
+Поля, що надсилають файли, у діях не підтримуються ([Файли в діях](#файли-в-діях)).
 
 Далі: [Локалізація](08-i18n.md).

@@ -142,18 +142,23 @@ abstract class Action
     }
 
     /**
-     * The unresolved fields, built once and bound to the entity. File fields are not supported:
-     * actions fill a throw-away model, so stored uploads would be orphaned.
+     * The unresolved fields, built once, marked as fields of this action (Field::inAction()) and bound to the
+     * entity. Fields that upload files (File, Image or any field with $multipart) are not supported: an action
+     * fills a throw-away model, so stored uploads would be orphaned (Q-75).
      *
      * @return Collection<int, Field>
+     *
+     * @throws LogicException for a field that uploads files
      */
     public function fieldPrototypes(Request $request): Collection
     {
         return $this->fieldPrototypes ??= collect($this->fields($request))
             ->each(function (Field $field) use ($request) {
-                if ($field instanceof File) {
-                    throw new LogicException(sprintf('The action [%s] cannot have the file field [%s]; file fields are not supported in actions.', static::class, $field->attribute));
+                if ($field instanceof File || $field->multipart) {
+                    throw new LogicException(sprintf('The action [%s] cannot have the file field [%s]; file fields are not supported in actions (nor any field that uploads files).', static::class, $field->attribute));
                 }
+
+                $field->forAction($this->uriKey());
 
                 if ($this->entity) {
                     $field->bindTo($request, $this->entity);
@@ -213,33 +218,29 @@ abstract class Action
     }
 
     /**
+     * The field names for validation messages, nested keys included (Field::validationAttributeNames()).
+     *
      * @return array<string, string>
      */
     public function validationAttributes(Request $request): array
     {
         return $this->editableFields($request)
-            ->mapWithKeys(fn (Field $field) => [$field->attribute => $field->name])
+            ->flatMap(fn (Field $field) => $field->validationAttributeNames())
             ->all();
     }
 
     /**
-     * Validate the request against the action's fields and return their values.
+     * Validate the request against the action's fields and return their values, each one the field's
+     * actionValue() (by default what fill() writes to fillAttribute() of a throw-away model).
      */
     public function validatedFields(Request $request): ActionFields
     {
         $request->validate($this->rules($request), [], $this->validationAttributes($request));
 
-        $scratch = new class extends Model
-        {
-            protected $guarded = [];
-        };
-
         $values = [];
 
         foreach ($this->editableFields($request) as $field) {
-            $field->fill($request, $scratch);
-
-            $values[$field->attribute] = $scratch->getAttribute($field->fillAttribute());
+            $values[$field->attribute] = $field->actionValue($request);
         }
 
         return new ActionFields($values);

@@ -15,6 +15,9 @@ use Maxcxam\Larsadmin\Notifications\LarsadminNotification;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Throwable;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:prune-notifications')]
 class PruneNotificationsCommand extends Command
 {

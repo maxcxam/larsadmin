@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:field')]
 class FieldCommand extends ExtensionArtifactCommand
 {
@@ -16,24 +19,11 @@ class FieldCommand extends ExtensionArtifactCommand
 
     protected function kind(): string
     {
-        return 'Fields';
+        return 'field';
     }
 
-    protected function files(ExtensionScaffold $scaffold, string $class, array $target): array
+    protected function label(): string
     {
-        return [
-            "{$target['php']}/{$class}.php" => $scaffold->render('field.stub', ['namespace' => $target['namespace'], 'class' => $class, 'component' => $target['key']]),
-            "{$target['js']}/{$class}Input.vue" => $scaffold->render('field-form.vue.stub', ['component' => $target['key']]),
-            "{$target['js']}/{$class}Display.vue" => $scaffold->render('field-display.vue.stub', ['component' => $target['key']]),
-        ];
-    }
-
-    protected function registration(string $class, array $target): array
-    {
-        return [
-            "import {$class}Input from './fields/{$class}Input.vue'",
-            "import {$class}Display from './fields/{$class}Display.vue'",
-            "fields: { '{$target['key']}': { form: {$class}Input, display: {$class}Display } },",
-        ];
+        return 'Field';
     }
 }

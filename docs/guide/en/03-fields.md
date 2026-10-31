@@ -274,4 +274,43 @@ A custom field is a subclass of `Field` (or `Text`, `Number`, …). Since 1.5 it
 [Extending](10-extending.md#a-field-with-a-built-in-component), a field with its own Vue component,
 including a field that uploads files (`multipart()`), in [Extensions: the public API](19-extensions.md#custom-fields).
 
+Since 1.6, `authorizedTo()`, `inAction()` and the `actionValue()` hook are stable too. The last two concern
+fields in an action's modal: [Actions: extension fields in the modal](07-actions.md#extension-fields-in-the-modal).
+
+### Record abilities: `authorizedTo()`
+
+`authorizedTo(string $ability): bool` tells whether the current user may perform `view`, `update` or
+`delete` on the record the field is resolved for (in `resolve()`, `jsonSerialize()` and so on). These are
+the policy answers the panel already computed for the row (the "View", "Edit", "Delete" buttons), so the
+call adds no policy checks, on an index with many rows too.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Maxcxam\Larsadmin\Fields\Field;
+
+class Contract extends Field
+{
+    public string $component = 'acme/contract';
+
+    public function resolve(Model $record): static
+    {
+        parent::resolve($record);
+
+        // a link only for users who may view the record
+        return $this->withMeta([
+            'downloadUrl' => $this->authorizedTo('view')
+                ? route('acme.contracts.download', $record->getKey())
+                : null,
+        ]);
+    }
+}
+```
+
+`authorizedTo()` returns `false` (fail closed) when the answer is unknown: another ability, the create
+context, a field of an action (`inAction()`), a field built by hand outside an Entity. The abilities are not
+added to the serialized field: the field itself decides what to send to the client. The built-in `File` and
+`Image` emit file URLs based on `authorizedTo('view')`. `Larsadmin::findField()` returns the field with the
+abilities for the record it found. In tests, pass them with `serializeField(..., abilities: ['view' => true])`
+([Extensions: testing](19-extensions.md#testing)).
+
 Next: [Relations](04-relations.md).

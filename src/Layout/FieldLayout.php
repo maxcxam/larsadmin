@@ -9,6 +9,8 @@ use Maxcxam\Larsadmin\Fields\Field;
 /**
  * Splits the output of Entity::fields() into the flat field list every server path
  * works with and an attribute-keyed layout tree used for presentation only.
+ *
+ * @internal Not part of the public API.
  */
 final class FieldLayout
 {

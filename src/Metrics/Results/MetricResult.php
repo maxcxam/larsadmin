@@ -5,6 +5,9 @@ namespace Maxcxam\Larsadmin\Metrics\Results;
 use JsonSerializable;
 use stdClass;
 
+/**
+ * @internal Not part of the public API.
+ */
 abstract class MetricResult implements JsonSerializable
 {
     /**

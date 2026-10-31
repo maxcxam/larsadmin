@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maxcxam\Larsadmin\Larsadmin;
 
+/**
+ * @internal Not part of the public API.
+ */
 class LocaleController
 {
     /**

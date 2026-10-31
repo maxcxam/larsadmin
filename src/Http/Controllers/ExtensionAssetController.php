@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Serves the built files of registered extensions to panel users (ADR-031). Only regular files inside the
  * registered directory with an allow-listed type are served; anything else does not exist (404).
+ *
+ * @internal Not part of the public API.
  */
 class ExtensionAssetController
 {

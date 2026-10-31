@@ -2,6 +2,9 @@
 
 namespace Maxcxam\Larsadmin\Metrics\Results\Concerns;
 
+/**
+ * @internal Not part of the public API.
+ */
 trait HasAffixes
 {
     protected ?string $prefix = null;

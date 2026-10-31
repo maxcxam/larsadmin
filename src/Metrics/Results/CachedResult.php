@@ -4,6 +4,8 @@ namespace Maxcxam\Larsadmin\Metrics\Results;
 
 /**
  * A result restored from the cache: the already serialized payload.
+ *
+ * @internal Not part of the public API.
  */
 final class CachedResult extends MetricResult
 {

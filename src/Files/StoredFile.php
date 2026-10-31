@@ -5,6 +5,8 @@ namespace Maxcxam\Larsadmin\Files;
 /**
  * One file referenced by a File field: the path relative to the disk root plus display metadata.
  * The size and mime type are known for multiple() entries only (detected on the server at upload).
+ *
+ * @internal Not part of the public API.
  */
 class StoredFile
 {

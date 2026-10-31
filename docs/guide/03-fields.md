@@ -275,4 +275,42 @@ Password::make('Пароль', 'password')
 [Розширення](10-extending.md#поле-з-вбудованим-компонентом), поле з власним Vue-компонентом, зокрема
 поле, що надсилає файли (`multipart()`), у [Розширення: публічний API](19-extensions.md#власні-поля).
 
+З 1.6 стабільні також `authorizedTo()`, `inAction()` і хук `actionValue()`. Два останні стосуються полів у
+модальному вікні дії: [Дії: поля розширень у модальному вікні](07-actions.md#поля-розширень-у-модальному-вікні).
+
+### Права на запис: `authorizedTo()`
+
+`authorizedTo(string $ability): bool` відповідає, чи може поточний користувач виконати `view`, `update` або
+`delete` над записом, для якого поле розв'язується (у `resolve()`, `jsonSerialize()` тощо). Це ті самі
+відповіді policy, які панель уже обчислила для рядка (кнопки «Переглянути», «Редагувати», «Видалити»), тож
+виклик не додає запитів до policy, також на index з багатьма рядками.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Maxcxam\Larsadmin\Fields\Field;
+
+class Contract extends Field
+{
+    public string $component = 'acme/contract';
+
+    public function resolve(Model $record): static
+    {
+        parent::resolve($record);
+
+        // посилання лише для того, хто може переглядати запис
+        return $this->withMeta([
+            'downloadUrl' => $this->authorizedTo('view')
+                ? route('acme.contracts.download', $record->getKey())
+                : null,
+        ]);
+    }
+}
+```
+
+`authorizedTo()` повертає `false` (fail closed), коли відповідь невідома: інша здатність, контекст
+створення, поле дії (`inAction()`), поле, створене вручну поза Entity. Права в серіалізоване поле не
+додаються: поле саме вирішує, що віддати клієнту. Вбудовані `File` і `Image` віддають URL файлів за
+`authorizedTo('view')`. `Larsadmin::findField()` повертає поле з правами для знайденого запису. У тестах права
+передає `serializeField(..., abilities: ['view' => true])` ([Розширення: тестування](19-extensions.md#тестування)).
+
 Далі: [Зв'язки](04-relations.md).

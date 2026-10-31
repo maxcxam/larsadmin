@@ -8,6 +8,8 @@ use Closure;
  * Request-scoped record of which related keys are visible through the related entity's
  * detail scope. Keys are registered while rows are resolved and checked together on the
  * first lookup, so a whole page costs one query per field instead of one per row.
+ *
+ * @internal Not part of the public API.
  */
 final class RelatedVisibility
 {

@@ -15,6 +15,9 @@ use Maxcxam\Larsadmin\Http\Controllers\Concerns\ResolvesPanel;
 use Maxcxam\Larsadmin\Larsadmin;
 use Maxcxam\Larsadmin\Query\EntityQuery;
 
+/**
+ * @internal Not part of the public API.
+ */
 class RelatableController
 {
     use ResolvesPanel;

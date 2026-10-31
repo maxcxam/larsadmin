@@ -2,12 +2,14 @@
 
 namespace Maxcxam\Larsadmin\Console;
 
-use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:dashboard')]
-class DashboardCommand extends GeneratorCommand
+class DashboardCommand extends ClassGeneratorCommand
 {
     protected $name = 'larsadmin:dashboard';
 
@@ -15,14 +17,9 @@ class DashboardCommand extends GeneratorCommand
 
     protected $type = 'Dashboard';
 
-    protected function getStub(): string
+    protected function kind(): string
     {
-        return __DIR__.'/../../stubs/dashboard.stub';
-    }
-
-    protected function getDefaultNamespace($rootNamespace): string
-    {
-        return $rootNamespace.'\\Larsadmin\\Dashboards';
+        return 'dashboard';
     }
 
     protected function getOptions(): array

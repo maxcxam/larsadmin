@@ -83,11 +83,6 @@ class File extends Field
     protected ?string $parentEntity = null;
 
     /**
-     * Whether URLs may be emitted for the resolved record (the user may view it), set by the entity.
-     */
-    protected bool $withUrls = false;
-
-    /**
      * The serialized files of the resolved record (state of resolved clones only).
      *
      * @var list<array<string, mixed>>
@@ -395,15 +390,14 @@ class File extends Field
     }
 
     /**
-     * Emit URLs for the resolved record (the user may view it).
+     * Emit URLs for the resolved record (the user may view it): sets the "view" ability that
+     * authorizedTo('view') answers, replacing the other abilities.
      *
      * @internal
      */
     public function withUrls(bool $urls = true): static
     {
-        $this->withUrls = $urls;
-
-        return $this;
+        return $this->withAbilities(['view' => $urls]);
     }
 
     public function resolve(Model $record): static
@@ -466,7 +460,7 @@ class File extends Field
     {
         $key = $this->parentEntity !== null ? $this->parentEntity::pathSegment($record->getKey()) : null;
 
-        if (! $this->withUrls || $key === null) {
+        if (! $this->authorizedTo('view') || $key === null) {
             return null;
         }
 

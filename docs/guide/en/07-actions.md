@@ -49,7 +49,7 @@ class MarkLive extends Action
     public function fields(Request $request): array
     {
         return [
-            Text::make('Коментар', 'note')->nullable()->rules('max:255'),
+            Text::make('Comment', 'note')->nullable()->rules('max:255'),
         ];
     }
 
@@ -275,6 +275,10 @@ class RecalculateViews extends Action
   (`actions.queued_max_all` instead of `actions.max_all`).
 - On the queue `session()` is a separate empty session of the run, and date field values arrive as
   ISO-8601 strings.
+- Field values are stored as encrypted JSON: scalars, arrays, dates (ISO-8601 strings) and enums (their
+  value) are allowed. Any other value (say, a model or an object from an extension field's `actionValue()`)
+  throws a `LogicException` naming the field when the run starts, before the run record is created; the
+  worker gets the stored values.
 - The queue connection's `retry_after` must exceed the action's `$timeout` and the worker's `--timeout`.
 
 Details: [Notifications and background actions](18-notifications.md#background-actions).
@@ -290,8 +294,9 @@ records write no entries of their own, while saves of other records are recorded
 
 ## Files in actions
 
-`File` and `Image` fields are not supported in action `fields()`: the first call to the action's
-fields throws `LogicException`. An action that deletes records with files must call
+`File` and `Image` fields, and any field with `multipart: true` (an extension field that uploads files), are
+not supported in action `fields()`: the first call to the action's fields throws `LogicException`. An action
+fills a throw-away model, so stored uploads would be orphaned. An action that deletes records with files must call
 `Entity::deleteRecord()` instead of `$model->delete()`, otherwise the files stay on the disk. See
 [Files and images](15-files.md#deleting-records).
 
@@ -302,5 +307,59 @@ A `BelongsTo` field can be used in an action's `fields()`. Its options come from
 the related Entity's `relatableQuery` and its `viewAny` apply, and the action's visibility is decided by
 `canSee()`. The value is validated with `RelatableExists`, as on forms. `ActionFields` receives the
 foreign key.
+
+## Extension fields in the modal
+
+Since 1.6 an action's `fields()` can use custom fields and [extension](19-extensions.md#custom-fields) fields
+with a `vendor/name` Vue component, as well as overrides of built-in components. The modal renders them
+through the same registry and `ExtensionBoundary` as the record form.
+
+```php
+use Acme\LarsadminRating\Fields\Rating;
+
+public function fields(Request $request): array
+{
+    return [
+        Rating::make('Rating', 'rating')->max(5)->rules('required'),
+    ];
+}
+
+public function handle(ActionFields $fields, Collection $models): ?ActionResponse
+{
+    $models->each->update(['rating' => $fields->rating]);
+
+    return null;
+}
+```
+
+**PHP.** A field of an action has `inAction() === true`, while its `context` stays `create` (fields written
+for 1.5 keep working). Its rules come from `rulesFor(Field::CREATE)`, the names for messages from
+`validationAttributeNames()` (nested keys such as `range.min` included). `authorizedTo()` is always `false`
+in an action.
+
+`actionValue(Request $request): mixed` returns the value for `ActionFields`. By default the field fills a
+throw-away model with `fill()` and reads its `fillAttribute()` attribute, as in 1.5. A closure returned by
+`fill()` is not run in an action: there is no record to save. If `fill()` writes the value somewhere other
+than `fillAttribute()` (say, into two attributes), override `actionValue()`:
+
+```php
+public function actionValue(Request $request): mixed
+{
+    $range = $request->input($this->attribute);
+
+    return is_array($range) ? ['min' => (int) ($range['min'] ?? 0), 'max' => (int) ($range['max'] ?? 0)] : null;
+}
+```
+
+For a [background action](#background-actions) the value must survive JSON (a scalar, array, date or enum).
+
+**Vue.** The form component gets the same contract as in the record form: `field` (with `inAction: true`),
+`modelValue`, `invalid`, `errors`, `errorsByKey`, `describedBy`, `context: 'create'`, `resourceId` (the
+record's key when the action runs on exactly one record and is not standalone, else `null`) and the new
+`action: { uriKey, entity }` prop (the record form does not pass it: declare the prop with `default: null`).
+An unavailable or crashed extension shows "Unavailable: the extension is not loaded" and the field's value
+is not sent (fail closed). In vitest: `mountField(Component, { action: { uriKey, entity } })` ([Extensions: testing](19-extensions.md#vitest-vue)).
+
+Fields that upload files are not supported in actions ([Files in actions](#files-in-actions)).
 
 Next: [Localization](08-i18n.md).

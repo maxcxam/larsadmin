@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 use Symfony\Component\Mime\MimeTypes;
 
 /**
- * Type safety of uploads and served files (ADR-018).
+ * Type safety of uploads and served files (ADR-018). Extensions use the stable facade FileSafety.
  *
  * @internal
  */

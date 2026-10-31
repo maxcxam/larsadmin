@@ -2,12 +2,14 @@
 
 namespace Maxcxam\Larsadmin\Console;
 
-use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:filter')]
-class FilterCommand extends GeneratorCommand
+class FilterCommand extends ClassGeneratorCommand
 {
     protected $name = 'larsadmin:filter';
 
@@ -15,14 +17,9 @@ class FilterCommand extends GeneratorCommand
 
     protected $type = 'Filter';
 
-    protected function getStub(): string
+    protected function kind(): string
     {
-        return __DIR__.'/../../stubs/filter.stub';
-    }
-
-    protected function getDefaultNamespace($rootNamespace): string
-    {
-        return $rootNamespace.'\\Larsadmin\\Filters';
+        return 'filter';
     }
 
     protected function getOptions(): array

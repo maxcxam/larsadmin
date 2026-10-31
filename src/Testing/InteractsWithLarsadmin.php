@@ -31,10 +31,20 @@ trait InteractsWithLarsadmin
      * from its default without one. With $entity (an Entity class or a registered uriKey) the field is first
      * bound to it with bindTo(), as the entity does when it builds its fields.
      *
+     * $abilities (since 1.6) are the record abilities the panel would have computed for the user, e.g.
+     * ['view' => true, 'update' => false]: Field::authorizedTo() answers them; missing ones are false. They are
+     * ignored without a record and in the create context, where authorizedTo() is always false.
+     *
+     * @param  array<'view'|'update'|'delete', bool>  $abilities
      * @return array<string, mixed>
      */
-    protected function serializeField(Field $field, ?Model $record = null, string $context = Field::DETAIL, ?string $entity = null): array
+    protected function serializeField(Field $field, ?Model $record = null, string $context = Field::DETAIL, ?string $entity = null, array $abilities = []): array
     {
+        foreach ($abilities as $ability => $allowed) {
+            Assert::assertContains($ability, ['view', 'update', 'delete'], "Unknown record ability [{$ability}]; use view, update or delete.");
+            Assert::assertIsBool($allowed, "The ability [{$ability}] must be true or false.");
+        }
+
         $field = clone $field;
 
         if ($entity !== null) {
@@ -49,8 +59,10 @@ trait InteractsWithLarsadmin
 
         if ($record !== null && $context !== Field::CREATE) {
             $field->readonly = $field->isReadonlyFor(request(), $record);
+            $field->withAbilities($abilities);
             $field->resolve($record);
         } else {
+            $field->withAbilities([]);
             $field->resolveDefault(request());
         }
 

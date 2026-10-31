@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:progress')]
 class ProgressCommand extends MetricCommand
 {
@@ -13,8 +16,8 @@ class ProgressCommand extends MetricCommand
 
     protected $type = 'Progress metric';
 
-    protected function stubName(): string
+    protected function kind(): string
     {
-        return 'progress.stub';
+        return 'progress';
     }
 }

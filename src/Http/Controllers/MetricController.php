@@ -12,6 +12,9 @@ use Maxcxam\Larsadmin\Metrics\Cards;
 use Maxcxam\Larsadmin\Metrics\DataCard;
 use Maxcxam\Larsadmin\Metrics\Metric;
 
+/**
+ * @internal Not part of the public API.
+ */
 class MetricController
 {
     /**

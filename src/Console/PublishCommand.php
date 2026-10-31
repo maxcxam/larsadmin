@@ -5,6 +5,9 @@ namespace Maxcxam\Larsadmin\Console;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:publish')]
 class PublishCommand extends Command
 {

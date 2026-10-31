@@ -315,4 +315,23 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Server
+    |--------------------------------------------------------------------------
+    |
+    | The local MCP server for AI coding assistants ("php artisan larsadmin:mcp",
+    | stdio only, needs the optional laravel/mcp package). It exposes the bundled
+    | guides, metadata of the registered entities (never record data) and the
+    | larsadmin generators. "enabled": null runs it only when APP_ENV=local, true
+    | also in other non-production environments (staging, containers), false
+    | turns it off. It never runs in production, whatever this flag says:
+    | APP_ENV "production", "prod" or "live" (any case) always turns it off.
+    |
+    */
+
+    'mcp' => [
+        'enabled' => env('LARSADMIN_MCP'),
+    ],
+
 ];

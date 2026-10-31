@@ -6,6 +6,9 @@ use Illuminate\Console\Command;
 use Maxcxam\Larsadmin\Audit\AuditEntry;
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:prune-audit')]
 class PruneAuditCommand extends Command
 {

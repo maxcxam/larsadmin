@@ -8,6 +8,9 @@ use Inertia\Response;
 use Maxcxam\Larsadmin\Dashboards\Dashboard;
 use Maxcxam\Larsadmin\Larsadmin;
 
+/**
+ * @internal Not part of the public API.
+ */
 class DashboardController
 {
     /**

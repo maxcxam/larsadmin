@@ -2,12 +2,14 @@
 
 namespace Maxcxam\Larsadmin\Console;
 
-use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:entity')]
-class EntityCommand extends GeneratorCommand
+class EntityCommand extends ClassGeneratorCommand
 {
     /**
      * The console command name.
@@ -30,25 +32,14 @@ class EntityCommand extends GeneratorCommand
      */
     protected $type = 'Entity';
 
-    protected function getStub(): string
+    protected function kind(): string
     {
-        return __DIR__.'/../../stubs/entity.stub';
+        return 'entity';
     }
 
-    protected function getDefaultNamespace($rootNamespace): string
+    protected function scaffoldOptions(): array
     {
-        return $rootNamespace.'\\Larsadmin';
-    }
-
-    protected function buildClass($name): string
-    {
-        $model = $this->option('model') ?: class_basename($name);
-
-        return str_replace(
-            '{{ model }}',
-            ltrim($this->qualifyModel($model), '\\'),
-            parent::buildClass($name),
-        );
+        return ['model' => (string) $this->option('model')];
     }
 
     protected function getOptions(): array

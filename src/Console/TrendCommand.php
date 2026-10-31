@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:trend')]
 class TrendCommand extends MetricCommand
 {
@@ -13,8 +16,8 @@ class TrendCommand extends MetricCommand
 
     protected $type = 'Trend metric';
 
-    protected function stubName(): string
+    protected function kind(): string
     {
-        return 'trend.stub';
+        return 'trend';
     }
 }

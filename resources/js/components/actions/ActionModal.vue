@@ -2,7 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { formComponent } from '../../fields'
-import { actionPayload } from './actionPayload'
+import { isWrapped } from '../../extensions/components'
+import { actionPayload, fieldContract, fieldMessage } from './actionPayload'
 import { useI18n } from '../../composables/useI18n'
 import { useLarsadmin } from '../../composables/useLarsadmin'
 import IconAlert from '../icons/IconAlert.vue'
@@ -28,6 +29,8 @@ const { entityUrl } = useLarsadmin()
 const titleId = useId()
 const descId = useId()
 const queuedId = useId()
+// Prefix for the ids of field messages (aria-describedby): the modal sits on top of a page with its own ids.
+const fieldIdPrefix = useId()
 const dialog = ref(null)
 const returnTarget = document.activeElement
 
@@ -38,12 +41,32 @@ const immediate = computed(() => props.action.withoutConfirmation && fields.valu
 const queued = computed(() => props.action.queued === true)
 const describedBy = computed(() => [props.action.confirmText ? descId : null, queued.value ? queuedId : null].filter(Boolean).join(' ') || undefined)
 
+// The record the action runs on, when it is exactly one (detail page, one selected row); else null.
+const resourceId = computed(() => (!props.action.standalone && Array.isArray(props.resources) && props.resources.length === 1 ? props.resources[0] : null))
+// `action` prop of extension form components (design 1.6 §8.3); forms outside an action pass null.
+const actionContext = computed(() => ({ uriKey: props.action.uriKey, entity: props.entity }))
+
 const form = useForm({
     resources: props.action.standalone ? [] : props.resources,
     ...(props.search ? { search: props.search } : {}),
     ...(props.filters ? { filters: props.filters } : {}),
     ...Object.fromEntries(fields.value.map((field) => [field.attribute, field.value ?? null])),
 })
+
+const errorId = (field) => `${fieldIdPrefix}-${field.attribute}-error`
+const helpId = (field) => `${fieldIdPrefix}-${field.attribute}-help`
+const message = (field) => fieldMessage(form.errors, field.attribute)
+
+// Props for one field's form component. Built-in components get exactly their 1.4 props (BelongsTo, which is not
+// overridable: the relatable options of the action); extension and override components get the full form contract
+// of design 1.5 §5.4 plus `action` (design 1.6 §8.3), as in EntityForm.
+function fieldProps(field) {
+    if (!isWrapped(formComponent(field))) return field.component === 'belongs-to-field' ? { context: 'action', action: props.action.uriKey } : {}
+
+    const describedBy = message(field) ? errorId(field) : field.help ? helpId(field) : null
+
+    return fieldContract(form.errors, field, { describedBy, resourceId: resourceId.value, action: actionContext.value })
+}
 
 function close() {
     emit('close')
@@ -141,13 +164,13 @@ onBeforeUnmount(() => {
                                 :is="formComponent(field)"
                                 v-model="form[field.attribute]"
                                 :field="field"
-                                :invalid="!!form.errors[field.attribute]"
-                                v-bind="field.component === 'belongs-to-field' ? { context: 'action', action: action.uriKey } : {}"
+                                :invalid="!!message(field)"
+                                v-bind="fieldProps(field)"
                             />
-                            <p v-if="form.errors[field.attribute]" class="flex items-center gap-1 text-xs text-danger-fg" role="alert">
-                                <IconAlert />{{ form.errors[field.attribute] }}
+                            <p v-if="message(field)" :id="errorId(field)" class="flex items-center gap-1 text-xs text-danger-fg" role="alert">
+                                <IconAlert />{{ message(field) }}
                             </p>
-                            <p v-else-if="field.help" class="text-xs text-fg-muted">{{ field.help }}</p>
+                            <p v-else-if="field.help" :id="helpId(field)" class="text-xs text-fg-muted">{{ field.help }}</p>
                         </div>
 
                         <p v-if="form.errors.resources" class="flex items-center gap-1 text-xs text-danger-fg" role="alert">

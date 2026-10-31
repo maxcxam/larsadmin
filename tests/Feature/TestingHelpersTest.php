@@ -13,6 +13,7 @@ use Maxcxam\Larsadmin\Tests\Fixtures\Cards\TopPosts;
 use Maxcxam\Larsadmin\Tests\Fixtures\ExtensionHooks\HookedPost;
 use Maxcxam\Larsadmin\Tests\Fixtures\ExtensionHooks\TagIds;
 use Maxcxam\Larsadmin\Tests\Fixtures\Extensions\FixtureExtensions;
+use Maxcxam\Larsadmin\Tests\Fixtures\Fields\AbilityAwareField;
 use Maxcxam\Larsadmin\Tests\Fixtures\Fields\Rating;
 use Maxcxam\Larsadmin\Tests\Fixtures\Post;
 use Maxcxam\Larsadmin\Tests\Fixtures\User;
@@ -181,3 +182,30 @@ it('deletes the files of a failed fill and rolls the save back', function () {
         TagIds::$fail = false;
     }
 });
+
+it('serializes a field with the record abilities the caller passes', function () {
+    $post = Post::create(['title' => 'Post', 'status' => 'draft']);
+    $field = AbilityAwareField::make('Rating', 'views');
+
+    expect($this->serializeField($field, $post)['answers'])
+        ->toBe(['view' => false, 'update' => false, 'delete' => false, 'forceDelete' => false])
+        ->and($this->serializeField($field, $post, Field::INDEX, null, ['view' => true, 'update' => true])['answers'])
+        ->toBe(['view' => true, 'update' => true, 'delete' => false, 'forceDelete' => false])
+        ->and($this->serializeField($field, $post, abilities: ['delete' => true])['answers']['delete'])->toBeTrue()
+        ->and($field->authorizedTo('view'))->toBeFalse();
+});
+
+it('ignores the abilities without a record and in the create context', function () {
+    $field = AbilityAwareField::make('Rating', 'views');
+    $denied = ['view' => false, 'update' => false, 'delete' => false, 'forceDelete' => false];
+
+    expect($this->serializeField($field, null, Field::DETAIL, null, ['view' => true])['answers'])->toBe($denied)
+        ->and($this->serializeField($field, new Post, Field::CREATE, null, ['view' => true])['answers'])->toBe($denied);
+});
+
+it('refuses an unknown ability or a non-boolean answer', function (array $abilities) {
+    $this->serializeField(AbilityAwareField::make('Rating', 'views'), Post::create(['title' => 'Post', 'status' => 'draft']), abilities: $abilities);
+})->with([
+    'unknown ability' => [['forceDelete' => true]],
+    'not a bool' => [['view' => 1]],
+])->throws(AssertionFailedError::class);

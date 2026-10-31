@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Validator;
 use Maxcxam\Larsadmin\Query\EntityQuery;
 use Maxcxam\Larsadmin\Search\GlobalSearch;
 
+/**
+ * @internal Not part of the public API.
+ */
 class GlobalSearchController
 {
     /**

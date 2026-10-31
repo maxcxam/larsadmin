@@ -41,6 +41,13 @@ run a queue worker and schedule `larsadmin:prune-notifications` (see
 
 The panel is then available at `/admin` (see the `path` key below).
 
+### AI assistants (optional)
+
+The package ships a guideline, 15 skills and a local MCP server for AI assistants (Claude Code, Cursor and
+others). With Laravel Boost 2.x they are installed by `php artisan boost:install`, without it by
+`php artisan larsadmin:ai`. The MCP server needs `composer require laravel/mcp --dev`; it runs locally only
+and never in production. See [AI assistants](20-ai-assistants.md).
+
 ## Updating the package
 
 ```bash
@@ -92,6 +99,8 @@ translations (see [Localization](08-i18n.md)).
 | `larsadmin:field {name} [--extension=] [--force]` | create a custom field: a PHP class and Vue form and display components |
 | `larsadmin:card {name} [--extension=] [--data] [--force]` | create a custom card (`Card`, or with `--data` a `DataCard`) and its Vue component |
 | `larsadmin:tool {name} [--extension=] [--force]` | create a sidebar page (`Tool`) and its Vue component |
+| `larsadmin:ai [--skills] [--mcp] [--claude-md] [--path=.claude/skills] [--force]` | install the skills, the MCP server entry in `.mcp.json` and the guideline in `CLAUDE.md` without Laravel Boost ([AI assistants](20-ai-assistants.md#installing-without-boost-larsadminai)) |
+| `larsadmin:mcp` | start the MCP server for AI assistants (stdio; needs `laravel/mcp`; never in production) ([AI assistants](20-ai-assistants.md#the-mcp-server)) |
 | `larsadmin:prune-audit [--days=]` | delete audit log entries older than `audit.retention_days` (90 days) ([Audit log](17-audit-log.md#pruning)) |
 | `larsadmin:prune-notifications [--days=]` | delete panel notifications, background action runs and their files older than `notifications.retention_days` (30 days) ([Notifications](18-notifications.md#pruning)) |
 
@@ -125,6 +134,7 @@ translations (see [Localization](08-i18n.md)).
 | `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Polling, bell page size, pruning; see [Notifications](18-notifications.md#configuration) |
 | `extensions.source_maps` | `LARSADMIN_EXTENSION_SOURCE_MAPS` | `false` | Serve the extensions' source maps (`*.map`); debugging only ([Extensions](19-extensions.md#http-endpoints)) |
 | `extensions.max_age` | | `31536000` | Browser cache lifetime of versioned extension files, in seconds |
+| `mcp.enabled` | `LARSADMIN_MCP` | `null` | The MCP server: `null` only with `APP_ENV=local`, `true` also in other non-production environments, `false` off; it never runs in production ([AI assistants](20-ai-assistants.md#when-the-server-runs)) |
 
 > **Warning.** When `allow_local` is `true` and `APP_ENV=local`, **every authenticated user** gets
 > into the panel. Do not run shared or public servers with `APP_ENV=local`, or set
@@ -172,3 +182,8 @@ In the root of the package repository:
 `resources/js/i18n/uk.json` must be **committed**: run `npm run i18n` after changing `lang/uk/ui.php`.
 `dist/` is committed too. CI checks that `dist/` is up to date
 (`git diff --exit-code dist` after the build).
+
+`tests/Ai` checks the skills (`resources/boost/skills`): every guide page, `larsadmin:*` command, config key,
+`LARSADMIN_*` variable and public class must be mentioned in a skill, and everything the skills mention must
+exist. So **new or changed public API updates its skill in the same PR**. Every guide page must exist both in
+`docs/guide/` and in `docs/guide/en/`.

@@ -18,6 +18,8 @@ use Maxcxam\Larsadmin\Query\EntityQuery;
  * Scoping (ADR-013): an Entity class is queried through its `indexQuery()` and requires `viewAny`;
  * an EntitySource is scoped the same way, then narrowed by its constraint (nested, so an orWhere
  * cannot escape the scoping); a model class, an Eloquent builder or a query builder is NOT restricted.
+ *
+ * @internal Not part of the public API.
  */
 final class Source
 {

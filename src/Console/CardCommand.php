@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Console;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 
+/**
+ * @internal
+ */
 #[AsCommand(name: 'larsadmin:card')]
 class CardCommand extends ExtensionArtifactCommand
 {
@@ -17,31 +20,11 @@ class CardCommand extends ExtensionArtifactCommand
 
     protected function kind(): string
     {
-        return 'Cards';
+        return $this->option('data') ? 'data-card' : 'card';
     }
 
-    protected function files(ExtensionScaffold $scaffold, string $class, array $target): array
+    protected function label(): string
     {
-        $data = (bool) $this->option('data');
-
-        return [
-            "{$target['php']}/{$class}.php" => $scaffold->render($data ? 'data-card.stub' : 'card.stub', ['namespace' => $target['namespace'], 'class' => $class, 'component' => $target['key']]),
-            "{$target['js']}/{$this->vueName($class)}.vue" => $scaffold->render($data ? 'data-card.vue.stub' : 'card.vue.stub', ['component' => $target['key']]),
-        ];
-    }
-
-    protected function registration(string $class, array $target): array
-    {
-        $vue = $this->vueName($class);
-
-        return [
-            "import {$vue} from './cards/{$vue}.vue'",
-            "cards: { '{$target['key']}': {$vue} },",
-        ];
-    }
-
-    protected function vueName(string $class): string
-    {
-        return str_ends_with($class, 'Card') ? $class : $class.'Card';
+        return 'Card';
     }
 }

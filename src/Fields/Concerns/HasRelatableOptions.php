@@ -12,6 +12,8 @@ use Maxcxam\Larsadmin\Query\EntityQuery;
 
 /**
  * The pickable-records behaviour shared by BelongsTo and BelongsToMany (ADR-004).
+ *
+ * @internal Not part of the public API.
  */
 trait HasRelatableOptions
 {

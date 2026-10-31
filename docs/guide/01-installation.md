@@ -41,6 +41,13 @@ php artisan larsadmin:install
 
 Після цього панель доступна за адресою `/admin` (див. ключ `path` нижче).
 
+### AI-асистенти (необов'язково)
+
+Пакет постачає guideline, 15 скілів і локальний MCP-сервер для AI-асистентів (Claude Code, Cursor тощо).
+З Laravel Boost 2.x вони встановлюються через `php artisan boost:install`, без нього командою
+`php artisan larsadmin:ai`. MCP-серверу потрібен `composer require laravel/mcp --dev`; він працює лише
+локально й ніколи в production. Див. [AI-асистенти](20-ai-assistants.md).
+
 ## Оновлення пакета
 
 ```bash
@@ -92,6 +99,8 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `larsadmin:field {name} [--extension=] [--force]` | створити власне поле: PHP-клас і Vue-компоненти форми й відображення |
 | `larsadmin:card {name} [--extension=] [--data] [--force]` | створити власну картку (`Card` чи з `--data` `DataCard`) і її Vue-компонент |
 | `larsadmin:tool {name} [--extension=] [--force]` | створити сторінку меню (`Tool`) і її Vue-компонент |
+| `larsadmin:ai [--skills] [--mcp] [--claude-md] [--path=.claude/skills] [--force]` | встановити скіли, запис MCP-сервера в `.mcp.json` і guideline в `CLAUDE.md` без Laravel Boost ([AI-асистенти](20-ai-assistants.md#встановлення-без-boost-larsadminai)) |
+| `larsadmin:mcp` | запустити MCP-сервер для AI-асистентів (stdio; потрібен `laravel/mcp`; лише не в production) ([AI-асистенти](20-ai-assistants.md#mcp-сервер)) |
 | `larsadmin:prune-audit [--days=]` | видалити записи журналу аудиту, старші за `audit.retention_days` (90 днів) ([Журнал аудиту](17-audit-log.md#очищення)) |
 | `larsadmin:prune-notifications [--days=]` | видалити сповіщення панелі, запуски фонових дій і їхні файли, старші за `notifications.retention_days` (30 днів) ([Сповіщення](18-notifications.md#очищення)) |
 
@@ -125,6 +134,7 @@ php artisan vendor:publish --tag=larsadmin-lang
 | `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Опитування, сторінка дзвіночка, очищення; див. [Сповіщення](18-notifications.md#конфігурація) |
 | `extensions.source_maps` | `LARSADMIN_EXTENSION_SOURCE_MAPS` | `false` | Віддавати source maps (`*.map`) розширень; лише для налагодження ([Розширення](19-extensions.md#http-ендпоінти)) |
 | `extensions.max_age` | | `31536000` | Строк кешу браузера для версійованих файлів розширень, секунд |
+| `mcp.enabled` | `LARSADMIN_MCP` | `null` | MCP-сервер: `null` лише при `APP_ENV=local`, `true` також в інших середовищах, крім production, `false` вимкнено; у production не працює ніколи ([AI-асистенти](20-ai-assistants.md#коли-сервер-працює)) |
 
 > **Увага.** Коли `allow_local` дорівнює `true` і `APP_ENV=local`, **кожен автентифікований
 > користувач** потрапляє в панель. Не запускайте спільні чи публічні сервери з `APP_ENV=local`,
@@ -172,3 +182,8 @@ LARSADMIN_ALLOW_LOCAL=false
 Файл `resources/js/i18n/uk.json` потрібно **комітити**: після зміни `lang/uk/ui.php` запустіть
 `npm run i18n`. Так само комітиться `dist/`. CI перевіряє, що `dist/` актуальний
 (`git diff --exit-code dist` після збірки).
+
+`tests/Ai` перевіряє скіли (`resources/boost/skills`): кожна сторінка посібника, команда `larsadmin:*`, ключ
+конфігу, змінна `LARSADMIN_*` і публічний клас мають бути згадані в якомусь скілі, а все, що скіли згадують,
+має існувати. Тож **нове чи змінене публічне API оновлює скіл у тому самому PR**. Кожна сторінка посібника
+має бути і в `docs/guide/`, і в `docs/guide/en/`.

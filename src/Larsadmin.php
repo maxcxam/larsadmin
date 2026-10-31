@@ -34,7 +34,7 @@ class Larsadmin
     /**
      * The version of the public extension API: MAJOR.MINOR of the release that last extended it (ADR-034).
      */
-    public const string API_VERSION = '1.5';
+    public const string API_VERSION = '1.6';
 
     /**
      * The callback that determines if a request may access the panel.
@@ -81,6 +81,8 @@ class Larsadmin
 
     /**
      * Resolve the panel locale: callback, then the session choice, then config, then the app locale.
+     *
+     * @internal
      */
     public static function locale(Request $request): string
     {
@@ -112,6 +114,8 @@ class Larsadmin
      * Get the locales users can switch to, as code => label.
      *
      * @return array<string, string>
+     *
+     * @internal
      */
     public static function locales(): array
     {
@@ -196,6 +200,8 @@ class Larsadmin
 
     /**
      * Get the entities the request may see in the navigation.
+     *
+     * @internal
      */
     public static function navigation(Request $request): array
     {
@@ -215,6 +221,8 @@ class Larsadmin
      * entities in registration order within a group (as the layout builds the menu).
      *
      * @return array<int, class-string<Entity>>
+     *
+     * @internal
      */
     public static function searchOrder(): array
     {
@@ -232,6 +240,8 @@ class Larsadmin
      * class (reset by flushState()). Scout is referenced by name only: it is not a dependency.
      *
      * @param  class-string  $model
+     *
+     * @internal
      */
     public static function modelUsesScout(string $model): bool
     {
@@ -301,6 +311,8 @@ class Larsadmin
 
     /**
      * Find a registered dashboard by its URI key (visibility is NOT checked).
+     *
+     * @internal
      */
     public static function dashboardForKey(string $key): ?Dashboard
     {
@@ -315,6 +327,8 @@ class Larsadmin
 
     /**
      * The dashboard shown at the panel root: the first one the request may see.
+     *
+     * @internal
      */
     public static function home(Request $request): ?Dashboard
     {
@@ -332,6 +346,8 @@ class Larsadmin
      * panel root, so the root URL is "active" for it.
      *
      * @return list<array{uriKey: string, name: string, url: string}>
+     *
+     * @internal
      */
     public static function dashboardNavigation(Request $request): array
     {
@@ -378,6 +394,8 @@ class Larsadmin
 
     /**
      * The global cache scope of a metric (null without a callback).
+     *
+     * @internal
      */
     public static function metricCacheScope(Request $request, Metric $metric): mixed
     {
@@ -455,6 +473,8 @@ class Larsadmin
     /**
      * Resolve the timezone metrics are aligned to: callback, then config, then the app timezone.
      * Unknown identifiers are skipped.
+     *
+     * @internal
      */
     public static function timezone(Request $request): string
     {
@@ -645,7 +665,8 @@ class Larsadmin
     /**
      * A field of the entity for the record, as the panel resolves it: bound (bindTo), shown in $context for this
      * user and record (404 otherwise) and, for create / update, not read-only (403). Call after findRecord().
-     * Returns a clone, so the caller may resolve it.
+     * Returns a clone, so the caller may resolve it. Since 1.6 its authorizedTo() answers for the record (false
+     * in the create context).
      *
      * @param  string  $entity  the entity's uriKey (an unknown one is a 404)
      *
@@ -659,7 +680,9 @@ class Larsadmin
 
         $entityClass = static::entityForKey($entity) ?? abort(404);
 
-        $field = $entityClass::make($record)->fieldPrototypes($request)
+        $instance = $entityClass::make($record);
+
+        $field = $instance->fieldPrototypes($request)
             ->first(fn (Field $candidate) => $candidate->attribute === $attribute
                 && $candidate->isShownOn($context, $request, $context === Field::INDEX ? null : $record));
 
@@ -669,7 +692,9 @@ class Larsadmin
             abort_if($field->isReadonlyFor($request, $record), 403);
         }
 
-        return clone $field;
+        // authorizedTo() answers from the policy, asked at most once per ability and only when the field asks;
+        // a record being created has no abilities.
+        return (clone $field)->withAbilities($context === Field::CREATE ? [] : $instance->fieldAbilities($request));
     }
 
     /**

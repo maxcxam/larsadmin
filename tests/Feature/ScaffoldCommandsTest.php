@@ -91,7 +91,7 @@ it('creates an extension package skeleton', function () {
     $package = json_decode(file_get_contents($dir.'/package.json'), true, 512, JSON_THROW_ON_ERROR);
 
     expect($composer['name'])->toBe('acme/larsadmin-rating')
-        ->and($composer['require']['maxcxam/larsadmin'])->toBe('^1.5')
+        ->and($composer['require']['maxcxam/larsadmin'])->toBe('^1.6')
         ->and($composer['autoload']['psr-4'])->toBe(['Acme\\LarsadminRating\\' => 'src/'])
         ->and($composer['autoload-dev']['psr-4'])->toBe(['Acme\\LarsadminRating\\Tests\\' => 'tests/'])
         ->and($composer['extra']['laravel']['providers'])->toBe(['Acme\\LarsadminRating\\RatingServiceProvider'])
@@ -106,7 +106,7 @@ it('creates an extension package skeleton', function () {
     // The example components are not named after the package, and their keys use the package's vendor.
     expect($extension)->toContain("import { defineExtension } from 'larsadmin'")
         ->toContain("name: 'acme/larsadmin-rating'")
-        ->toContain("requires: '^1.5'")
+        ->toContain("requires: '^1.6'")
         ->toContain("'acme/example-field': { form: ExampleFieldInput, display: ExampleFieldDisplay }")
         ->toContain("'acme/example-card': ExampleCard")
         ->not->toContain('larsadmin/')

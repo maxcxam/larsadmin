@@ -5,6 +5,7 @@ namespace Maxcxam\Larsadmin;
 use Closure;
 use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Routing\Router;
@@ -13,8 +14,10 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Facades\Mcp;
 use Maxcxam\Larsadmin\Audit\AuditRecorder;
 use Maxcxam\Larsadmin\Console\ActionCommand;
+use Maxcxam\Larsadmin\Console\AiCommand;
 use Maxcxam\Larsadmin\Console\CardCommand;
 use Maxcxam\Larsadmin\Console\DashboardCommand;
 use Maxcxam\Larsadmin\Console\EntityCommand;
@@ -22,6 +25,7 @@ use Maxcxam\Larsadmin\Console\ExtensionCommand;
 use Maxcxam\Larsadmin\Console\FieldCommand;
 use Maxcxam\Larsadmin\Console\FilterCommand;
 use Maxcxam\Larsadmin\Console\InstallCommand;
+use Maxcxam\Larsadmin\Console\McpCommand;
 use Maxcxam\Larsadmin\Console\PartitionCommand;
 use Maxcxam\Larsadmin\Console\ProgressCommand;
 use Maxcxam\Larsadmin\Console\PruneAuditCommand;
@@ -30,6 +34,8 @@ use Maxcxam\Larsadmin\Console\PublishCommand;
 use Maxcxam\Larsadmin\Console\ToolCommand;
 use Maxcxam\Larsadmin\Console\TrendCommand;
 use Maxcxam\Larsadmin\Console\ValueCommand;
+use Maxcxam\Larsadmin\Mcp\LarsadminServer;
+use Maxcxam\Larsadmin\Mcp\McpGate;
 use Maxcxam\Larsadmin\Realtime\Realtime;
 use Maxcxam\Larsadmin\Realtime\SignalNotificationSent;
 use WeakMap;
@@ -89,8 +95,27 @@ class LarsadminServiceProvider extends ServiceProvider
                 FieldCommand::class,
                 CardCommand::class,
                 ToolCommand::class,
+                McpCommand::class,
+                AiCommand::class,
             ]);
+
+            static::registerMcpServer($this->app);
         }
+    }
+
+    /**
+     * Register the local MCP server "larsadmin" (ADR-037) when laravel/mcp is installed and the gate is open.
+     * LarsadminServer extends a laravel/mcp class: it is only referenced after the class_exists() check.
+     *
+     * @internal
+     */
+    public static function registerMcpServer(Application $app): void
+    {
+        if (! McpGate::mcpInstalled() || ! class_exists(Mcp::class) || ! McpGate::enabled($app)) {
+            return;
+        }
+
+        Mcp::local(McpGate::HANDLE, LarsadminServer::class);
     }
 
     /**

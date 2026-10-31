@@ -20,7 +20,8 @@ use Maxcxam\Larsadmin\Files\FileJournal;
  * closure, ADR-002), fillInto(), fillAttribute(), resolve(), eagerLoads(), applySort(), bindTo(),
  * hasAuditValue() and auditValue() (ADR-035). Also stable as override hooks: the constructor
  * (string $name, ?string $attribute = null, ?callable $resolveCallback = null), resolveDefault(), rulesFor(),
- * validationAttributeNames(), isRequired() and sortable().
+ * validationAttributeNames(), isRequired() and sortable(). Stable since 1.6 (ADR-041): authorizedTo(), inAction()
+ * and the override hook actionValue().
  */
 abstract class Field implements JsonSerializable
 {
@@ -138,6 +139,19 @@ abstract class Field implements JsonSerializable
     protected ?Closure $fillCallback = null;
 
     protected ?Closure $defaultCallback = null;
+
+    /**
+     * The policy answers for the record the field is resolved for, set by the entity: an ability ("view",
+     * "update", "delete") mapped to a bool or to a closure that computes it once.
+     *
+     * @var array<string, bool|Closure(): bool>
+     */
+    private array $abilities = [];
+
+    /**
+     * The uriKey of the action whose fields() returned this field, or null outside actions.
+     */
+    private ?string $actionUriKey = null;
 
     public function __construct(string $name, ?string $attribute = null, ?callable $resolveCallback = null)
     {
@@ -275,6 +289,82 @@ abstract class Field implements JsonSerializable
     public function eagerLoads(): array
     {
         return [];
+    }
+
+    /**
+     * Whether the current user may perform the ability on the record this field is resolved for: "view",
+     * "update" or "delete" (stable since 1.6). The answers are the ones the panel already computed for the
+     * row, so asking costs no policy call. False when unknown: another ability, the create context, a field
+     * of an action, or a field built by hand (fail closed).
+     */
+    public function authorizedTo(string $ability): bool
+    {
+        if ($this->actionUriKey !== null || $this->context === self::CREATE || ! isset($this->abilities[$ability])) {
+            return false;
+        }
+
+        $answer = $this->abilities[$ability];
+
+        if ($answer instanceof Closure) {
+            $answer = $this->abilities[$ability] = (bool) $answer();
+        }
+
+        return $answer === true;
+    }
+
+    /**
+     * Hand the field the policy answers for the record it is about to be resolved for (bools, or closures
+     * computed on first use). Replaces the previous answers.
+     *
+     * @param  array<string, bool|Closure(): bool>  $abilities
+     *
+     * @internal Called by Entity::resolveFields() and Larsadmin::findField() before resolve().
+     */
+    public function withAbilities(array $abilities): static
+    {
+        $this->abilities = array_intersect_key($abilities, array_flip(['view', 'update', 'delete']));
+
+        return $this;
+    }
+
+    /**
+     * Whether the field belongs to an action's fields() and is shown in its modal (stable since 1.6). Its
+     * context stays "create", so fields written for 1.5 keep working.
+     */
+    public function inAction(): bool
+    {
+        return $this->actionUriKey !== null;
+    }
+
+    /**
+     * Mark the field as a field of the action with the given uriKey. Clears any record abilities.
+     *
+     * @internal Called by Action::fieldPrototypes().
+     */
+    public function forAction(string $uriKey): static
+    {
+        $this->actionUriKey = $uriKey;
+        $this->abilities = [];
+
+        return $this;
+    }
+
+    /**
+     * The value the action receives in its ActionFields for this field (stable since 1.6). The default
+     * fills a throw-away model with fill() and reads fillAttribute(), as in 1.5. A closure returned by fill()
+     * is not run: an action has no record to save. Override it for a value that fill() does not write to
+     * the attribute. Queued actions require a JSON-serializable value.
+     */
+    public function actionValue(Request $request): mixed
+    {
+        $scratch = new class extends Model
+        {
+            protected $guarded = [];
+        };
+
+        $this->fill($request, $scratch);
+
+        return $scratch->getAttribute($this->fillAttribute());
     }
 
     /**
@@ -851,7 +941,8 @@ abstract class Field implements JsonSerializable
 
     /**
      * The field as the client receives it. Subclasses add keys with [...parent::jsonSerialize(), 'key' => ...].
-     * "multipart" is only sent when true, so built-in fields serialize exactly as before 1.5.
+     * "multipart" is only sent when true, so built-in fields serialize exactly as before 1.5; likewise
+     * "inAction" (since 1.6) is only sent, as true, for a field of an action. No record ability is sent.
      */
     public function jsonSerialize(): array
     {
@@ -871,6 +962,6 @@ abstract class Field implements JsonSerializable
             'wrap' => $this->wrap,
             'truncate' => $this->truncate,
             'fullWidth' => $this->fullWidth,
-        ], $this->multipart ? ['multipart' => true] : [], $this->meta);
+        ], $this->multipart ? ['multipart' => true] : [], $this->inAction() ? ['inAction' => true] : [], $this->meta);
     }
 }

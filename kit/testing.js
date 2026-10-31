@@ -42,8 +42,10 @@ function merge(options, extra) {
 /**
  * Mounts a form component with the field contract of design §5.4. v-model is wired: emitted values become the new
  * `modelValue`. Pass `panel` for withPanel() options and `options` for extra mount options.
+ * `action` (since 1.6, design 1.6 §8.3): { uriKey, entity } mounts the field as in an action's modal: the field is
+ * serialized with `inAction: true` and the context defaults to 'create', as the panel sends it.
  */
-export function mountField(Component, { field = {}, modelValue, errors = [], errorsByKey = {}, context = 'update', resourceId = null, panel = {}, options = {} } = {}) {
+export function mountField(Component, { field = {}, modelValue, errors = [], errorsByKey = {}, action = null, context = action ? 'create' : 'update', resourceId = null, panel = {}, options = {} } = {}) {
     const attribute = field.attribute ?? 'field'
     const value = modelValue === undefined ? field.value ?? null : modelValue
     let wrapper
@@ -53,7 +55,7 @@ export function mountField(Component, { field = {}, modelValue, errors = [], err
         merge(options, {
             ...withPanel(panel),
             props: {
-                field: { name: attribute, attribute, readonly: false, required: false, ...field },
+                field: { name: attribute, attribute, readonly: false, required: false, ...(action ? { inAction: true } : {}), ...field },
                 modelValue: value,
                 invalid: errors.length > 0,
                 errors,
@@ -62,6 +64,8 @@ export function mountField(Component, { field = {}, modelValue, errors = [], err
                 describedBy: errors.length > 0 ? `${attribute}-error` : null,
                 context,
                 resourceId,
+                // { uriKey, entity } in an action's modal, else null (since 1.6)
+                action,
                 'onUpdate:modelValue': (next) => wrapper.setProps({ modelValue: next }),
             },
         }),

@@ -311,8 +311,9 @@ php artisan queue:work --timeout=600
   `canRun()` or `fields()` depend on the session or headers, they get empty values on the queue.
 - **Field values** are stored the way they survive JSON: dates arrive as ISO-8601 strings
   (`Carbon::parse($fields->published_at)`), enums as their value (`value` or `name`), `NAN` and `INF` as
-  `null`. Any other object in a field value throws `LogicException` already when queuing.
-- **`File` and `Image` fields** in actions are still not supported (see
+  `null`. Values are normalized before dispatch: any other object in a field value (an extension field's
+  `actionValue()` included) throws a `LogicException` naming the field, before the run record is created.
+- **`File` and `Image` fields** and fields with `multipart: true` are not supported in actions (see
   [Actions](07-actions.md#files-in-actions)).
 
 ### Limits

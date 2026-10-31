@@ -13,6 +13,8 @@ use Maxcxam\Larsadmin\Fields\BelongsToMany;
  * Accepts only keys the user could have picked from the options endpoint:
  * the related entity's relatable scope plus its viewAny ability.
  * With $attach the value must also not be attached to the record yet.
+ *
+ * @internal Not part of the public API.
  */
 class RelatableExists implements ValidationRule
 {

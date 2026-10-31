@@ -4,6 +4,9 @@ namespace Maxcxam\Larsadmin\Support;
 
 use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * @internal Not part of the public API.
+ */
 final class Like
 {
     /**

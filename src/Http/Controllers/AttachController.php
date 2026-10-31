@@ -14,6 +14,9 @@ use Maxcxam\Larsadmin\Fields\BelongsToMany;
 use Maxcxam\Larsadmin\Http\Controllers\Concerns\ResolvesPanel;
 use Maxcxam\Larsadmin\Rules\RelatableExists;
 
+/**
+ * @internal Not part of the public API.
+ */
 class AttachController
 {
     use ResolvesPanel;
