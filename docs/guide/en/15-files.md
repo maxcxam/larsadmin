@@ -8,6 +8,12 @@ the form. `File` shows the file name as a link. Both fields work with one file o
 
 No extra Composer or npm dependencies are needed.
 
+For models that use [spatie/laravel-medialibrary](https://spatie.be/docs/laravel-medialibrary) (collections,
+conversions, galleries), install the separate add-on
+[`maxcxam/larsadmin-medialibrary`](https://github.com/maxcxam/larsadmin-medialibrary) (1.0, needs Larsadmin 1.6+).
+It adds the `Media` and `MediaGallery` fields and is documented in its own guide,
+`vendor/maxcxam/larsadmin-medialibrary/docs/guide/en/medialibrary.md`.
+
 ## Quick start
 
 ### Public image
@@ -595,7 +601,8 @@ key has a default.
   such files in 1.1.
 - Pruning does not count references: a path shared by several records needs `prunable(false)`
   (see [Pruning](#pruning)).
-- Integration with `spatie/laravel-medialibrary` is planned as a separate add-on after 1.6, built on the
-  public extension API and `Files\FileSafety`.
+- `spatie/laravel-medialibrary` is not used by these fields. Its collections are supported by the separate add-on
+  [`maxcxam/larsadmin-medialibrary`](https://github.com/maxcxam/larsadmin-medialibrary) (`Media`, `MediaGallery`),
+  built on the public extension API and `Files\FileSafety`.
 
 Next: [Global search](16-search.md).

@@ -538,8 +538,12 @@ public function fillInto(Request $request, Model $record, FileJournal $journal):
 - Решта `FileJournal` (створення, `discardCreated()`, очищення) внутрішня.
 - Журнал є лише в збереженні форми. Маршрути розширення керують файлами самі.
 
-Повний приклад: поле `Media` у `packages/larsadmin-medialibrary` (spike медіатеки) реєструє через журнал
-файли медіа й файли видалених медіа.
+Повний приклад: поле `Media` доповнення
+[`maxcxam/larsadmin-medialibrary`](https://github.com/maxcxam/larsadmin-medialibrary) (випущене як 1.0, код у
+`packages/larsadmin-medialibrary` монорепо) реєструє через журнал файли медіа, їхні перетворення й відповідальні
+зображення та файли видалених медіа. Це повне розширення лише на API цієї сторінки: multipart-поле, `fillInto()`,
+`bindTo()`, `authorizedTo()`, значення аудиту, маршрути розширення з `findRecord()`, `findField()` і `audited()`,
+та `FileSafety`.
 
 ### Аудит: `hasAuditValue()` і `auditValue()`
 

@@ -539,8 +539,12 @@ public function fillInto(Request $request, Model $record, FileJournal $journal):
 - The rest of `FileJournal` (construction, `discardCreated()`, purging) is internal.
 - The journal exists in form saves only. Extension routes manage their files themselves.
 
-Full example: the `Media` field in `packages/larsadmin-medialibrary` (the medialibrary spike) registers
-media files and the files of removed media through the journal.
+Full example: the `Media` field of the add-on
+[`maxcxam/larsadmin-medialibrary`](https://github.com/maxcxam/larsadmin-medialibrary) (released as 1.0, source in
+`packages/larsadmin-medialibrary` of the monorepo) registers media files, their conversions and responsive images,
+and the files of removed media through the journal. It is a complete extension built on this page's API only:
+a multipart field, `fillInto()`, `bindTo()`, `authorizedTo()`, audit values, extension routes with `findRecord()`,
+`findField()` and `audited()`, and `FileSafety`.
 
 ### Audit: `hasAuditValue()` and `auditValue()`
 
