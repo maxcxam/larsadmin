@@ -29,8 +29,8 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
 - **Relations**: `BelongsTo` (searchable), `HasMany` and `BelongsToMany` panels with attach/detach.
 - **Field blocks**: group form and detail fields into panels (one or two columns, collapsible) and tabs.
 - **Filters**: select, boolean and date range filters, plus your own.
-- **Actions**: bulk, standalone and per-row ("⋯" menu) actions with modal fields, confirmation, batching
-  and per-record availability.
+- **Actions**: bulk, standalone and per-row ("⋯" menu) actions with modal fields (extension fields
+  included), confirmation, batching and per-record availability.
 - **Metrics and dashboards**: Value, Trend, Partition and Progress cards, scoped to what the user may
   see, on dashboards or above an entity list.
 - **Security by default**: panel gate, model policies that fail closed, server-built record URLs.
@@ -40,7 +40,12 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
   (static or with data from an authorized, cached endpoint), filters and sidebar pages, their own routes
   and translations, and can override the UI of selected built-in components. Installed with
   `composer require` alone; fail closed when an extension is missing or broken. Scaffolds, a Vite preset
-  and test helpers for authors.
+  and test helpers for authors; since 1.6 record abilities for fields (`authorizedTo()`), extension fields
+  in action modals and the public `FileSafety` for extensions that store or serve files.
+- **AI assistants** (since 1.6, opt-in): 15 skills and a guideline for Laravel Boost or
+  `php artisan larsadmin:ai`, and a local MCP server (`php artisan larsadmin:mcp`, needs the optional
+  `laravel/mcp`) with guide search, read-only metadata of your entities and the generators. Never runs in
+  production.
 - **Generators** for entities, actions, filters, metrics, dashboards and extensions.
 
 The frontend ships prebuilt: your application does not need Node.js, also with extensions installed.
@@ -246,7 +251,7 @@ import RatingDisplay from './fields/RatingDisplay.vue'
 
 export default defineExtension({
     name: 'acme/larsadmin-rating',
-    requires: '^1.5',
+    requires: '^1.6',
     fields: { 'acme/rating': { form: RatingInput, display: RatingDisplay } },
 })
 ```
@@ -254,6 +259,27 @@ export default defineExtension({
 A field class with `public string $component = 'acme/rating'` is then used like any other field. Extension
 code is trusted code that runs with the administrator's rights; the server still authorizes everything. See
 the [extensions guide](docs/guide/en/19-extensions.md).
+
+## AI assistants
+
+The package ships skills and a guideline for AI coding assistants (Claude Code, Cursor and others) in
+`resources/boost/`, and a local MCP server. Both are optional and meant for development.
+
+```bash
+# With Laravel Boost 2.x: picks up the larsadmin guideline and skills
+php artisan boost:install
+
+# Without Boost: copy the skills to .claude/skills and add the MCP server to .mcp.json
+composer require laravel/mcp --dev
+php artisan larsadmin:ai --skills --mcp
+```
+
+The `larsadmin` MCP server (`php artisan larsadmin:mcp`, stdio) offers `search-docs`, `read-docs`,
+`application-info`, `list-entities`, `describe-entity`, `list-dashboards`, `list-extensions` and `generate`.
+It returns metadata only (never record data or secrets) and writes files only through `generate` with
+`write: true`. It runs only with `laravel/mcp` installed, by default only when `APP_ENV=local`
+(`LARSADMIN_MCP=true` also allows other non-production environments) and never in production. See the
+[AI assistants guide](docs/guide/en/20-ai-assistants.md).
 
 ## Configuration
 
@@ -286,6 +312,7 @@ the [extensions guide](docs/guide/en/19-extensions.md).
 | `notifications.*` | | `poll_interval` 60, `per_page` 15, `retention_days` 30, `throttle` 120 | Notifications; see the [notifications guide](docs/guide/en/18-notifications.md#configuration) |
 | `extensions.source_maps` | `LARSADMIN_EXTENSION_SOURCE_MAPS` | `false` | Serve extensions' source maps (debugging only) |
 | `extensions.max_age` | | `31536000` | Browser cache lifetime of versioned extension files, in seconds |
+| `mcp.enabled` | `LARSADMIN_MCP` | `null` | Local MCP server: `null` only with `APP_ENV=local`, `true` any non-production environment, `false` off; never in production |
 
 ## Authorization
 
@@ -357,6 +384,8 @@ its translation.
 | [17. Audit log](docs/guide/en/17-audit-log.md) | enabling, what is recorded, masking, gate, history UI, pruning, `AuditRecorded` |
 | [18. Notifications and background actions](docs/guide/en/18-notifications.md) | the bell, `LarsadminNotification`, queued actions, `ActionResponse::file()`, realtime (Reverb/Pusher), pruning |
 | [19. Extensions: the public API](docs/guide/en/19-extensions.md) | scaffolds, `Larsadmin::extension()`, `defineExtension`, custom fields, `DataCard`, tools, extension routes, overrides, fail closed, CSP, versioning, testing |
+| [20. AI assistants](docs/guide/en/20-ai-assistants.md) | skills, Laravel Boost, `larsadmin:ai`, the MCP server and its tools, security model |
+| [21. Testing](docs/guide/en/21-testing.md) | testing entities, policies, actions, filters, metrics and extensions, `InteractsWithLarsadmin` |
 
 ## Changelog
 

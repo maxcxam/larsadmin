@@ -461,6 +461,46 @@ it overrides `Field::fillInto(Request $request, Model $record, FileJournal $jour
 `multipart/form-data` when the field has `multipart()`. See
 [Extensions: save hooks](19-extensions.md#save-hooks-fillinto-and-filejournal).
 
+### `FileSafety` for extensions
+
+Since 1.6 the safety checks that `File` and `Image` use are available to extensions through the stable
+`Maxcxam\Larsadmin\Files\FileSafety` facade. An extension that stores or serves files (like the media
+library add-on) keeps no copy of these checks.
+
+| Method | Description |
+| --- | --- |
+| `rule(bool $publicDisk = false): Closure` | a validation rule: rejects [blocked extensions](#blocked-extensions) by every segment of the name and by the type detected from the content; with `$publicDisk` also markup and scripts |
+| `blockedExtension(UploadedFile $file, bool $publicDisk = false): ?string` | the file's first blocked extension, or `null` |
+| `storedExtension(UploadedFile $file, bool $publicDisk = false): string` | the extension to store with: detected from the content and allowed, else `bin`; never the browser's extension |
+| `sanitizeName(string $name): string` | the browser's name cleaned up: the last path segment, without control, bidi/zero-width and reserved characters, at most 200 characters; may be `''` |
+| `asciiName(string $name): string` | the ASCII fallback of a name for the `filename` parameter of `Content-Disposition` |
+| `isRasterImage(string $path, ?string $mime = null): bool` | whether the file may be shown inline: a raster extension (jpg, jpeg, png, gif, webp, avif; never SVG) and, when given, a raster MIME type |
+| `response(FilesystemAdapter $disk, string $path, ?string $name = null, bool $download = false, ?int $ttlMinutes = null): StreamedResponse` | a streamed response with the panel's headers (see below) |
+
+```php
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Maxcxam\Larsadmin\Files\FileSafety;
+
+// validating an upload
+$request->validate(['upload' => ['required', 'file', 'max:10240', FileSafety::rule($public)]]);
+
+// storing it under a random name with the extension detected from the content
+$file = $request->file('upload');
+$path = $file->storeAs('acme', Str::random(40).'.'.FileSafety::storedExtension($file, $public), $disk);
+$name = FileSafety::sanitizeName($file->getClientOriginalName());
+
+// serving it (after authorizing the request, e.g. with Larsadmin::findRecord())
+return FileSafety::response(Storage::disk($disk), $path, $name);
+```
+
+`response()` serves only raster images inline (by the path's extension, unless `$download`), everything else
+as an `application/octet-stream` attachment; always with `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: sandbox`, `Cross-Origin-Resource-Policy: same-origin`,
+`Referrer-Policy: no-referrer` and a private cache (inline images for `$ttlMinutes`, by default
+`files.url_ttl`; a value below 1 throws `InvalidArgumentException`; attachments are not stored). The name defaults to the path's base name. **The extension's
+code authorizes the request before the call.** `FileTypes`, `FileResponse` and `StoredFile` stay internal.
+
 ## Security
 
 - The file path never comes from the browser. The form sends tokens of existing files, and they are
@@ -479,8 +519,9 @@ it overrides `Field::fillInto(Request $request, Model $record, FileJournal $jour
     config;
   - keep files that must not be public on a private disk.
 - Only paths that the record referenced are deleted, and only after the commit.
-- `File` and `Image` fields cannot be used in action `fields()` (`LogicException`): an action fills
-  a throw-away model, and the files would be left without an owner.
+- `File` and `Image` fields, like any field with `multipart: true`, cannot be used in action `fields()`
+  (`LogicException`): an action fills a throw-away model, and the files would be left without an owner.
+- Extensions that work with files use the same checks through [`FileSafety`](#filesafety-for-extensions).
 
 ## API reference
 
@@ -554,6 +595,7 @@ key has a default.
   such files in 1.1.
 - Pruning does not count references: a path shared by several records needs `prunable(false)`
   (see [Pruning](#pruning)).
-- Integration with `spatie/laravel-medialibrary` is planned as a separate add-on after 1.5.
+- Integration with `spatie/laravel-medialibrary` is planned as a separate add-on after 1.6, built on the
+  public extension API and `Files\FileSafety`.
 
 Next: [Global search](16-search.md).

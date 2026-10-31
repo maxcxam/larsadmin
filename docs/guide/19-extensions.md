@@ -17,6 +17,9 @@ composer require acme/larsadmin-rating
 
 Усе, що описано на цій сторінці, є **стабільним API 1.x** (див. [Версії й сумісність](#версії-й-сумісність)).
 Що можна розширювати без JavaScript (Entity, дії, метрики, події), описано в [Розширення](10-extending.md).
+Версія 1.6 додала права запису для полів (`authorizedTo()`), поля розширень у модальних вікнах дій
+(`inAction()`, `actionValue()`, prop `action`) і публічний `Files\FileSafety`; розширення, що ними
+користується, декларує `requires: '^1.6'`.
 
 ## Поняття
 
@@ -60,14 +63,19 @@ specifier-и `vue`, `@inertiajs/vue3` і `larsadmin` з цими модулям�
 - віддаючи файл розширення, перевіряє вже **розв'язаний** шлях (`realpath`), а не лише запитаний, тож
   обхідні імена (наприклад, короткі імена Windows 8.3 на кшталт `VITE~1`) не відкривають dotfiles і
   файли поза дозволеними;
-- команди scaffold (`larsadmin:extension`, `:field`, `:card`, `:tool`) відмовляються писати, якщо на шляху
-  під коренем застосунку є будь-яке символічне посилання чи junction (зокрема «висяче»);
+- генератори (`larsadmin:extension`, `:field`, `:card`, `:tool`, а з 1.6 усі команди `larsadmin:*`, що
+  створюють класи, і MCP-інструмент `generate`) перевіряють увесь план до першого запису й відмовляються
+  писати поза коренем застосунку, якщо на шляху під ним є будь-яке символічне посилання чи junction
+  (зокрема «висяче») або сегмент лише з крапок чи з крапкою в кінці; каталог пакета розширення не може бути
+  в `vendor`, `node_modules`, `storage`, `bootstrap`, `public` чи теці, що починається з крапки (без
+  урахування регістру), а `generate` створює розширення лише під `packages/` чи `extensions/`;
 - `useJsonRequest()` додає CSRF-токен лише до запитів на той самий origin.
 
-Якщо розширенню доводиться скопіювати внутрішній код безпеки панелі (як spike медіатеки копіює перевірки
-файлів у `Support/FileSafety.php`, бо `FileTypes`/`FileResponse` внутрішні), покрийте копію **тестами
-паритету** з оригіналом, щоб вона не розійшлася з ним після оновлення панелі. Приклад:
-`packages/larsadmin-medialibrary/tests/Feature/FileSafetyParityTest.php`.
+Розширення, що зберігає чи віддає файли, користується публічним `Maxcxam\Larsadmin\Files\FileSafety` (з 1.6):
+ті самі перевірки завантажень і заголовки відповіді, що й у вбудованих `File`/`Image`
+([Файли й зображення](15-files.md#filesafety-для-розширень)). Не копіюйте внутрішній код безпеки панелі;
+якщо копія все ж неминуча, покрийте її **тестами паритету** з оригіналом, щоб вона не розійшлася з ним
+після оновлення панелі.
 
 ## Швидкий старт
 
@@ -128,16 +136,16 @@ php artisan larsadmin:tool Backups --extension=packages/acme/larsadmin-rating
 Vue-файли в `resources/larsadmin/js/...`, а ключ має вигляд `app/rating` (див.
 [Розширення в застосунку](#розширення-в-застосунку)).
 
-> **Розробка панелі з гілки.** Скелет вимагає `maxcxam/larsadmin: ^1.5`. Якщо панель встановлена з
+> **Розробка панелі з гілки.** Скелет вимагає `maxcxam/larsadmin: ^1.6`. Якщо панель встановлена з
 > гілки чи path-репозиторію, Composer бачить її як `dev-…`: гілка `main` має `branch-alias`
-> `dev-main → 1.x-dev`, а для path-репозиторію задайте `"options": {"versions": {"maxcxam/larsadmin": "1.5.x-dev"}}`.
+> `dev-main → 1.x-dev`, а для path-репозиторію задайте `"options": {"versions": {"maxcxam/larsadmin": "1.6.x-dev"}}`.
 > Команда попереджає про це й пропонує `composer require … :@dev -W`.
 
 ## Структура пакета
 
 ```
 packages/acme/larsadmin-rating/
-├── composer.json            # require maxcxam/larsadmin ^1.5; dev: orchestra/testbench, pestphp/pest
+├── composer.json            # require maxcxam/larsadmin ^1.6; dev: orchestra/testbench, pestphp/pest
 ├── package.json             # dev: vite, @vitejs/plugin-vue, vue, @inertiajs/vue3, tailwindcss,
 │                            #      @tailwindcss/vite, vitest, jsdom, @vue/test-utils
 ├── vite.config.js           # plugins: [vue(), tailwindcss(), larsadmin()]
@@ -262,7 +270,7 @@ import BackupsPage from './tools/BackupsPage.vue'
 
 export default defineExtension({
     name: 'acme/larsadmin-rating', // те саме, що в Larsadmin::extension()
-    requires: '^1.5',              // діапазон API панелі
+    requires: '^1.6',              // діапазон API панелі
     fields: {
         'acme/rating': { form: RatingInput, display: RatingDisplay },
     },
@@ -280,8 +288,9 @@ export default defineExtension({
 - `name` має збігатися з назвою, переданою в `Larsadmin::extension()`, інакше розширення не
   завантажується.
 - `requires` підтримує лише форму `^MAJOR.MINOR`. Вона задоволена, коли major збігається з
-  `apiVersion` панелі, а minor панелі не менший. `'^1.5'` працює з API `1.5`, `1.6`, … і не працює з
-  `2.0`. Несумісне розширення не завантажується, а його поля [fail closed](#недоступні-й-зламані-розширення).
+  `apiVersion` панелі, а minor панелі не менший. `'^1.6'` працює з API `1.6`, `1.7`, … і не працює з
+  `1.5` чи `2.0`. Розширення, що не користується API 1.6, може лишити `'^1.5'`.
+  Несумісне розширення не завантажується, а його поля [fail closed](#недоступні-й-зламані-розширення).
 - Частини поля: `form` (форми створення й редагування), `display` (index і detail), необов'язкові
   `index` і `detail` (замінюють `display` у своєму контексті) і `panel` (окремий блок detail-сторінки,
   див. [Відображення](#vue-відображення)).
@@ -368,6 +377,9 @@ Rating::make('Рейтинг', 'rating')->max(5)->nullable()->sortable(),
 | `fillInto(Request, Model, FileJournal): ?Closure` | заповнення з журналом файлів збереження |
 | `fillAttribute()`, `resolve()`, `eagerLoads()`, `applySort()` | публічні хуки |
 | `bindTo(Request, string $entity)` | поле дізнається свій Entity |
+| `authorizedTo(string $ability): bool` | з 1.6: чи може користувач `view`/`update`/`delete` запис, для якого поле розв'язується ([Поля](03-fields.md#права-на-запис-authorizedto)) |
+| `inAction(): bool` | з 1.6: поле належить `fields()` дії |
+| `actionValue(Request): mixed` | з 1.6: хук, значення поля для `ActionFields` дії ([Дії](07-actions.md#поля-розширень-у-модальному-вікні)) |
 | `hasAuditValue()`, `auditValue(Model)` | аудит поля без колонки |
 | `__construct(string $name, ?string $attribute = null, ?callable $resolveCallback = null)`, `resolveDefault()`, `rulesFor()`, `validationAttributeNames()`, `isRequired()`, `sortable()` | хуки, які можна перевизначати (наприклад, поле без колонки забороняє `sortable()`) |
 
@@ -376,8 +388,8 @@ Rating::make('Рейтинг', 'rating')->max(5)->nullable()->sortable(),
 ньому падає.
 
 Серіалізовані ключі базового поля: `component`, `name`, `attribute`, `value`, `displayedAs`, `sortable`,
-`nullable`, `readonly`, `required`, `help`, `placeholder`, `align`, `wrap`, `truncate`, `fullWidth` і
-`multipart` (лише коли `true`). У мінорних версіях можуть з'являтися нові ключі, тож називайте власні
+`nullable`, `readonly`, `required`, `help`, `placeholder`, `align`, `wrap`, `truncate`, `fullWidth`,
+`multipart` (лише коли `true`) і `inAction` (з 1.6, лише `true` для поля дії). У мінорних версіях можуть з'являтися нові ключі, тож називайте власні
 ключі так, щоб вони не збіглися з майбутніми (наприклад, `ratingMax`), а в компонентах ігноруйте невідомі.
 
 Правила, видимість (`showOnIndex()`, `canSee()`, …), `readonly()`, `sensitive()` та інші методи
@@ -397,8 +409,9 @@ Rating::make('Рейтинг', 'rating')->max(5)->nullable()->sortable(),
 | `errors` | Array\<string\> | повідомлення для `attribute` і вкладених ключів `attribute.*` |
 | `errorsByKey` | Object | ті самі повідомлення за ключами: `{ 'gallery': '…', 'gallery.upload.1': '…' }` |
 | `describedBy` | String \| null | id елемента з помилкою чи help, для `aria-describedby` |
-| `context` | `'create'` \| `'update'` | контекст форми |
-| `resourceId` | String \| Number \| null | ключ запису під час редагування |
+| `context` | `'create'` \| `'update'` | контекст форми; у модальному вікні дії `'create'` |
+| `resourceId` | String \| Number \| null | ключ запису під час редагування; у дії ключ запису, якщо дія виконується над одним записом, інакше `null` |
+| `action` | Object \| undefined | з 1.6: `{ uriKey, entity }` у модальному вікні дії ([Дії](07-actions.md#поля-розширень-у-модальному-вікні)); форма запису його не передає |
 
 Вимоги: кореневий фокусований елемент має `:id="field.attribute"` (на нього вказує `for` label-а) і
 поважає `field.readonly`.
@@ -479,6 +492,9 @@ class Gallery extends Field
 
 Помилки вкладених ключів (`gallery.upload.1`) приходять у `errors` і `errorsByKey`; панель показує під
 полем першу з них.
+
+Поле з `multipart: true` у `fields()` дії не підтримується (`LogicException`, як для `File`/`Image`):
+дія заповнює тимчасову модель, і завантаження лишилися б без власника.
 
 ### Хуки збереження: `fillInto()` і `FileJournal`
 
@@ -562,7 +578,16 @@ public function bindTo(Request $request, string $entity): void
 }
 ```
 
-Окремих прав `view`/`update` на кожен запис поле поки не отримує (див. [Обмеження](#обмеження-й-плани-на-16)).
+Права запису (`view`, `update`, `delete`) поле отримує через `authorizedTo()` (з 1.6) без власних
+викликів policy: це відповіді, які панель уже обчислила для рядка ([Поля](03-fields.md#права-на-запис-authorizedto)).
+
+### Поле в модальному вікні дії
+
+З 1.6 поля розширень працюють у `fields()` дії. Поле знає про це з `inAction()` (його `context` лишається
+`create`), а значення для `ActionFields` дає хук `actionValue(Request $request)`: за замовчуванням це те, що
+`fill()` пише в `fillAttribute()` тимчасової моделі. Перевизначте його, якщо `fill()` пише значення
+інакше; для фонових дій значення має переживати JSON. Компонент форми отримує додатковий prop `action`.
+Докладно: [Дії: поля розширень у модальному вікні](07-actions.md#поля-розширень-у-модальному-вікні).
 
 ## Картки
 
@@ -942,7 +967,8 @@ Larsadmin::findField(Request $request, string $entity, Model $record, string $at
 Повертає поле Entity для запису так, як його бачить панель: прив'язане (`bindTo()`), показане в
 `$context` цьому користувачу й для цього запису (інакше 404), а для `create`/`update` ще й не
 `readonly` (інакше 403). Повертає клон, тож його можна `resolve()`-ити. Викликайте після `findRecord()`.
-`$context`: `Field::INDEX`, `DETAIL`, `CREATE` або `UPDATE`.
+`$context`: `Field::INDEX`, `DETAIL`, `CREATE` або `UPDATE`. З 1.6 `authorizedTo()` поля відповідає для
+цього запису (у `create` завжди `false`); policy питається лише тоді, коли поле викликає `authorizedTo()`.
 
 ### `audited()`
 
@@ -1032,7 +1058,7 @@ tc('acme-rating::stars', 3) // "3 зірки"
 
 | Експорт | Опис |
 | --- | --- |
-| `apiVersion` | рядок `'1.5'` (`Larsadmin::API_VERSION`) |
+| `apiVersion` | рядок `'1.6'` (`Larsadmin::API_VERSION`) |
 | `defineExtension(options)` | опис розширення ([вище](#defineextension-і-requires)) |
 | `useI18n()` | `{ t, tc, locale }`; ключі розширень `t('acme-rating::key')` |
 | `useLarsadmin()` | `{ url(...segments), entityUrl(uriKey, ...segments) }` під шляхом панелі; сегменти кодуються, `.` і `..` заборонені |
@@ -1169,7 +1195,7 @@ export default defineExtension({
 `/`, невідомий панелі, як і раніше показується текстовим полем (сумісність з 1.4).
 
 **Debug-toast.** Лише з `APP_DEBUG=true` користувач панелі ще й бачить toast «Розширення X не
-завантажено» або «Розширення X потребує API ^1.6, а панель надає 1.5». У продакшні є лише консоль і
+завантажено» або «Розширення X потребує API ^1.7, а панель надає 1.6». У продакшні є лише консоль і
 placeholder-и.
 
 ## CSP і nonce
@@ -1208,10 +1234,10 @@ Middleware має виконуватися до рендера сторінки 
 
 ## Версії й сумісність
 
-- `Larsadmin::API_VERSION` (PHP) і `apiVersion` (JS) дорівнюють `'1.5'`: це `MAJOR.MINOR` версії, у
+- `Larsadmin::API_VERSION` (PHP) і `apiVersion` (JS) дорівнюють `'1.6'`: це `MAJOR.MINOR` версії, у
   якій востаннє розширювався публічний API. Мінор без змін API його не піднімає.
-- PHP-сумісність гарантує Composer (`"maxcxam/larsadmin": "^1.5"` у `composer.json` розширення).
-  `requires` у JavaScript ловить застарілий `dist/`.
+- PHP-сумісність гарантує Composer (`"maxcxam/larsadmin": "^1.6"` у `composer.json` розширення;
+  `"^1.5"` для розширення без API 1.6). `requires` у JavaScript ловить застарілий `dist/`.
 - **Заморожено в межах 1.x:** Vue 3 (≥ 3.5) і Inertia v3, specifier-и import map, контракти компонентів
   цієї сторінки, експорти модуля `larsadmin` і kit, CSS-контракт, PHP-члени зі списку стабільних.
   Перехід на Vue 4 чи Inertia v4 можливий лише в 2.0.
@@ -1229,6 +1255,7 @@ Middleware має виконуватися до рендера сторінки 
 | `Extensions\Extension` | `$name`, `$path`, `script()`, `style()`, `translations()`, `version()`, `url()` |
 | `Fields\Field` | див. [PHP-клас поля](#php-клас) |
 | `Files\FileJournal` | `created()`, `obsolete()` |
+| `Files\FileSafety` | з 1.6: `rule()`, `blockedExtension()`, `storedExtension()`, `sanitizeName()`, `asciiName()`, `isRasterImage()`, `response()` ([Файли й зображення](15-files.md#filesafety-для-розширень)) |
 | `Metrics\Card` | `$component`, `$width`, `$meta`, `name()`, `uriKey()`, `width()`, `help()`, `canSee()`, `withMeta()`, `jsonSerialize()` |
 | `Metrics\DataCard` | `rules()`, `data()`, `cacheFor()`, `cacheKeyParts()`, `entityQuery()` |
 | `Metrics\CardRequest` | `$request`, `$parameters`, `$timezone`, `$now`, `$owner`, `user()`, `get()` |
@@ -1241,7 +1268,10 @@ Middleware має виконуватися до рендера сторінки 
 Внутрішні члени не є API, навіть якщо вони публічні в PHP: `Entity::fieldPrototypes()`, `isShownOn()`,
 `isReadonlyFor()` (для них є `findField()`), конструктор і допоміжні методи `Extension`, конструктор
 `CardRequest`, `DataCard::cardRequest()`/`resolve()`/`cacheKey()`, `Extension::NAME_PATTERN`,
-`Tool::COMPONENT_PATTERN`, `Tool::$canSee` і все з позначкою `@internal`.
+`Tool::COMPONENT_PATTERN`, `Tool::$canSee`, `Field::withAbilities()`/`forAction()`, `Files\FileTypes`,
+`Files\FileResponse` і все з позначкою `@internal`. З 1.6 внутрішніми позначено також `Larsadmin::locale()`,
+`locales()`, `navigation()`, `searchOrder()`, `modelUsesScout()`, `dashboardForKey()`, `home()`,
+`dashboardNavigation()`, `metricCacheScope()` і `timezone()`.
 
 ### Перевірка публічного API
 
@@ -1283,7 +1313,7 @@ API:
 
 | Метод | Що робить |
 | --- | --- |
-| `serializeField(Field $field, ?Model $record = null, string $context = Field::DETAIL, ?string $entity = null): array` | серіалізує поле, як панель для сторінки; з `$entity` (клас чи `uriKey`) спершу викликає `bindTo()` |
+| `serializeField(Field $field, ?Model $record = null, string $context = Field::DETAIL, ?string $entity = null, array $abilities = []): array` | серіалізує поле, як панель для сторінки; з `$entity` (клас чи `uriKey`) спершу викликає `bindTo()`; `$abilities` (з 1.6, напр. `['view' => true]`) задає відповіді `authorizedTo()` для запису (без запису й у `create` ігнорується) |
 | `fillField(Field $field, Model $record, array $input, array $files = [], string $context = Field::UPDATE): Model` | валідує ввід правилами поля (`ValidationException`), як панель викликає `fillInto()` з журналом файлів, зберігає й виконує відкладене замикання в транзакції; при помилці видаляє файли, зареєстровані через `created()` |
 | `cardData(DataCard $card, array $query = [], ?Authenticatable $user = null, string $owner = 'dashboard:test'): mixed` | `canSee()` (`AuthorizationException`), `rules()` (`ValidationException`), `data()` |
 | `assertExtensionRegistered(string $name)` | розширення зареєстроване |
@@ -1344,11 +1374,13 @@ describe('RatingDisplay', () => {
 | Помічник | Що монтує |
 | --- | --- |
 | `withPanel({ locale, translations, path, props })` | опції mount, що дають SDK сторінку панелі (`useI18n`, `useLarsadmin`, …) |
-| `mountField(Component, { field, modelValue, errors, errorsByKey, context, resourceId, panel, options })` | форму з контрактом; `v-model` підключено; `errors` вмикає `invalid` і `describedBy` `{attribute}-error` |
+| `mountField(Component, { field, modelValue, errors, errorsByKey, action, context, resourceId, panel, options })` | форму з контрактом; `v-model` підключено; `errors` вмикає `invalid` і `describedBy` `{attribute}-error`; `action: { uriKey, entity }` (з 1.6) монтує поле як у модальному вікні дії (`inAction: true`, `context` за замовчуванням `'create'`) |
 | `mountDisplay(Component, { field, context, panel, options })` | відображення; `displayedAs` за замовчуванням `String(value)` |
 | `mountCard(Component, { card, panel, options })` | картку з серіалізованими ключами `Card` |
 
 `options` передається в `mount()` `@vue/test-utils`.
+
+Тестування Entity, policy, дій, фільтрів і метрик застосунку описано в [Тестування](21-testing.md).
 
 ## Збірка й публікація
 
@@ -1369,7 +1401,7 @@ vendor/bin/pest # після composer install у каталозі пакета
 Публікація:
 
 1. Закомітьте `dist/` після `npm run build`.
-2. `composer.json` пакета вимагає `"maxcxam/larsadmin": "^1.5"` і реєструє провайдер в
+2. `composer.json` пакета вимагає `"maxcxam/larsadmin": "^1.6"` і реєструє провайдер в
    `extra.laravel.providers` (скелет робить обидва).
 3. Поставте тег версії й опублікуйте пакет (Packagist чи приватний репозиторій).
 
@@ -1383,10 +1415,10 @@ vendor/bin/pest # після composer install у каталозі пакета
 | Збірка падає з «contains its own copy of Vue, Inertia or the larsadmin SDK» | імпорт Vue/Inertia через глибокий шлях чи alias, або залежність тягне власний Vue; імпортуйте лише `vue`, `@inertiajs/vue3`, `larsadmin` |
 | Поля показують «Недоступно», у консолі нічого про розширення | import map заблоковано CSP: увімкніть `Vite::useCspNonce()` ([CSP](#csp-і-nonce)) |
 | «Extension "…" was not loaded (the module is named …)» | `name` у `defineExtension()` не збігається з `Larsadmin::extension()` |
-| «… requires ^1.6, the panel API is 1.5» | `requires` вищий за API панелі: оновіть панель або понизьте `requires` |
+| «… requires ^1.7, the panel API is 1.6» | `requires` вищий за API панелі: оновіть панель або понизьте `requires` |
 | Стилі розширення не застосовуються | немає `dist/extension.css` (не імпортовано CSS у `extension.js`) або класи не згенеровано (`@source "../js"`) |
 | Ключ відхилено з «use override: true» | ключ без `/` збігся з вбудованим; використайте `vendor/name` або `override: true` для дозволеного ключа |
-| `composer require acme/…:^1.5` не знаходить сумісну панель | панель з гілки чи path-репозиторію: див. [швидкий старт](#швидкий-старт) |
+| `composer require acme/…:^1.6` не знаходить сумісну панель | панель з гілки чи path-репозиторію: див. [швидкий старт](#швидкий-старт) |
 | Розширення зникло в тестах | тест викликав `Larsadmin::flushState()`: зареєструйте його знову |
 | `check-public-api.mjs`: «… overrides …, which is not a stable override hook» | клас перевизначає нестабільний член базового класу; перенесіть логіку в стабільний хук |
 
@@ -1419,20 +1451,14 @@ Shared props (лише для користувачів, що пройшли ге
 `larsadmin.extensionTranslations`, `larsadmin.debug`, `tools`. Без зареєстрованих розширень і tools цих
 props немає, а Inertia-версія така сама, як у 1.4.
 
-## Обмеження й плани на 1.6
+## Обмеження
 
 - **Перше завантаження важче приблизно на 27 КБ gzip**, ніж у 1.4, навіть без розширень: Vue та Inertia
   лежать у спільних чанках, які розширення імпортують через import map, і не проходять tree-shaking.
   Далі файли кешуються браузером. Зайвих послідовних запитів немає: кореневий шаблон додає
   `<link rel="modulepreload">` (з `nonce`) для статичних імпортів `app.js` за `dist/.vite/manifest.json`
   (без manifest тегів немає), тож після `app.js` браузер паралельно вантажить чанки vue, inertia і shared.
-- `FileTypes` і `FileResponse` панелі внутрішні. Розширенню, що віддає файли (як spike медіатеки), поки
-  доводиться мати власну копію перевірок безпеки з тестами паритету (див. [Модель довіри](#модель-довіри)).
-  Публічний безпечний відповідач файлів заплановано на 1.6.
-- Поле не отримує прав `view`/`update` на кожен запис. Поле, якому вони потрібні, перевіряє policy саме:
-  на index це N викликів policy на сторінку. Рішення заплановано на 1.6.
-- Поля розширень (як і `File`/`Image`) у модальних вікнах дій не підтримуються; поле не знає, що воно в
-  дії. Заплановано на 1.6.
+- Поля, що надсилають файли (`File`, `Image`, `multipart: true`), у модальних вікнах дій не підтримуються.
 - `Larsadmin::flushState()` знімає розширення, зареєстровані провайдерами під час boot (див.
   [Тестування](#pest-php)).
 - `FileJournal` видаляє файли, але не каталоги: після відкинутого завантаження можуть лишатися порожні
@@ -1446,4 +1472,4 @@ props немає, а Inertia-версія така сама, як у 1.4.
   залежних полів. Картки лише читають дані; зміни робляться діями чи маршрутами розширення.
 - Посилання в toast-ах розширень не підтримуються.
 
-Далі: [Розширення (огляд)](10-extending.md).
+Далі: [AI-асистенти](20-ai-assistants.md).

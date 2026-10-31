@@ -454,6 +454,46 @@ protected static function booted(): void
 надсилається як `multipart/form-data`, якщо поле має `multipart()`. Див.
 [Розширення: хуки збереження](19-extensions.md#хуки-збереження-fillinto-і-filejournal).
 
+### `FileSafety` для розширень
+
+З 1.6 перевірки безпеки, якими користуються `File` і `Image`, доступні розширенням через стабільний фасад
+`Maxcxam\Larsadmin\Files\FileSafety`. Розширення, що зберігає чи віддає файли (як доповнення медіатеки),
+не тримає власної копії цих перевірок.
+
+| Метод | Опис |
+| --- | --- |
+| `rule(bool $publicDisk = false): Closure` | правило валідації: відхиляє [заблоковані розширення](#заблоковані-розширення) за кожним сегментом імені й за типом, визначеним за вмістом; з `$publicDisk` також розмітку й скрипти |
+| `blockedExtension(UploadedFile $file, bool $publicDisk = false): ?string` | перше заблоковане розширення файлу або `null` |
+| `storedExtension(UploadedFile $file, bool $publicDisk = false): string` | розширення для збереження: визначене за вмістом і дозволене, інакше `bin`; ніколи не розширення з браузера |
+| `sanitizeName(string $name): string` | очищена назва з браузера: останній сегмент шляху, без керівних, bidi/zero-width і зарезервованих символів, до 200 символів; може бути `''` |
+| `asciiName(string $name): string` | ASCII-варіант назви для параметра `filename` у `Content-Disposition` |
+| `isRasterImage(string $path, ?string $mime = null): bool` | чи можна показати файл inline: растрове розширення (jpg, jpeg, png, gif, webp, avif; не SVG) і, якщо передано, растровий MIME-тип |
+| `response(FilesystemAdapter $disk, string $path, ?string $name = null, bool $download = false, ?int $ttlMinutes = null): StreamedResponse` | потокова відповідь із заголовками панелі (див. нижче) |
+
+```php
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Maxcxam\Larsadmin\Files\FileSafety;
+
+// валідація завантаження
+$request->validate(['upload' => ['required', 'file', 'max:10240', FileSafety::rule($public)]]);
+
+// збереження під випадковим ім'ям з розширенням за вмістом
+$file = $request->file('upload');
+$path = $file->storeAs('acme', Str::random(40).'.'.FileSafety::storedExtension($file, $public), $disk);
+$name = FileSafety::sanitizeName($file->getClientOriginalName());
+
+// віддача (після авторизації запиту, наприклад Larsadmin::findRecord())
+return FileSafety::response(Storage::disk($disk), $path, $name);
+```
+
+`response()` віддає inline лише растрові зображення (за розширенням шляху, якщо не `$download`), решту як
+вкладення `application/octet-stream`; завжди з `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: sandbox`, `Cross-Origin-Resource-Policy: same-origin`,
+`Referrer-Policy: no-referrer` і приватним кешем (inline-зображення на `$ttlMinutes`, за замовчуванням
+`files.url_ttl`; значення менше 1 кидає `InvalidArgumentException`; вкладення не кешуються). Назва за замовчуванням: базове ім'я шляху. **Авторизацію робить
+код розширення до виклику.** `FileTypes`, `FileResponse` і `StoredFile` лишаються внутрішніми.
+
 ## Безпека
 
 - Шлях до файлу ніколи не приходить з браузера. Форма надсилає токени наявних файлів, і вони
@@ -469,8 +509,10 @@ protected static function booted(): void
     `Content-Security-Policy: sandbox` і `Content-Disposition: attachment` для всього, крім зображень;
   - файли, які не повинні бути публічними, зберігайте на приватному диску.
 - Видаляються лише шляхи, на які посилався запис, і лише після коміту.
-- Поля `File` і `Image` не можна використовувати в `fields()` дій (`LogicException`): дія заповнює
-  тимчасову модель, і файли лишилися б без власника.
+- Поля `File` і `Image`, як і будь-яке поле з `multipart: true`, не можна використовувати в `fields()` дій
+  (`LogicException`): дія заповнює тимчасову модель, і файли лишилися б без власника.
+- Розширення, що працюють з файлами, користуються тими самими перевірками через
+  [`FileSafety`](#filesafety-для-розширень).
 
 ## Довідник API
 
@@ -544,6 +586,7 @@ protected static function booted(): void
   файлів у 1.1 немає.
 - Очищення не рахує посилань: шлях, спільний для кількох записів, потребує `prunable(false)`
   (див. [Очищення](#очищення-pruning)).
-- Інтеграція зі `spatie/laravel-medialibrary` запланована окремим доповненням після 1.5.
+- Інтеграція зі `spatie/laravel-medialibrary` запланована окремим доповненням після 1.6, побудованим на
+  публічному API розширень і `Files\FileSafety`.
 
 Далі: [Глобальний пошук](16-search.md).

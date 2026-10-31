@@ -7,6 +7,121 @@
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-31
+
+### Added
+
+- **AI-асистенти (FR-064).** Пакет постачає 15 скілів (`resources/boost/skills/larsadmin-*`: setup, entities,
+  fields-layout, relations, authorization-security, filters, actions, metrics-dashboards, files,
+  global-search, audit-log, notifications-realtime, ui-i18n-theming, extending, testing) і guideline
+  `resources/boost/guidelines/core.md`. З Laravel Boost 2.x їх встановлює `php artisan boost:install`
+  (Boost 1.8 читає лише guidelines). Посібник: `docs/guide/20-ai-assistants.md`.
+- **Команда `larsadmin:ai {--skills} {--mcp} {--claude-md} {--path=.claude/skills} {--force}`** для
+  встановлення без Boost: копіює скіли (з маркером `.larsadmin-skill`; змінені вручну й чужі теки
+  пропускаються без `--force`), додає сервер `larsadmin` у `.mcp.json` (наявний запис `larsadmin` замінює
+  лише `--force`), один раз додає рядок імпорту guidelines у `CLAUDE.md`. Без опцій питає інтерактивно;
+  з `--no-interaction` це `--skills --mcp`. Пише лише всередині `base_path()` і не через посилання.
+  `.mcp.json` пишеться без екранування `/` і Unicode; файл з дубльованими ключами чи числами, які
+  перезапис змінив би, команда не переписує, а показує запис для ручного додавання.
+  Розпізнає Boost: не дублює guidelines у `CLAUDE.md`, якщо їх уже вставив Boost, а скіли, встановлені
+  Boost, пропускає з порадою `php artisan boost:update` або `--force`.
+- **Локальний MCP-сервер `larsadmin`** (stdio, `laravel/mcp`) і команда `larsadmin:mcp`, що його запускає.
+  Інструменти: `search-docs` і `read-docs` (англійські посібники пакета), `application-info`,
+  `list-entities`, `describe-entity`, `list-dashboards`, `list-extensions` (метадані зареєстрованих Entity,
+  полів, дій, фільтрів, метрик, дашбордів, tools і розширень) та `generate` (ті самі генератори, що й
+  команди `larsadmin:*`; за замовчуванням лише план з вмістом файлів, запис з `write: true`, усе або нічого).
+  `list-extensions` показує Composer-пакет і PSR-4 namespace-и кожного розширення; `describe-entity` для
+  полів дає `rules` (повні правила, якщо їх можна обчислити без коду хоста), `rulesComputed` і
+  `declaredRules` (оголошені правила для створення й оновлення).
+- **Конфіг `mcp.enabled`** (`LARSADMIN_MCP`, `null`): `null` вмикає сервер лише з `APP_ENV=local`, `true`
+  у будь-якому не-production середовищі, `false` вимикає.
+- **Посібники** `docs/guide/20-ai-assistants.md` і `docs/guide/21-testing.md` (тестування Entity, policy,
+  дій, фільтрів, метрик і розширень) з англійськими перекладами.
+- **`Maxcxam\Larsadmin\Files\FileSafety`** (стабільний фасад): `rule()`, `blockedExtension()`,
+  `storedExtension()`, `sanitizeName()`, `asciiName()`, `isRasterImage()`, `response()`. Розширення, що
+  зберігає чи віддає файли, користується тими самими перевірками й заголовками, що `File`/`Image`, без
+  власної копії. Spike медіатеки перейшов на фасад (його копію й `FileSafetyParityTest` видалено).
+- **`Field::authorizedTo(string $ability)`**: відповіді policy `view`/`update`/`delete` для запису, для
+  якого поле розв'язується. Це права, які панель уже обчислила для рядка, тож нових викликів policy немає.
+  `false` у контексті створення, у дії, для поля, створеного вручну, і для іншої здатності.
+  `Larsadmin::findField()` повертає поле з правами для запису.
+- **Поля розширень у модальних вікнах дій:** `Field::inAction()` і стабільний хук
+  `Field::actionValue(Request)` (значення для `ActionFields`; за замовчуванням як у 1.5: `fill()` у тимчасову
+  модель і читання `fillAttribute()`). `ActionModal` рендерить поля розширень і перевизначення через той
+  самий реєстр і `ExtensionBoundary`, що й форма запису, і передає повний контракт форми: `errors`,
+  `errorsByKey`, `describedBy`, `context: 'create'`, `resourceId` (ключ одного запису, інакше `null`) і
+  новий prop `action: { uriKey, entity }`. Серіалізоване поле дії має ключ `inAction: true`.
+- **Тестові помічники:** `InteractsWithLarsadmin::serializeField()` отримав параметр `$abilities`
+  (`['view' => true, …]`) для `authorizedTo()`; `mountField()` у `kit/testing.js` приймає опцію `action`.
+- `composer.json`: `suggest` `laravel/mcp` (`^0.7.1|^1.0`, Laravel 12 потребує 12.41.1+) і `laravel/boost`
+  (`^2.0`); `laravel/mcp` лише в `require-dev`, панель від нього не залежить.
+
+### Changed
+
+- **`Larsadmin::API_VERSION` і `apiVersion` (JS): `'1.6'`.** Розширення, що використовує нове API
+  (`authorizedTo()`, `inAction()`, `actionValue()`, prop `action`, `FileSafety`), декларує `requires: '^1.6'`
+  і `"maxcxam/larsadmin": "^1.6"`; скелет `larsadmin:extension` генерує саме так. Розширення з `'^1.5'`
+  працюють як раніше.
+- Усі генератори (`larsadmin:entity`, `:action`, `:filter`, `:dashboard`, `:value`, `:trend`, `:partition`,
+  `:progress`, `:field`, `:card`, `:tool`, `:extension`) працюють через спільний внутрішній `Scaffolder`,
+  той самий, що й MCP-інструмент `generate`, і дають однакові файли. Генератори класів застосунку тепер, як
+  і scaffold розширень, **відмовляються писати поза `base_path()` чи через символічне посилання або
+  junction** на шляху.
+- **Генератори (artisan і `generate`):** увесь план перевіряється до першого запису; сегменти шляху лише з
+  крапок чи з крапкою в кінці відхиляються; каталог пакета розширення (`--path`, `--extension`) не може бути
+  в `vendor`, `node_modules`, `storage`, `bootstrap`, `public` чи теці, що починається з крапки (без
+  урахування регістру). Зарезервована назва PHP відхиляється (у `generate` у кожному сегменті імені).
+- Згенеровані дії, фільтри, картки й tools отримують читабельну назву (`RateComment` → `Rate Comment`)
+  замість назви класу. Підказки наступних кроків artisan-команд і `generate` пропонують `::make()`.
+- `Action::validatedFields()` бере значення кожного поля з `actionValue()`; назви полів для повідомлень
+  валідації дії беруться з `validationAttributeNames()` (зокрема вкладені ключі). Модальне вікно дії
+  показує під полем першу помилку вкладених ключів (`attribute.*`).
+- Фонові дії нормалізують значення полів до постановки в чергу: значення, що не є скаляром, масивом, датою
+  чи enum, кидає `LogicException` з ім'ям поля ще до створення запису запуску; обробник отримує збережені
+  значення.
+- Поле з `multipart: true` у `fields()` дії кидає `LogicException`, як `File` і `Image` (завантаження в діях
+  у 1.6 не підтримуються).
+- `File`/`Image` віддають URL файлів за `authorizedTo('view')` замість окремого прапорця.
+- Як `@internal` позначено члени `Larsadmin`, які не є API розширень: `locale()`, `locales()`,
+  `navigation()`, `searchOrder()`, `modelUsesScout()`, `dashboardForKey()`, `home()`,
+  `dashboardNavigation()`, `metricCacheScope()`, `timezone()`. Також явно внутрішні `Field::withAbilities()`,
+  `Field::forAction()`, `FileTypes`, `FileResponse`, `StoredFile`, класи консольних команд, `Http`, `Query`,
+  `Support` та інші службові класи.
+
+### Security
+
+- **Модель безпеки MCP:** сервер ніколи не працює в production (незалежно від `LARSADMIN_MCP`), без
+  `laravel/mcp` не реєструється, лише stdio (без HTTP-маршрутів). Інструменти інтроспекції не виконують
+  замикань, не читають БД і не повертають даних записів, опцій з БД, повідомлень винятків, секретів чи
+  конфігу поза allowlist. `generate` не пише в production, пише класи застосунку лише в `app/Larsadmin`,
+  відмовляється від шляхів поза `base_path()` і посилань.
+- MCP: `generate` позначено як destructive (`force` перезаписує файли); розширення він створює лише під
+  `packages/` чи `extensions/`. Гейт вважає production також `isProduction()` і назви середовищ `prod` та
+  `live` (без урахування регістру). `describe-entity` не повертає значень правил `in:` / `not_in:` (лише
+  назву правила).
+- `FileSafety::response()` кидає `InvalidArgumentException` для `$ttlMinutes` менше 1.
+- **`FileSafety` замість копій:** розширення більше не мусять копіювати перевірки безпеки файлів, тож
+  розбіжність на кшталт SECX-03 не повториться.
+- **Fail closed:** `authorizedTo()` повертає `false`, коли відповідь невідома; поле розширення, недоступне
+  в модальному вікні дії, показує «Недоступно: розширення не завантажено» і не надсилається.
+
+### Upgrade notes
+
+- **Нічого не обов'язково.** Застосунки й розширення 1.5 працюють без змін. Оновіть асети:
+  `php artisan larsadmin:publish`.
+- **AI-асистенти (необов'язково):** `composer require laravel/boost --dev` і `php artisan boost:install`, або
+  `composer require laravel/mcp --dev` і `php artisan larsadmin:ai --skills --mcp`. Див.
+  `docs/guide/20-ai-assistants.md`.
+- Якщо генератор `larsadmin:*` тепер відмовляється писати, на шляху під коренем застосунку є символічне
+  посилання чи junction: запишіть файли в каталог без посилань.
+- Код, що викликав тепер внутрішні методи `Larsadmin` (`locale()`, `navigation()`, `timezone()` тощо),
+  працює, але вони не входять у контракт 1.x.
+- Розширення з копією перевірок файлів (як було в spike медіатеки) може перейти на `FileSafety` і
+  `"maxcxam/larsadmin": "^1.6"`.
+- **Нові члени `Field`, що можуть конфліктувати з вашими спадкоємцями:** `authorizedTo()`, `inAction()`,
+  `actionValue()`, `withAbilities()`, `forAction()`. Метод з несумісною сигнатурою дає fatal error під час
+  завантаження класу.
+
 ## [1.5.0] - 2026-10-31
 
 ### Added
@@ -851,7 +966,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/maxcxam/larsadmin/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/maxcxam/larsadmin/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/maxcxam/larsadmin/compare/v1.3.1...v1.4.0

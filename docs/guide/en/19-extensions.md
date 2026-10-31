@@ -17,7 +17,9 @@ components.
 
 Everything on this page is **stable 1.x API** (see [Versioning and compatibility](#versioning-and-compatibility)).
 What you can extend without JavaScript (entities, actions, metrics, events) is described in
-[Extending](10-extending.md).
+[Extending](10-extending.md). Version 1.6 added record abilities for fields (`authorizedTo()`), extension
+fields in action modals (`inAction()`, `actionValue()`, the `action` prop) and the public
+`Files\FileSafety`; an extension that uses them declares `requires: '^1.6'`.
 
 ## Concepts
 
@@ -60,14 +62,19 @@ What else the panel does:
 - when serving an extension file it checks the **resolved** path (`realpath`), not only the requested one,
   so alternative names (for example Windows 8.3 short names such as `VITE~1`) do not open dotfiles or files
   outside the allowed ones;
-- the scaffold commands (`larsadmin:extension`, `:field`, `:card`, `:tool`) refuse to write when the path
-  below the application root contains any symbolic link or junction (dangling ones included);
+- the generators (`larsadmin:extension`, `:field`, `:card`, `:tool`, and since 1.6 every `larsadmin:*`
+  command that creates classes and the `generate` MCP tool) check the whole plan before the first write and
+  refuse to write outside the application root, when the path below it contains any symbolic link or junction
+  (dangling ones included) or a segment of dots only or ending in a dot; an extension package directory
+  cannot be in `vendor`, `node_modules`, `storage`, `bootstrap`, `public` or a dot-folder (case-insensitively),
+  and `generate` creates extensions only below `packages/` or `extensions/`;
 - `useJsonRequest()` adds the CSRF token to same-origin requests only.
 
-When an extension has to copy internal security code of the panel (as the medialibrary spike copies the
-file checks into `Support/FileSafety.php`, because `FileTypes`/`FileResponse` are internal), cover the copy
-with **parity tests** against the original, so it does not drift after a panel update. Example:
-`packages/larsadmin-medialibrary/tests/Feature/FileSafetyParityTest.php`.
+An extension that stores or serves files uses the public `Maxcxam\Larsadmin\Files\FileSafety` (since 1.6):
+the same upload checks and response headers as the built-in `File`/`Image`
+([Files and images](15-files.md#filesafety-for-extensions)). Do not copy the panel's internal security code;
+if a copy cannot be avoided, cover it with **parity tests** against the original, so it does not drift after
+a panel update.
 
 ## Quick start
 
@@ -129,17 +136,17 @@ commands **do not edit** `extension.js`; they print the lines for `defineExtensi
 `app/Larsadmin/{Fields,Cards,Tools}`, the Vue files to `resources/larsadmin/js/...`, and the key looks like
 `app/rating` (see [An extension inside the application](#an-extension-inside-the-application)).
 
-> **Developing against a panel branch.** The skeleton requires `maxcxam/larsadmin: ^1.5`. When the panel is
+> **Developing against a panel branch.** The skeleton requires `maxcxam/larsadmin: ^1.6`. When the panel is
 > installed from a branch or a path repository, Composer sees it as `dev-…`: the `main` branch has the
 > `branch-alias` `dev-main → 1.x-dev`, and for a path repository set
-> `"options": {"versions": {"maxcxam/larsadmin": "1.5.x-dev"}}`. The command warns about this and suggests
+> `"options": {"versions": {"maxcxam/larsadmin": "1.6.x-dev"}}`. The command warns about this and suggests
 > `composer require … :@dev -W`.
 
 ## Package layout
 
 ```
 packages/acme/larsadmin-rating/
-├── composer.json            # require maxcxam/larsadmin ^1.5; dev: orchestra/testbench, pestphp/pest
+├── composer.json            # require maxcxam/larsadmin ^1.6; dev: orchestra/testbench, pestphp/pest
 ├── package.json             # dev: vite, @vitejs/plugin-vue, vue, @inertiajs/vue3, tailwindcss,
 │                            #      @tailwindcss/vite, vitest, jsdom, @vue/test-utils
 ├── vite.config.js           # plugins: [vue(), tailwindcss(), larsadmin()]
@@ -265,7 +272,7 @@ import BackupsPage from './tools/BackupsPage.vue'
 
 export default defineExtension({
     name: 'acme/larsadmin-rating', // the same as in Larsadmin::extension()
-    requires: '^1.5',              // range of the panel API
+    requires: '^1.6',              // range of the panel API
     fields: {
         'acme/rating': { form: RatingInput, display: RatingDisplay },
     },
@@ -282,8 +289,9 @@ export default defineExtension({
   and marks it. The panel's loader registers the components.
 - `name` must equal the name given to `Larsadmin::extension()`, or the extension is not loaded.
 - `requires` supports only the `^MAJOR.MINOR` form. It is satisfied when the major equals the panel's
-  `apiVersion` and the panel's minor is not lower. `'^1.5'` works with API `1.5`, `1.6`, … and not with
-  `2.0`. An incompatible extension is not loaded and its fields [fail closed](#unavailable-and-crashed-extensions).
+  `apiVersion` and the panel's minor is not lower. `'^1.6'` works with API `1.6`, `1.7`, … and not with
+  `1.5` or `2.0`. An extension that does not use the 1.6 API may keep `'^1.5'`.
+  An incompatible extension is not loaded and its fields [fail closed](#unavailable-and-crashed-extensions).
 - Field parts: `form` (create and update forms), `display` (index and detail), optional `index` and
   `detail` (replace `display` in their context) and `panel` (a separate block on the detail page, see
   [Display](#vue-display)).
@@ -370,6 +378,9 @@ Stable members of `Field` for subclasses:
 | `fillInto(Request, Model, FileJournal): ?Closure` | filling with the save's file journal |
 | `fillAttribute()`, `resolve()`, `eagerLoads()`, `applySort()` | public hooks |
 | `bindTo(Request, string $entity)` | the field learns its entity |
+| `authorizedTo(string $ability): bool` | since 1.6: whether the user may `view`/`update`/`delete` the record the field is resolved for ([Fields](03-fields.md#record-abilities-authorizedto)) |
+| `inAction(): bool` | since 1.6: the field belongs to an action's `fields()` |
+| `actionValue(Request): mixed` | since 1.6: hook, the field's value for the action's `ActionFields` ([Actions](07-actions.md#extension-fields-in-the-modal)) |
 | `hasAuditValue()`, `auditValue(Model)` | auditing a field without a column |
 | `__construct(string $name, ?string $attribute = null, ?callable $resolveCallback = null)`, `resolveDefault()`, `rulesFor()`, `validationAttributeNames()`, `isRequired()`, `sortable()` | hooks you may override (for example, a field without a column refuses `sortable()`) |
 
@@ -378,8 +389,8 @@ Only the members in this table may be overridden. Overriding anything else (`isS
 on it.
 
 Serialized keys of the base field: `component`, `name`, `attribute`, `value`, `displayedAs`, `sortable`,
-`nullable`, `readonly`, `required`, `help`, `placeholder`, `align`, `wrap`, `truncate`, `fullWidth` and
-`multipart` (only when `true`). Minor versions may add keys, so name your own keys so they will not clash
+`nullable`, `readonly`, `required`, `help`, `placeholder`, `align`, `wrap`, `truncate`, `fullWidth`,
+`multipart` (only when `true`) and `inAction` (since 1.6, only `true`, for a field of an action). Minor versions may add keys, so name your own keys so they will not clash
 with future ones (for example `ratingMax`), and ignore unknown keys in your components.
 
 Rules, visibility (`showOnIndex()`, `canSee()`, …), `readonly()`, `sensitive()` and the other methods work
@@ -399,8 +410,9 @@ the component never submits the form itself.
 | `errors` | Array\<string\> | messages for `attribute` and its nested keys `attribute.*` |
 | `errorsByKey` | Object | the same messages by key: `{ 'gallery': '…', 'gallery.upload.1': '…' }` |
 | `describedBy` | String \| null | id of the error or help element, for `aria-describedby` |
-| `context` | `'create'` \| `'update'` | form context |
-| `resourceId` | String \| Number \| null | the record key when updating |
+| `context` | `'create'` \| `'update'` | form context; `'create'` in an action modal |
+| `resourceId` | String \| Number \| null | the record key when updating; in an action, the record key when the action runs on one record, else `null` |
+| `action` | Object \| undefined | since 1.6: `{ uriKey, entity }` in an action modal ([Actions](07-actions.md#extension-fields-in-the-modal)); the record form does not pass it |
 
 Requirements: the focusable root element has `:id="field.attribute"` (the label's `for` points at it) and
 honours `field.readonly`.
@@ -481,6 +493,9 @@ set it. An extension field whose value merely looks like that format is sent unc
 
 Errors of nested keys (`gallery.upload.1`) arrive in `errors` and `errorsByKey`; the panel shows the first
 one below the field.
+
+A field with `multipart: true` is not supported in an action's `fields()` (`LogicException`, as for
+`File`/`Image`): an action fills a throw-away model, so the uploads would be orphaned.
 
 ### Save hooks: `fillInto()` and `FileJournal`
 
@@ -563,7 +578,17 @@ public function bindTo(Request $request, string $entity): void
 }
 ```
 
-Fields do not receive per-record `view`/`update` rights yet (see [Limitations](#limitations-and-plans-for-16)).
+A field gets the record abilities (`view`, `update`, `delete`) from `authorizedTo()` (since 1.6) without
+policy calls of its own: these are the answers the panel already computed for the row
+([Fields](03-fields.md#record-abilities-authorizedto)).
+
+### A field in an action modal
+
+Since 1.6 extension fields work in an action's `fields()`. The field knows it from `inAction()` (its
+`context` stays `create`), and the `actionValue(Request $request)` hook gives the value for `ActionFields`:
+by default whatever `fill()` writes to `fillAttribute()` of a throw-away model. Override it when `fill()`
+writes the value differently; for background actions the value must survive JSON. The form component gets
+an extra `action` prop. Details: [Actions: extension fields in the modal](07-actions.md#extension-fields-in-the-modal).
 
 ## Cards
 
@@ -941,7 +966,8 @@ Larsadmin::findField(Request $request, string $entity, Model $record, string $at
 Returns the entity's field for the record as the panel sees it: bound (`bindTo()`), shown in `$context` to
 this user for this record (404 otherwise) and, for `create`/`update`, not `readonly` (403 otherwise). It
 returns a clone, so you may `resolve()` it. Call it after `findRecord()`. `$context`: `Field::INDEX`,
-`DETAIL`, `CREATE` or `UPDATE`.
+`DETAIL`, `CREATE` or `UPDATE`. Since 1.6 the field's `authorizedTo()` answers for this record (always
+`false` in `create`); the policy is asked only when the field calls `authorizedTo()`.
 
 ### `audited()`
 
@@ -1032,7 +1058,7 @@ Every export below is part of the 1.x SemVer contract (minors only add):
 
 | Export | Description |
 | --- | --- |
-| `apiVersion` | the string `'1.5'` (`Larsadmin::API_VERSION`) |
+| `apiVersion` | the string `'1.6'` (`Larsadmin::API_VERSION`) |
 | `defineExtension(options)` | the extension definition ([above](#defineextension-and-requires)) |
 | `useI18n()` | `{ t, tc, locale }`; extension keys `t('acme-rating::key')` |
 | `useLarsadmin()` | `{ url(...segments), entityUrl(uriKey, ...segments) }` under the panel path; segments are encoded, `.` and `..` refused |
@@ -1158,7 +1184,7 @@ What the user sees in place of an unavailable `vendor/name` component:
 
 | Where | Placeholder |
 | --- | --- |
-| form | a box "Unavailable: the extension is not loaded" with the hint "This field's value will not be changed on save." |
+| form | a box "Unavailable: the extension is not loaded" with the hint "This field will not be changed when you save." |
 | index, detail | "—" with an "Unavailable…" tooltip |
 | card, tool, panel | a block with the name and "Unavailable…" |
 | filter | the filter label and "Unavailable…" |
@@ -1168,7 +1194,7 @@ crashed) **is not sent**: the server keeps the stored value, and on create `requ
 `/` that the panel does not know still renders as a text input (1.4 compatibility).
 
 **Debug toast.** Only with `APP_DEBUG=true` the panel user also sees a toast "Extension X was not loaded"
-or "Extension X requires API ^1.6, the panel provides 1.5". In production there are only the console and the
+or "Extension X requires API ^1.7, the panel provides 1.6". In production there are only the console and the
 placeholders.
 
 ## CSP and nonces
@@ -1207,10 +1233,11 @@ no import map on the page.
 
 ## Versioning and compatibility
 
-- `Larsadmin::API_VERSION` (PHP) and `apiVersion` (JS) are `'1.5'`: the `MAJOR.MINOR` of the version that
+- `Larsadmin::API_VERSION` (PHP) and `apiVersion` (JS) are `'1.6'`: the `MAJOR.MINOR` of the version that
   last extended the public API. A minor that does not change the API does not raise it.
-- Composer guarantees PHP compatibility (`"maxcxam/larsadmin": "^1.5"` in the extension's
-  `composer.json`). `requires` in JavaScript catches a stale `dist/`.
+- Composer guarantees PHP compatibility (`"maxcxam/larsadmin": "^1.6"` in the extension's
+  `composer.json`; `"^1.5"` for an extension without the 1.6 API). `requires` in JavaScript catches a stale
+  `dist/`.
 - **Frozen for 1.x:** Vue 3 (≥ 3.5) and Inertia v3, the import map specifiers, the component contracts on
   this page, the exports of the `larsadmin` module and of the kit, the CSS contract, the PHP members listed
   as stable. Moving to Vue 4 or Inertia v4 can happen only in 2.0.
@@ -1228,6 +1255,7 @@ Stable PHP classes and members:
 | `Extensions\Extension` | `$name`, `$path`, `script()`, `style()`, `translations()`, `version()`, `url()` |
 | `Fields\Field` | see [the field's PHP class](#the-php-class) |
 | `Files\FileJournal` | `created()`, `obsolete()` |
+| `Files\FileSafety` | since 1.6: `rule()`, `blockedExtension()`, `storedExtension()`, `sanitizeName()`, `asciiName()`, `isRasterImage()`, `response()` ([Files and images](15-files.md#filesafety-for-extensions)) |
 | `Metrics\Card` | `$component`, `$width`, `$meta`, `name()`, `uriKey()`, `width()`, `help()`, `canSee()`, `withMeta()`, `jsonSerialize()` |
 | `Metrics\DataCard` | `rules()`, `data()`, `cacheFor()`, `cacheKeyParts()`, `entityQuery()` |
 | `Metrics\CardRequest` | `$request`, `$parameters`, `$timezone`, `$now`, `$owner`, `user()`, `get()` |
@@ -1240,7 +1268,10 @@ metrics, actions, dashboards, `Layout\Panel`, `Layout\Tabs`, events, `LarsadminN
 application does. Internal members are not API, even when they are public in PHP: `Entity::fieldPrototypes()`,
 `isShownOn()`, `isReadonlyFor()` (use `findField()` instead), the constructor and helper methods of
 `Extension`, the `CardRequest` constructor, `DataCard::cardRequest()`/`resolve()`/`cacheKey()`,
-`Extension::NAME_PATTERN`, `Tool::COMPONENT_PATTERN`, `Tool::$canSee` and anything marked `@internal`.
+`Extension::NAME_PATTERN`, `Tool::COMPONENT_PATTERN`, `Tool::$canSee`, `Field::withAbilities()`/`forAction()`,
+`Files\FileTypes`, `Files\FileResponse` and anything marked `@internal`. Since 1.6 these are marked internal
+too: `Larsadmin::locale()`, `locales()`, `navigation()`, `searchOrder()`, `modelUsesScout()`,
+`dashboardForKey()`, `home()`, `dashboardNavigation()`, `metricCacheScope()` and `timezone()`.
 
 ### Checking the public API
 
@@ -1280,7 +1311,7 @@ The `Maxcxam\Larsadmin\Testing\InteractsWithLarsadmin` trait (also for PHPUnit) 
 
 | Method | What it does |
 | --- | --- |
-| `serializeField(Field $field, ?Model $record = null, string $context = Field::DETAIL, ?string $entity = null): array` | serializes the field as the panel does for a page; with `$entity` (a class or `uriKey`) calls `bindTo()` first |
+| `serializeField(Field $field, ?Model $record = null, string $context = Field::DETAIL, ?string $entity = null, array $abilities = []): array` | serializes the field as the panel does for a page; with `$entity` (a class or `uriKey`) calls `bindTo()` first; `$abilities` (since 1.6, e.g. `['view' => true]`) sets the answers of `authorizedTo()` for the record (ignored without a record and in `create`) |
 | `fillField(Field $field, Model $record, array $input, array $files = [], string $context = Field::UPDATE): Model` | validates the input with the field's rules (`ValidationException`), calls `fillInto()` with a file journal as the panel does, saves and runs the deferred closure in a transaction; on failure deletes the files registered with `created()` |
 | `cardData(DataCard $card, array $query = [], ?Authenticatable $user = null, string $owner = 'dashboard:test'): mixed` | `canSee()` (`AuthorizationException`), `rules()` (`ValidationException`), `data()` |
 | `assertExtensionRegistered(string $name)` | the extension is registered |
@@ -1341,11 +1372,13 @@ describe('RatingDisplay', () => {
 | Helper | What it mounts |
 | --- | --- |
 | `withPanel({ locale, translations, path, props })` | mount options that give the SDK a panel page (`useI18n`, `useLarsadmin`, …) |
-| `mountField(Component, { field, modelValue, errors, errorsByKey, context, resourceId, panel, options })` | a form component with the contract; `v-model` is wired; `errors` turns on `invalid` and `describedBy` `{attribute}-error` |
+| `mountField(Component, { field, modelValue, errors, errorsByKey, action, context, resourceId, panel, options })` | a form component with the contract; `v-model` is wired; `errors` turns on `invalid` and `describedBy` `{attribute}-error`; `action: { uriKey, entity }` (since 1.6) mounts the field as in an action modal (`inAction: true`, `context` defaults to `'create'`) |
 | `mountDisplay(Component, { field, context, panel, options })` | a display component; `displayedAs` defaults to `String(value)` |
 | `mountCard(Component, { card, panel, options })` | a card with the serialized `Card` keys |
 
 `options` is passed to `@vue/test-utils`' `mount()`.
+
+Testing the application's entities, policies, actions, filters and metrics is covered in [Testing](21-testing.md).
 
 ## Building and publishing
 
@@ -1366,7 +1399,7 @@ without deep paths or aliases.
 Publishing:
 
 1. Commit `dist/` after `npm run build`.
-2. The package's `composer.json` requires `"maxcxam/larsadmin": "^1.5"` and registers the provider in
+2. The package's `composer.json` requires `"maxcxam/larsadmin": "^1.6"` and registers the provider in
    `extra.laravel.providers` (the skeleton does both).
 3. Tag a version and publish the package (Packagist or a private repository).
 
@@ -1380,10 +1413,10 @@ file version changes and open tabs reload on their next navigation.
 | The build fails with "contains its own copy of Vue, Inertia or the larsadmin SDK" | Vue/Inertia imported through a deep path or alias, or a dependency pulls its own Vue; import only `vue`, `@inertiajs/vue3`, `larsadmin` |
 | Fields show "Unavailable", nothing about the extension in the console | the CSP blocks the import map: turn on `Vite::useCspNonce()` ([CSP](#csp-and-nonces)) |
 | "Extension "…" was not loaded (the module is named …)" | the `name` in `defineExtension()` differs from `Larsadmin::extension()` |
-| "… requires ^1.6, the panel API is 1.5" | `requires` is above the panel API: update the panel or lower `requires` |
+| "… requires ^1.7, the panel API is 1.6" | `requires` is above the panel API: update the panel or lower `requires` |
 | The extension's styles do not apply | no `dist/extension.css` (the CSS is not imported in `extension.js`) or the classes were not generated (`@source "../js"`) |
 | A key is rejected with "use override: true" | a key without `/` matched a built-in one; use `vendor/name`, or `override: true` for an allowed key |
-| `composer require acme/…:^1.5` finds no compatible panel | the panel comes from a branch or path repository: see [Quick start](#quick-start) |
+| `composer require acme/…:^1.6` finds no compatible panel | the panel comes from a branch or path repository: see [Quick start](#quick-start) |
 | The extension disappears in tests | the test called `Larsadmin::flushState()`: register it again |
 | `check-public-api.mjs`: "… overrides …, which is not a stable override hook" | the class overrides an unstable member of its base class; move the logic into a stable hook |
 
@@ -1416,7 +1449,7 @@ Shared props (only for users past the gate): `larsadmin.extensions` (`[{ name, s
 `larsadmin.extensionTranslations`, `larsadmin.debug`, `tools`. Without registered extensions and tools these
 props are absent, and the Inertia version is the same as in 1.4.
 
-## Limitations and plans for 1.6
+## Limitations
 
 - **The first load is about 27 KB gzip heavier** than in 1.4, also without extensions: Vue and Inertia live
   in shared chunks that extensions import through the import map, and they are not tree-shaken. After that
@@ -1424,13 +1457,7 @@ props are absent, and the Inertia version is the same as in 1.4.
   `<link rel="modulepreload">` tags (with the `nonce`) for the static imports of `app.js`, read from
   `dist/.vite/manifest.json` (no tags without a manifest), so after `app.js` the browser loads the vue,
   inertia and shared chunks in parallel.
-- The panel's `FileTypes` and `FileResponse` are internal. An extension that serves files (like the
-  medialibrary spike) has to keep its own copy of the safety checks, with parity tests (see
-  [Trust model](#trust-model)). A public safe file responder is planned for 1.6.
-- Fields do not receive per-record `view`/`update` rights. A field that needs them checks the policy itself:
-  on the index that is N policy calls per page. A solution is planned for 1.6.
-- Extension fields (like `File`/`Image`) are not supported in action modals; a field does not know it is in
-  an action. Planned for 1.6.
+- Fields that upload files (`File`, `Image`, `multipart: true`) are not supported in action modals.
 - `Larsadmin::flushState()` removes the extensions providers registered at boot (see [Testing](#pest-php)).
 - `FileJournal` deletes files, not directories: after a discarded upload empty directories can remain (for
   example spatie/laravel-medialibrary media directories).
@@ -1443,4 +1470,4 @@ props are absent, and the Inertia version is the same as in 1.4.
   only read data; changes are made with actions or extension routes.
 - Links in extension toasts are not supported.
 
-Next: [Extending (overview)](10-extending.md).
+Next: [AI assistants](20-ai-assistants.md).
