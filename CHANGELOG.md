@@ -187,6 +187,17 @@
 - `larsadmin:extension` завжди пише пакет у `PATH/VENDOR/PACKAGE`.
 - Розширення без збірки пишуться лише render-функціями (панель постачає Vue без компілятора шаблонів).
 
+## [1.4.1] - 2026-10-31
+
+### Fixed
+
+- Повторне виконання `app.js`. Ліниві чанки зібраного `dist/` (`NotificationPanel`, `echo`) імпортували
+  точку входу як `../app.js`, тоді як сторінка завантажує її як `app.js?id=<hash>`. Браузер вважав це двома
+  різними модулями, тож під час першого відкриття дзвіночка (або завантаження realtime) застосунок
+  запускався вдруге: другий екземпляр Inertia, дублікати спільного стану, опитування й слухачів. Тепер увесь
+  статично завантажуваний код лежить в одному спільному чанку `chunks/shared-*.js`, `app.js` лише імпортує
+  його, а ліниві чанки імпортують той самий чанк. Збірка падає, якщо будь-який чанк імпортує точку входу.
+
 ## [1.4.0] - 2026-10-31
 
 ### Added
@@ -842,6 +853,7 @@
 
 [Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...HEAD
 [1.5.0]: https://github.com/maxcxam/larsadmin/compare/v1.4.1...v1.5.0
+[1.4.1]: https://github.com/maxcxam/larsadmin/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/maxcxam/larsadmin/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/maxcxam/larsadmin/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/maxcxam/larsadmin/compare/v1.2.0...v1.3.0
