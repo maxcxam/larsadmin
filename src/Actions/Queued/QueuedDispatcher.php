@@ -54,6 +54,7 @@ class QueuedDispatcher
      * @param  'all'|list<int|string>  $resources
      *
      * @throws ValidationException when 'all' matches more than "queued_max_all" records
+     * @throws LogicException when a field value (Field::actionValue()) cannot be queued, before anything is stored
      */
     public function dispatch(Request $request, string $entity, Action $action, string|array $resources, ActionFields $fields): ActionRun|ActionResponse
     {
@@ -63,9 +64,12 @@ class QueuedDispatcher
             abort(403);
         }
 
+        // Fail fast, before the run row exists: every value must survive the encrypted JSON payload.
+        $values = self::normalize($fields->toArray());
+
         $max = max(1, (int) config('larsadmin.actions.queued_max_active', 3));
 
-        $run = $this->locked($user, function () use ($request, $entity, $action, $resources, $fields, $user, $max) {
+        $run = $this->locked($user, function () use ($request, $entity, $action, $resources, $values, $user, $max) {
             try {
                 $active = ActionRun::liveFor($user)->count();
             } catch (Throwable $e) {
@@ -93,7 +97,7 @@ class QueuedDispatcher
                 }
             }
 
-            $run = $this->create($request, $entity, $action, $resources, $fields, $user, $total);
+            $run = $this->create($request, $entity, $action, $resources, $values, $user, $total);
 
             // Re-count after the insert: a concurrent request that slipped past the count loses here.
             $live = ActionRun::query()->ownedBy($user)->active()->orderBy('created_at')->orderBy('id')->get(['id', 'status', 'updated_at', 'created_at', 'payload'])
@@ -172,8 +176,9 @@ class QueuedDispatcher
     /**
      * @param  class-string<Entity>  $entity
      * @param  'all'|list<int|string>  $resources
+     * @param  array<array-key, mixed>  $values  the field values, already normalized for the queue
      */
-    protected function create(Request $request, string $entity, Action $action, string|array $resources, ActionFields $fields, Authenticatable $user, ?int $total): ActionRun
+    protected function create(Request $request, string $entity, Action $action, string|array $resources, array $values, Authenticatable $user, ?int $total): ActionRun
     {
         $filters = $request->input('filters');
         $search = $request->input('search');
@@ -193,7 +198,7 @@ class QueuedDispatcher
                 'selection' => $action->standalone ? [] : $resources,
                 'filters' => $resources === 'all' && is_array($filters) ? $filters : [],
                 'search' => $resources === 'all' && is_string($search) ? $search : '',
-                'fields' => self::normalize($fields->toArray()),
+                'fields' => $values,
                 'origin_url' => self::originUrl($request),
                 'actor' => AuditActor::fromRequest($request)->toArray(),
                 'timeout' => $action->timeout,
@@ -247,25 +252,31 @@ class QueuedDispatcher
 
     /**
      * Field values as they survive JSON: dates as ISO-8601 strings, enums as their values, non-finite
-     * numbers as null; any other object fails fast.
+     * numbers as null; any other object fails fast, naming the field (the top-level key) it came from.
      *
      * @param  array<array-key, mixed>  $values
      * @return array<array-key, mixed>
      *
      * @throws LogicException for values that cannot be queued
      */
-    public static function normalize(array $values): array
+    public static function normalize(array $values, ?string $field = null): array
     {
-        return array_map(function (mixed $value) {
-            return match (true) {
+        $normalized = [];
+
+        foreach ($values as $key => $value) {
+            $name = $field ?? (string) $key;
+
+            $normalized[$key] = match (true) {
                 $value === null, is_string($value), is_int($value), is_bool($value) => $value,
                 is_float($value) => is_finite($value) ? $value : null,
-                is_array($value) => self::normalize($value),
+                is_array($value) => self::normalize($value, $name),
                 $value instanceof DateTimeInterface => $value->format(DateTimeInterface::ATOM),
                 $value instanceof BackedEnum => $value->value,
                 $value instanceof UnitEnum => $value->name,
-                default => throw new LogicException(sprintf('A queued action cannot carry a field value of type [%s]; use scalars, arrays, dates or enums.', get_debug_type($value))),
+                default => throw new LogicException(sprintf('A queued action cannot carry the value of the field [%s] of type [%s]; use scalars, arrays, dates or enums (see Field::actionValue()).', $name, get_debug_type($value))),
             };
-        }, $values);
+        }
+
+        return $normalized;
     }
 }

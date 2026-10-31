@@ -27,9 +27,15 @@ const props = defineProps({
 const crashed = computed(() => registry.isCrashed(props.kind, props.componentKey, props.part))
 
 // The built-in component gets exactly what it got in 1.4: no contract-only props that would fall through as
-// HTML attributes on its root element.
+// HTML attributes on its root element. In an action modal (design 1.6 §8.3: `action` is { uriKey, entity }) the 1.4
+// built-ins got neither `context` nor `resourceId`, so those are dropped with `action` itself.
 const fallbackBind = computed(() => {
-    const { errors, errorsByKey, describedBy, ...rest } = props.bind
+    const { errors, errorsByKey, describedBy, action, ...rest } = props.bind
+
+    if (action !== null && typeof action === 'object') {
+        delete rest.context
+        delete rest.resourceId
+    }
 
     if (props.mode !== 'form') delete rest.context
 

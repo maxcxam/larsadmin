@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { objectToFormData } from '@inertiajs/core'
 import { registry } from '../../extensions/registry'
-import { actionPayload } from './actionPayload'
+import { actionPayload, fieldContract, fieldMessage } from './actionPayload'
 
 const base = { resources: [1, 2], search: 'x' }
 
@@ -44,5 +44,33 @@ describe('actionPayload (ActionModal fail closed)', () => {
         expect(keys).toContain('import[upload][0]')
         expect(keys).toContain('resources[0]')
         expect(keys.some((key) => key.startsWith('missing'))).toBe(false)
+    })
+})
+
+describe('fieldContract / fieldMessage (extension fields in the action modal)', () => {
+    const errors = { rating: 'Required.', 'tags.0': 'Too long.', 'tags.1': 'Taken.', other: 'x' }
+
+    it('gives the full form contract with context "create" and the action', () => {
+        const action = { uriKey: 'rate', entity: 'posts' }
+
+        expect(fieldContract(errors, { attribute: 'tags' }, { describedBy: 'm-tags-error', resourceId: 7, action })).toEqual({
+            errors: ['Too long.', 'Taken.'],
+            errorsByKey: { 'tags.0': 'Too long.', 'tags.1': 'Taken.' },
+            describedBy: 'm-tags-error',
+            context: 'create',
+            resourceId: 7,
+            action,
+        })
+    })
+
+    it('defaults to no record, no action and no description', () => {
+        expect(fieldContract({}, { attribute: 'rating' })).toEqual({ errors: [], errorsByKey: {}, describedBy: null, context: 'create', resourceId: null, action: null })
+    })
+
+    it('shows the own error, else the first keyed one', () => {
+        expect(fieldMessage(errors, 'rating')).toBe('Required.')
+        expect(fieldMessage(errors, 'tags')).toBe('Too long.')
+        expect(fieldMessage(errors, 'missing')).toBeNull()
+        expect(fieldMessage(undefined, 'rating')).toBeNull()
     })
 })

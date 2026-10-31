@@ -68,12 +68,16 @@ const PHP_API = {
         'bindTo', 'hasAuditValue', 'auditValue', 'fillInto',
         // Override hooks made stable after the 1.5 review (CRX-04).
         '__construct', 'resolveDefault', 'rulesFor', 'validationAttributeNames', 'isRequired', 'sortable',
+        // 1.6 (ADR-041): per-field abilities and action context; actionValue() is an override hook.
+        'authorizedTo', 'inAction', 'actionValue',
     ],
     'Fields\\PanelField': [],
     'Fields\\BelongsTo': [], 'Fields\\BelongsToMany': [], 'Fields\\Boolean': [], 'Fields\\Date': [], 'Fields\\DateTime': [],
     'Fields\\File': [], 'Fields\\HasMany': [], 'Fields\\ID': [], 'Fields\\Image': [], 'Fields\\Number': [], 'Fields\\Password': [],
     'Fields\\Select': [], 'Fields\\Text': [], 'Fields\\Textarea': [],
     'Files\\FileJournal': ['created', 'obsolete'],
+    // 1.6 (ADR-041): the upload safety contract for extensions.
+    'Files\\FileSafety': ['rule', 'blockedExtension', 'storedExtension', 'sanitizeName', 'asciiName', 'isRasterImage', 'response'],
     'Metrics\\Card': ['$component', '$width', '$meta', 'name', 'uriKey', 'width', 'help', 'canSee', 'jsonSerialize', 'withMeta'],
     'Metrics\\DataCard': ['rules', 'data', 'cacheFor', 'cacheKeyParts', 'entityQuery'],
     'Metrics\\CardRequest': ['$request', '$parameters', '$timezone', '$now', '$owner', 'user', 'get'],
@@ -95,6 +99,8 @@ const PHP_API = {
 const INTERNAL_PHP_MEMBERS = [
     'fieldPrototypes', 'isShownOn', 'isReadonlyFor', 'extensionRoutes', 'registerExtensionRoutes', 'cacheScopeAccepts',
     'cardCacheScope', 'auditActorLabel', 'withUrls', 'navigationIcon', 'forRun',
+    // 1.6 (ADR-041): ability snapshot / action binding, called by the panel only.
+    'withAbilities', 'forAction', 'fieldAbilities',
 ]
 
 // Kit files and the exports authors may use (design §6.4, §18.1 A6g). Other exports of kit/vite.js exist for
@@ -439,6 +445,77 @@ function overrideSurface(pkg) {
     return contract
 }
 
+// --- Field form contract (design 1.5 §5.4, 1.6 §8.3) -------------------------------------------------------------
+
+// Where an extension field's form component is mounted, and the functions whose returned object is v-bound onto it
+// (the props only extension / override components receive). Each host contributes the props bound on its
+// `<component :is="formComponent(field)">` plus the keys those functions return.
+const FIELD_HOSTS = {
+    'form/entity': { file: 'resources/js/components/EntityForm.vue', contract: [['resources/js/components/EntityForm.vue', 'contractProps']] },
+    'form/action': { file: 'resources/js/components/actions/ActionModal.vue', contract: [['resources/js/components/actions/actionPayload.js', 'fieldContract']] },
+}
+
+const camel = (name) => name.replace(/-(\w)/g, (_, c) => c.toUpperCase())
+
+// Keys of the object literal the named function returns (its last `return {...}`).
+function returnedKeys(pkg, file, name) {
+    const path = join(pkg, file)
+    const code = existsSync(path) ? stripJsComments(read(path)) : ''
+    const at = code.search(new RegExp(`\\bfunction\\s+${name}\\s*\\(|\\b(?:const|let)\\s+${name}\\s*=`))
+    if (at < 0) {
+        fail(file, `${name}() not found: cannot read the field form contract (design 1.5 §5.4)`)
+        return []
+    }
+    const body = balanced(code, code.indexOf('{', code.indexOf(')', at)))
+    const returns = [...body.matchAll(/\breturn\s*\{/g)]
+    if (!returns.length) {
+        fail(file, `${name}() returns no object literal: cannot read the field form contract (design 1.5 §5.4)`)
+        return []
+    }
+    const last = returns[returns.length - 1]
+    return topLevelKeys(balanced(body, last.index + last[0].length - 1))
+}
+
+// Props bound on the host's `<component :is="formComponent(field)" ...>` (v-model → modelValue, kebab → camel).
+function hostBindings(pkg, file) {
+    const path = join(pkg, file)
+    const source = existsSync(path) ? read(path) : ''
+    const tag = source.match(/<component\b(?:[^>"']|"[^"]*"|'[^']*')*?:is="formComponent\(field\)"(?:[^>"']|"[^"]*"|'[^']*')*\/?>/)
+    if (!tag) {
+        fail(file, '<component :is="formComponent(field)"> not found: cannot read the field form contract (design 1.5 §5.4)')
+        return []
+    }
+    const props = []
+    for (const m of tag[0].matchAll(/\s(v-model(?::([\w-]+))?|v-bind:([\w-]+)|:([\w-]+)|([A-Za-z][\w-]*))=/g)) {
+        if (m[1].startsWith('v-model')) props.push(camel(m[2] ?? 'modelValue'))
+        else if (m[3] ?? m[4]) props.push(camel(m[3] ?? m[4]))
+        else if (!m[5].startsWith('v-')) props.push(camel(m[5]))
+    }
+    return props.filter((p) => !['is', 'key', 'class', 'style', 'ref'].includes(p))
+}
+
+// Keys of the serialized field (Field::jsonSerialize(), incl. the conditional "multipart" / "inAction").
+function serializedFieldKeys(pkg) {
+    const path = join(pkg, 'src/Fields/Field.php')
+    const code = existsSync(path) ? read(path) : ''
+    const at = code.search(/public\s+function\s+jsonSerialize\s*\(/)
+    if (at < 0) {
+        fail('src/Fields/Field.php', 'jsonSerialize() not found: cannot read the serialized field contract')
+        return []
+    }
+    const body = balanced(code, code.indexOf('{', at))
+    return [...body.matchAll(/'(\w+)'\s*=>/g)].map((m) => m[1])
+}
+
+function fieldContractSurface(pkg) {
+    const contract = {}
+    for (const [host, { file, contract: sources }] of Object.entries(FIELD_HOSTS)) {
+        contract[host] = sorted([...hostBindings(pkg, file), ...sources.flatMap(([source, name]) => returnedKeys(pkg, source, name))])
+    }
+    contract.field = sorted(serializedFieldKeys(pkg))
+    return contract
+}
+
 // --- Surface -----------------------------------------------------------------------------------------------------
 
 function currentSurface(pkg) {
@@ -450,6 +527,7 @@ function currentSurface(pkg) {
         kit: Object.fromEntries(Object.entries(KIT_API).filter(([, names]) => names !== null)),
         php,
         overrides: overrideSurface(pkg),
+        fieldContract: fieldContractSurface(pkg),
         pending,
     }
 }
@@ -534,6 +612,18 @@ function checkSurface(pkg, baseline, current) {
             ? [...props.filter((p) => !known.props.includes(p)).map((p) => `prop "${p}"`), ...emits.filter((e) => !known.emits.includes(e)).map((e) => `event "${e}"`)]
             : ['the whole key / part']
         if (added.length) fail(`override contract ${target}`, `${added.join(', ')} not in kit/public-api.json. It becomes part of the stable override contract: document it (design §5.6) and run \`npm run check:api -- --update\``)
+    }
+
+    // Field form contract (design 1.5 §5.4, 1.6 §8.3): what extension field components receive. Exact per host.
+    const fieldContract = baseline.fieldContract ?? {}
+    for (const [host, props] of Object.entries(fieldContract)) {
+        const now = current.fieldContract[host] ?? []
+        const where = host === 'field' ? 'field contract (Field::jsonSerialize())' : `field contract ${host} (${FIELD_HOSTS[host]?.file ?? 'host gone'})`
+        for (const prop of props) if (!now.includes(prop)) fail(where, `${host === 'field' ? 'serialized field key' : 'prop'} "${prop}" was removed or renamed. Extension field components receive it, frozen for 1.x (design 1.5 §5.4, 1.6 §8.3, ADR-034)`)
+    }
+    for (const [host, props] of Object.entries(current.fieldContract)) {
+        const added = props.filter((p) => !(fieldContract[host] ?? []).includes(p))
+        if (added.length) fail(`field contract ${host}`, `${added.map((p) => `"${p}"`).join(', ')} not in kit/public-api.json. It becomes part of the stable field contract: document it (design 1.5 §5.4) and run \`npm run check:api -- --update\``)
     }
 }
 
@@ -739,6 +829,7 @@ if (update) {
         js: { larsadmin: current.larsadmin, kit: current.kit },
         php: current.php,
         overrides: current.overrides,
+        fieldContract: current.fieldContract,
     }
     writeFileSync(BASELINE, JSON.stringify(snapshot, null, 4) + '\n')
 
@@ -748,6 +839,7 @@ if (update) {
             ...Object.entries(s.js.kit).flatMap(([f, ns]) => [`kit/${f}`, ...ns.map((n) => `kit/${f}: ${n}`)]),
             ...Object.entries(s.php).flatMap(([c, ms]) => [c, ...ms.map((m) => `${c}::${m}`)]),
             ...Object.entries(s.overrides ?? {}).flatMap(([t, c]) => [t, ...c.props.map((p) => `${t} prop ${p}`), ...c.emits.map((e) => `${t} event ${e}`)]),
+            ...Object.entries(s.fieldContract ?? {}).flatMap(([h, ps]) => ps.map((p) => `field contract ${h}: ${p}`)),
         ]
         const before = new Set(flat(previous))
         const after = new Set(flat(snapshot))

@@ -233,7 +233,7 @@ it('keeps the extension route callbacks in order', function () {
 });
 
 it('exposes the API version', function () {
-    expect(Larsadmin::API_VERSION)->toBe('1.5');
+    expect(Larsadmin::API_VERSION)->toBe('1.6');
 });
 
 it('maps the runtime specifiers to the published panel modules', function () {

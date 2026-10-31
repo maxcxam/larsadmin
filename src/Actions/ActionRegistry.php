@@ -8,6 +8,8 @@ use Maxcxam\Larsadmin\Entity;
 
 /**
  * Resolves an entity's actions: bound to the entity and visible to the user.
+ *
+ * @internal Not part of the public API.
  */
 final class ActionRegistry
 {

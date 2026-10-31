@@ -102,9 +102,11 @@ abstract class Entity
     protected ?Collection $fieldPrototypes = null;
 
     /**
-     * Whether the user may view the record, memoized for file URLs (D14).
+     * The policy answers for the record, memoized for its fields (D14, ADR-041): "view", "update", "delete".
+     *
+     * @var array<string, bool>
      */
-    protected ?bool $viewable = null;
+    private array $recordAbilities = [];
 
     public function __construct(public Model $record) {}
 
@@ -344,14 +346,30 @@ abstract class Entity
                 $field->context = $context;
                 $field->readonly = $field->isReadonlyFor($request, $this->record);
 
-                // File URLs are emitted only when the user may view the record.
-                if ($field instanceof File && $context !== Field::CREATE) {
-                    $field->withUrls($this->viewable ??= $this->authorizedToView($request));
-                }
+                // Field::authorizedTo() reuses the answers serializeRecord() computed, else computes them on
+                // first use (File emits URLs only with "view"). A record being created has none.
+                $field->withAbilities($context === Field::CREATE ? [] : $this->fieldAbilities($request));
 
                 $context === Field::CREATE ? $field->resolveDefault($request) : $field->resolve($this->record);
             })
             ->values();
+    }
+
+    /**
+     * The record abilities handed to its fields: closures that ask the policy at most once per entity
+     * instance, or answer what serializeRecord() already computed.
+     *
+     * @return array<string, Closure(): bool>
+     *
+     * @internal
+     */
+    public function fieldAbilities(Request $request): array
+    {
+        return [
+            'view' => fn (): bool => $this->recordAbilities['view'] ??= $this->authorizedToView($request),
+            'update' => fn (): bool => $this->recordAbilities['update'] ??= $this->authorizedToUpdate($request),
+            'delete' => fn (): bool => $this->recordAbilities['delete'] ??= $this->authorizedToDelete($request),
+        ];
     }
 
     /**
@@ -672,9 +690,11 @@ abstract class Entity
      */
     public function serializeRecord(Request $request, string $context): array
     {
-        $view = $this->viewable = $this->authorizedToView($request);
-        $update = $this->authorizedToUpdate($request);
-        $delete = $this->authorizedToDelete($request);
+        $this->recordAbilities = [
+            'view' => $view = $this->authorizedToView($request),
+            'update' => $update = $this->authorizedToUpdate($request),
+            'delete' => $delete = $this->authorizedToDelete($request),
+        ];
 
         $fields = $this->resolveFields($request, $context);
 

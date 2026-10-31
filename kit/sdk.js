@@ -1527,7 +1527,7 @@ var _sfc_main$1 = {
 	}
 };
 // resources/js/sdk/index.js
-var apiVersion = "1.5";
+var apiVersion = "1.6";
 function useLarsadmin() {
 	const page = usePanelPage();
 	const url = (...segments) => buildUrl(page.props?.larsadmin?.path ?? "/", segments);
