@@ -272,7 +272,7 @@ Password::make('Пароль', 'password')
 `acceptsNullInput()`, `defaultAlign()`), публічні хуки (`fill()`, `fillInto()`, `fillAttribute()`,
 `resolve()`, `eagerLoads()`, `applySort()`, `bindTo()`, `hasAuditValue()`, `auditValue()`), `withMeta()`,
 `jsonSerialize()` і `$component` є стабільним API. Поле з вбудованим компонентом описано в
-[Розширення](10-extending.md#поле-з-вбудованим-компонентом), поле з власним Vue-компонентом, зокрема
+[Розширення: огляд](10-extending.md#поле-з-вбудованим-компонентом), поле з власним Vue-компонентом, зокрема
 поле, що надсилає файли (`multipart()`), у [Розширення: публічний API](19-extensions.md#власні-поля).
 
 З 1.6 стабільні також `authorizedTo()`, `inAction()` і хук `actionValue()`. Два останні стосуються полів у

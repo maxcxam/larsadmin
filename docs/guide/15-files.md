@@ -8,6 +8,12 @@
 
 Додаткових залежностей Composer чи npm не потрібно.
 
+Для моделей зі [spatie/laravel-medialibrary](https://spatie.be/docs/laravel-medialibrary) (колекції,
+перетворення, галереї) встановіть окреме доповнення
+[`maxcxam/larsadmin-medialibrary`](https://github.com/maxcxam/larsadmin-medialibrary) (1.0, потребує Larsadmin 1.6+).
+Воно додає поля `Media` і `MediaGallery` й описане у власному посібнику,
+`vendor/maxcxam/larsadmin-medialibrary/docs/guide/medialibrary.md`.
+
 ## Швидкий старт
 
 ### Публічне зображення
@@ -586,7 +592,8 @@ return FileSafety::response(Storage::disk($disk), $path, $name);
   файлів у 1.1 немає.
 - Очищення не рахує посилань: шлях, спільний для кількох записів, потребує `prunable(false)`
   (див. [Очищення](#очищення-pruning)).
-- Інтеграція зі `spatie/laravel-medialibrary` запланована окремим доповненням після 1.6, побудованим на
-  публічному API розширень і `Files\FileSafety`.
+- Ці поля не використовують `spatie/laravel-medialibrary`. Її колекції підтримує окреме доповнення
+  [`maxcxam/larsadmin-medialibrary`](https://github.com/maxcxam/larsadmin-medialibrary) (`Media`, `MediaGallery`),
+  побудоване на публічному API розширень і `Files\FileSafety`.
 
 Далі: [Глобальний пошук](16-search.md).

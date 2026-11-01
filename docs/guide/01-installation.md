@@ -165,7 +165,7 @@ LARSADMIN_ALLOW_LOCAL=false
 Якщо застосунок використовує `php artisan route:cache`, після зміни `path` або `domain`
 перебудуйте кеш. Пакет не реєструє маршрути, коли кеш маршрутів активний.
 
-Далі: [Entities](02-entities.md).
+Далі: [Сутності](02-entities.md).
 
 ## Розробка пакета
 

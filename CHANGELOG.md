@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-11-01
+
+### Fixed
+
+- Документація: український посібник `02-entities.md` мав англійський заголовок «Entities», тепер «Сутності»;
+  посібник `10-extending.md` перейменовано на «Розширення: огляд», щоб не плутати його з
+  «Розширення: публічний API» (`19-extensions.md`). Тексти посилань на ці посібники оновлено. Код не змінювався.
+
 ## [1.6.1] - 2026-10-31
 
 ### Fixed
@@ -977,7 +985,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.2...HEAD
+[1.6.2]: https://github.com/maxcxam/larsadmin/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/maxcxam/larsadmin/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/maxcxam/larsadmin/compare/v1.4.1...v1.5.0
