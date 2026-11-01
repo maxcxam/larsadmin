@@ -115,7 +115,7 @@ it('creates an extension package skeleton', function () {
         ->toContain("->translations('acme-rating')")
         ->toContain('// Larsadmin::tools([Tools\\Backups::class]);')
         ->toContain('larsadmin:tool Backups --extension=packages/acme/larsadmin-rating')
-        ->and($css)->toContain('@import "tailwindcss/utilities";')
+        ->and($css)->toContain('@import "tailwindcss/utilities" layer(utilities.extensions) source(none);')
         ->toContain('@import "larsadmin-kit/theme.css";')
         ->toContain('@source "../js";')
         ->not->toContain('@theme')

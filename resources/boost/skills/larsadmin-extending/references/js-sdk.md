@@ -87,7 +87,7 @@ The kit ships in the panel's Composer archive; there is no npm package. The skel
 
 ```css
 /* resources/css/extension.css */
-@import "tailwindcss/utilities";
+@import "tailwindcss/utilities" layer(utilities.extensions) source(none);
 @import "larsadmin-kit/theme.css";
 @source "../js";
 ```

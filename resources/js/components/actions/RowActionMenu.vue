@@ -53,7 +53,7 @@ async function show() {
     open.value = true
     document.addEventListener('pointerdown', onOutside)
     window.addEventListener('resize', onViewportChange)
-    window.addEventListener('scroll', onViewportChange, true)
+    window.addEventListener('scroll', onScroll, true)
     await nextTick()
     place()
     items.value[0]?.focus()
@@ -63,12 +63,24 @@ function close(restoreFocus = false) {
     open.value = false
     document.removeEventListener('pointerdown', onOutside)
     window.removeEventListener('resize', onViewportChange)
-    window.removeEventListener('scroll', onViewportChange, true)
+    window.removeEventListener('scroll', onScroll, true)
     if (restoreFocus) button.value?.focus()
 }
 
 function onViewportChange() {
     if (open.value) close()
+}
+
+// Scrolling (the page, or the table wrapper bringing a partly hidden button into view) moves the menu with its
+// button; it closes only once the button has left the viewport. Closing on every scroll made the menu vanish
+// right after opening when the browser scrolled the wrapper to reveal it.
+function onScroll(event) {
+    if (!open.value || (event.target instanceof Node && menu.value?.contains(event.target))) return
+
+    const rect = button.value?.getBoundingClientRect()
+
+    if (!rect || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) close()
+    else place()
 }
 
 function choose(action) {
@@ -109,7 +121,7 @@ function onButtonKeydown(event) {
 onBeforeUnmount(() => {
     document.removeEventListener('pointerdown', onOutside)
     window.removeEventListener('resize', onViewportChange)
-    window.removeEventListener('scroll', onViewportChange, true)
+    window.removeEventListener('scroll', onScroll, true)
 })
 </script>
 

@@ -9,7 +9,7 @@
  *    --la-* tokens (inline), so they follow the panel theme, light and dark.
  *
  * The panel's app.css carries the same colour mapping (kept identical by kit/vite.test.js). An extension's stylesheet:
- *     @import "tailwindcss/utilities";
+ *     @import "tailwindcss/utilities" layer(utilities.extensions) source(none);
  *     @import "<path to vendor>/maxcxam/larsadmin/kit/theme.css";
  *     @source "../js";
  */

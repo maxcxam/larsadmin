@@ -62,6 +62,10 @@ router.on('navigate', (event) => {
     loader.load(larsadmin().extensions)
 })
 
+// The in-panel language switch posts and is redirected back to the same URL: that visit ends in `success` without a
+// `navigate` event, so <html lang> is synced there too.
+router.on('success', (event) => syncDocumentLocale(event.detail.page))
+
 // A save (or any visit) that gets no response at all: the error toast instead of an uncaught "Network error".
 handleNetworkErrors(router, {
     notify: () => useToasts().push({ type: 'error', message: translate('network_error'), timeout: 8000 }),

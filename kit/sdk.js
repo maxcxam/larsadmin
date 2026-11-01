@@ -289,7 +289,7 @@ function flattenNamespaces(namespaces) {
 	return into;
 }
 function replace(message, params) {
-	return Object.entries(params).sort(([a], [b]) => b.length - a.length).reduce((text, [name, value]) => {
+	return Object.entries(params ?? {}).sort(([a], [b]) => b.length - a.length).reduce((text, [name, value]) => {
 		const plain = String(value);
 		return text.replaceAll(`:${name.toUpperCase()}`, plain.toUpperCase()).replaceAll(`:${name.charAt(0).toUpperCase()}${name.slice(1)}`, plain.charAt(0).toUpperCase() + plain.slice(1)).replaceAll(`:${name}`, plain);
 	}, message);

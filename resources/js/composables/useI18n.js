@@ -33,7 +33,7 @@ export function flattenNamespaces(namespaces) {
 
 // Laravel-style replacements: :name, :Name (ucfirst), :NAME (uppercase). Longer names first.
 export function replace(message, params) {
-    return Object.entries(params)
+    return Object.entries(params ?? {})
         .sort(([a], [b]) => b.length - a.length)
         .reduce((text, [name, value]) => {
             const plain = String(value)
