@@ -206,7 +206,8 @@ it('plans in strict mode what the commands write for strict-valid input', functi
 });
 
 /**
- * The golden: captured from the 1.5 generators (GeneratorCommand / ExtensionScaffold) before the refactoring.
+ * The golden: captured from the 1.5 generators (GeneratorCommand / ExtensionScaffold) before the refactoring;
+ * the extension.css hash was updated in 1.6.5 (utilities in a cascade layer).
  *
  * @return array{steps: list<string>, files: array<string, string>}
  */
@@ -353,7 +354,7 @@ function parityGolden(): array
             'extensions/local/acme.co/stars/lang/en/ui.php' => '75ac3a28c40145ae050700ad1944327b8bd84b0c1af48356bb957e8ff81095ae',
             'extensions/local/acme.co/stars/lang/uk/ui.php' => '3e49ed84cc837a24ed596110ff278f14129e7a095bcf30c19f88141d76bdf12b',
             'extensions/local/acme.co/stars/package.json' => '129525a9971e987d22dd023a3a53eb9b0029f1c9f0c5fdba9d7e899e2f863298',
-            'extensions/local/acme.co/stars/resources/css/extension.css' => '33083f19182cc6904b32faa55586123e08a97b772daf86f462ce8e91158d65ec',
+            'extensions/local/acme.co/stars/resources/css/extension.css' => '81e9994b25960f20416813281993055a3d3ee35c1b8492a5a8a0ea2a3a567a7a',
             'extensions/local/acme.co/stars/resources/js/cards/TopRatedCard.vue' => '75b52660aaf23b1019730052e5ae5d8ff874cd21e37554e7c980adbdfc75d49f',
             'extensions/local/acme.co/stars/resources/js/extension.js' => 'c8df3bd4292187cfd307b31b603cfa87e6abb90775f37a06ba7e033d53119f26',
             'extensions/local/acme.co/stars/resources/js/fields/StarRatingDisplay.vue' => '693bffad84f5b0627550bb10c3771a2a428868b84594d44f6c478db7095fb11b',
@@ -376,7 +377,7 @@ function parityGolden(): array
             'packages/acme/larsadmin-rating/lang/en/ui.php' => '0cb77ac4d0e8c08790ad22784c9e91b10f12ae2e8e4aae59d539ebffe0d7aa18',
             'packages/acme/larsadmin-rating/lang/uk/ui.php' => 'bd0f0e12cd36ec26594d88a09994e7f65d77a0d828fe54e383a3e299089d709f',
             'packages/acme/larsadmin-rating/package.json' => 'bf5ffac13ff47eb30e1391c8de10aa596a9732a383b3c8f36f6529964319ad14',
-            'packages/acme/larsadmin-rating/resources/css/extension.css' => '33083f19182cc6904b32faa55586123e08a97b772daf86f462ce8e91158d65ec',
+            'packages/acme/larsadmin-rating/resources/css/extension.css' => '81e9994b25960f20416813281993055a3d3ee35c1b8492a5a8a0ea2a3a567a7a',
             'packages/acme/larsadmin-rating/resources/js/cards/ExampleCard.vue' => 'd3fac4fd7711c7a2a536590feaf3ec1a61dc3c2756b2b66d4b1d8f2551021c64',
             'packages/acme/larsadmin-rating/resources/js/cards/TopCard.vue' => 'd06894f2f5059ad17d3881f9c04375603fa71e5dfb1c1c2dcfdd38c8f5411e5f',
             'packages/acme/larsadmin-rating/resources/js/extension.js' => '6982a73b6a9cc471d20b84e0d60f91c9a505cd4fbced3f0f554dfe92f3e91f21',

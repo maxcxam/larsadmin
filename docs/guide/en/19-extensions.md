@@ -1026,10 +1026,18 @@ An extension builds its own Tailwind CSS v4 utilities with the panel's theme:
 
 ```css
 /* resources/css/extension.css */
-@import "tailwindcss/utilities";
+@import "tailwindcss/utilities" layer(utilities.extensions) source(none);
 @import "larsadmin-kit/theme.css";
 @source "../js";
 ```
+
+- `layer(utilities.extensions)` puts the utilities in a sublayer of the panel's `utilities` layer: they still
+  beat the panel's base and component classes, but never the panel's own utilities. A plain
+  `@import "tailwindcss/utilities";` emits *unlayered* CSS, and its `.hidden { display: none }` then beats
+  the panel's layered `md:block`, hiding parts of panel pages (before 1.6.5 the skeleton did this).
+- `source(none)` with `@source "../js"`: only the classes used by the extension's components are generated,
+  not words in `README.md` or PHP files that happen to look like classes.
+- Trade-off: an extension utility loses to a panel utility of the same name.
 
 `kit/theme.css` imports Tailwind's default theme as a *reference*: classes such as `p-4`, `size-6`,
 `text-sm`, `rounded`, `md:grid-cols-2` are generated, but the theme variables are not duplicated; they come

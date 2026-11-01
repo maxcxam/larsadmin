@@ -1,4 +1,8 @@
-/* Utilities only: the panel provides the base styles and the theme variables (kit/theme.css references them). */
-@import "tailwindcss/utilities";
+/*
+ * Utilities only: the panel provides the base styles and the theme variables (kit/theme.css references them).
+ * layer(utilities.extensions): below the panel's own utilities, so ".hidden" here never beats the panel's "md:block".
+ * source(none) + @source: only the classes of this extension's components are generated.
+ */
+@import "tailwindcss/utilities" layer(utilities.extensions) source(none);
 @import "larsadmin-kit/theme.css";
 @source "../js";

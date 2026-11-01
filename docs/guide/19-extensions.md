@@ -1026,10 +1026,18 @@ tc('acme-rating::stars', 3) // "3 зірки"
 
 ```css
 /* resources/css/extension.css */
-@import "tailwindcss/utilities";
+@import "tailwindcss/utilities" layer(utilities.extensions) source(none);
 @import "larsadmin-kit/theme.css";
 @source "../js";
 ```
+
+- `layer(utilities.extensions)` кладе класи в підшар шару `utilities` панелі: вони й далі перемагають
+  базові стилі та компоненти панелі, але ніколи — її власні utility-класи. Звичайний
+  `@import "tailwindcss/utilities";` дає CSS *поза шарами*, і його `.hidden { display: none }` перемагає
+  шаровий `md:block` панелі, ховаючи частини її сторінок (так робив скелет до 1.6.5).
+- `source(none)` разом з `@source "../js"`: генеруються лише класи компонентів розширення, а не слова з
+  `README.md` чи PHP-файлів, схожі на класи.
+- Компроміс: utility-клас розширення програє однойменному класу панелі.
 
 `kit/theme.css` імпортує стандартну тему Tailwind як *reference*: класи `p-4`, `size-6`, `text-sm`,
 `rounded`, `md:grid-cols-2` генеруються, але змінні теми не дублюються, а беруться з панелі. Кольори

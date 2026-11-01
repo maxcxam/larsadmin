@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-11-01
+
+### Fixed
+
+- Тост «помилка мережі» з 1.6.4 не з'являвся: переклад без параметрів падав у `replace()`.
+- `<html lang>` не оновлювався після перемикання мови в панелі: перемикання повертає на ту саму адресу без
+  події `navigate`, тепер мова синхронізується й на `success`.
+- Меню дій рядка закривалося від будь-якої прокрутки, зокрема коли браузер прокручував таблицю, щоб показати
+  кнопку: тепер меню рухається за кнопкою й закривається, лише коли вона зникає з екрана.
+- Скелет розширення (`larsadmin:extension`), `kit/theme.css` і посібник радили `@import "tailwindcss/utilities";`
+  поза шарами: `.hidden` розширення перемагав `md:block` панелі й ховав частини сторінок (напр. таблицю журналу
+  аудиту). Тепер: `@import "tailwindcss/utilities" layer(utilities.extensions) source(none);` — див. посібник
+  «Розширення: публічний API», розділ «Стилі й теми». Наявним розширенням варто оновити свій `extension.css`.
+
 ## [1.6.4] - 2026-11-01
 
 ### Fixed
@@ -1017,7 +1031,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.4...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.5...HEAD
+[1.6.5]: https://github.com/maxcxam/larsadmin/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/maxcxam/larsadmin/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/maxcxam/larsadmin/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/maxcxam/larsadmin/compare/v1.6.1...v1.6.2

@@ -4,7 +4,7 @@ const props = { larsadmin: { locale: 'uk', translations: {} } }
 
 vi.mock('@inertiajs/vue3', () => ({ usePage: () => ({ props }) }))
 
-const { useI18n } = await import('./useI18n.js')
+const { useI18n, replace } = await import('./useI18n.js')
 
 beforeEach(() => {
     props.larsadmin = { locale: 'uk', translations: { files: ':count файл|:count файли|:count файлів', greet: 'Привіт, :name / :Name / :NAME' } }
@@ -67,5 +67,12 @@ describe('useI18n', () => {
         props.larsadmin = { locale: 'uk', translations: {}, extensionTranslations: null }
 
         expect(useI18n().t('retry')).toBe('Повторити')
+    })
+})
+
+describe('replace', () => {
+    it('returns the message unchanged without params (the network error toast passed none in 1.6.4)', () => {
+        expect(replace('Немає звʼязку', undefined)).toBe('Немає звʼязку')
+        expect(replace('Немає звʼязку', null)).toBe('Немає звʼязку')
     })
 })

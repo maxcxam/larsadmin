@@ -131,7 +131,7 @@ describe('preset build (fixture extension)', () => {
         ].join('\n'))
         const theme = resolve(KIT, 'theme.css').replaceAll('\\', '/')
 
-        writeFileSync(resolve(root, 'resources/js/extension.css'), `@import "tailwindcss/utilities";\n@import "${theme}";\n@source "./";\n`)
+        writeFileSync(resolve(root, 'resources/js/extension.css'), `@import "tailwindcss/utilities" layer(utilities.extensions) source(none);\n@import "${theme}";\n@source "./";\n`)
 
         await buildFixture(root, [tailwindcss()])
 
@@ -147,6 +147,9 @@ describe('preset build (fixture extension)', () => {
         // Theme as reference: the panel's variables are used, not redefined.
         expect(css).not.toMatch(/--spacing:\s/)
         expect(css).toMatch(/@media \(width>=48rem\)|@media \(min-width:\s?48rem\)/)
+        // Layered below the panel's own utilities: an extension's ".hidden" must not beat the panel's "md:block".
+        expect(css).toContain('@layer utilities.extensions')
+        expect(css).not.toMatch(/^\.hidden\s*\{/m)
     }, 30000)
 
     it('stops the build when Vue is bundled through a deep import', async () => {
