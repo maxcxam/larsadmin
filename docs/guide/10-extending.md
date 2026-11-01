@@ -1,4 +1,4 @@
-# 10. Розширення
+# 10. Розширення: огляд
 🇬🇧 [English](en/10-extending.md)
 
 Панель розширюється на двох рівнях:
@@ -14,7 +14,7 @@
 
 | Що | Базовий клас чи API | Розділ |
 | --- | --- | --- |
-| Entity | `Maxcxam\Larsadmin\Entity` | [Entities](02-entities.md) |
+| Entity | `Maxcxam\Larsadmin\Entity` | [Сутності](02-entities.md) |
 | Дія | `Maxcxam\Larsadmin\Actions\Action` | [Дії](07-actions.md) |
 | Фільтр | `Maxcxam\Larsadmin\Filters\Filter` | [Фільтри](06-filters.md) |
 | Метрика | `Maxcxam\Larsadmin\Metrics\Value`, `Trend`, `Partition`, `Progress` | [Метрики](13-metrics.md) |

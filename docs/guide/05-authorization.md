@@ -133,7 +133,7 @@ class TagPolicy
 ## Обмеження рядків
 
 Політика відповідає «чи можна взагалі», а не «які саме рядки». Рядки обмежують статичні хуки Entity
-([Entities](02-entities.md)):
+([Сутності](02-entities.md)):
 
 ```php
 class OwnPost extends Entity
