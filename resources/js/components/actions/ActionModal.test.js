@@ -112,6 +112,18 @@ describe('ActionModal with extension fields (design 1.6 §8.3)', () => {
         wrapper.unmount()
     })
 
+    it('sends a field named like a form method (post) with its value', async () => {
+        registry.register('fields', 'acme/modal-post', { form: Rating }, { extension: 'acme/modal' })
+
+        const wrapper = open([{ component: 'acme/modal-post', attribute: 'post', name: 'Post', value: 59, inAction: true }])
+        await nextTick()
+        await wrapper.find('form').trigger('submit')
+
+        expect(visits).toHaveLength(1)
+        expect(visits[0].data).toEqual({ resources: [5], post: 59 })
+        wrapper.unmount()
+    })
+
     it('gives the field its errors and points describedBy at the message', async () => {
         registry.register('fields', 'acme/modal-errors', { form: Rating }, { extension: 'acme/modal' })
 

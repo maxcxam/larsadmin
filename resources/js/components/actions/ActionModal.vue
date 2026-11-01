@@ -50,7 +50,8 @@ const form = useForm({
     resources: props.action.standalone ? [] : props.resources,
     ...(props.search ? { search: props.search } : {}),
     ...(props.filters ? { filters: props.filters } : {}),
-    ...Object.fromEntries(fields.value.map((field) => [field.attribute, field.value ?? null])),
+    // Under `values`, as in EntityForm: a field named like a form method (post, reset...) must not be shadowed.
+    values: Object.fromEntries(fields.value.map((field) => [field.attribute, field.value ?? null])),
 })
 
 const errorId = (field) => `${fieldIdPrefix}-${field.attribute}-error`
@@ -76,7 +77,7 @@ function submit() {
     // Fail closed: unavailable extension fields are not sent; file fields make the request multipart.
     const { multipart } = actionPayload(fields.value, null)
 
-    form.transform((data) => actionPayload(fields.value, data).data).post(entityUrl(props.entity, 'actions', props.action.uriKey), {
+    form.transform(({ values, ...data }) => actionPayload(fields.value, { ...data, ...values }).data).post(entityUrl(props.entity, 'actions', props.action.uriKey), {
         preserveScroll: true,
         preserveState: true,
         ...(multipart ? { forceFormData: true } : {}),
@@ -162,7 +163,7 @@ onBeforeUnmount(() => {
                             </label>
                             <component
                                 :is="formComponent(field)"
-                                v-model="form[field.attribute]"
+                                v-model="form.values[field.attribute]"
                                 :field="field"
                                 :invalid="!!message(field)"
                                 v-bind="fieldProps(field)"

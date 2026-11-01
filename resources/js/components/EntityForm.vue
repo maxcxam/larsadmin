@@ -38,7 +38,9 @@ const submitUrl = computed(() => {
     return query ? `${props.action}${props.action.includes('?') ? '&' : '?'}${query}` : props.action
 })
 
-const form = useForm(Object.fromEntries(props.fields.map((field) => [field.attribute, field.value])))
+// Field values live under `values`: an attribute named like a form method or property (post, get, put, delete, reset,
+// errors...) would otherwise be shadowed by it and silently dropped from the request. Sent flat, as before.
+const form = useForm({ values: Object.fromEntries(props.fields.map((field) => [field.attribute, field.value])) })
 
 // Fail closed (ADR-032): extension fields whose component is missing or crashed are left out of the payload, so the
 // server keeps the stored value. Reactive: a late extension makes its fields available again.
@@ -50,7 +52,7 @@ function submit() {
 
     if (!multipart) {
         // Without exclusions the transform returns the same data object: the request is the 1.4 one.
-        form.transform((data) => buildSubmission(props.fields, props.method, data, { exclude }).data).submit(method, submitUrl.value, {
+        form.transform((data) => buildSubmission(props.fields, props.method, data.values, { exclude }).data).submit(method, submitUrl.value, {
             preserveScroll: true,
         })
 
@@ -59,7 +61,7 @@ function submit() {
 
     // Forms with File/Image fields (ADR-014): multipart POST, updates spoofed with _method=PUT (PHP does not
     // parse multipart bodies of real PUT requests). Wire format per field: {attr}[present|keep|upload].
-    form.transform((data) => buildSubmission(props.fields, props.method, data, { exclude }).data).submit(method, submitUrl.value, {
+    form.transform((data) => buildSubmission(props.fields, props.method, data.values, { exclude }).data).submit(method, submitUrl.value, {
         preserveScroll: true,
         forceFormData: true,
         onHttpException: (response) => {
@@ -100,7 +102,7 @@ const uploadPercent = computed(() => Math.round(form.progress?.percentage ?? 0))
 </script>
 
 <template>
-    <form class="max-w-4xl" @submit.prevent="submit">
+    <form @submit.prevent="submit">
         <FieldBlocks :layout="layout" :fields="fields" :errors="form.errors">
             <template #field="{ field, stacked }">
                 <div :class="stacked ? 'grid gap-2 px-4 py-4' : 'grid gap-2 px-4 py-4 md:grid-cols-4 md:gap-4'">
@@ -113,7 +115,7 @@ const uploadPercent = computed(() => Math.round(form.progress?.percentage ?? 0))
                     <div :class="stacked ? 'min-w-0' : 'min-w-0 md:col-span-3'">
                         <component
                             :is="formComponent(field)"
-                            v-model="form[field.attribute]"
+                            v-model="form.values[field.attribute]"
                             :field="field"
                             :invalid="!!fieldError(form.errors, field.attribute)"
                             :context="context"

@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-11-01
+
+### Changed
+
+- Форма створення й редагування займає всю ширину контенту, як і сторінка перегляду (раніше була обмежена
+  `max-w-4xl`).
+
+### Fixed
+
+- Форма запису й форма дії не надсилали значення поля, атрибут якого збігається з методом або властивістю форми
+  Inertia (`post`, `get`, `put`, `patch`, `delete`, `reset`, `errors`…): напр. `BelongsTo::make('Допис', 'post')`
+  при збереженні без змін давав «Поле Допис є обов'язковим». Значення полів тепер зберігаються окремо від
+  методів форми; запит на сервер не змінився.
+
 ## [1.6.2] - 2026-11-01
 
 ### Fixed
@@ -985,7 +999,8 @@
   ключем існує (SEC11-5).
 - `PartitionResult` не має `prefix()`/`suffix()`.
 
-[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/maxcxam/larsadmin/compare/v1.6.3...HEAD
+[1.6.3]: https://github.com/maxcxam/larsadmin/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/maxcxam/larsadmin/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/maxcxam/larsadmin/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/maxcxam/larsadmin/compare/v1.5.0...v1.6.0
