@@ -3,6 +3,7 @@ import { computed, reactive, ref, useId, watch } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { useLarsadmin } from '../../composables/useLarsadmin'
 import { useI18n } from '../../composables/useI18n'
+import { useFilterVisits } from '../../composables/useFilterVisits'
 import { activeFilterValues, eventLabel, filterQuery, formatDateTime, hasDetails, recordText, safeUrl } from '../../components/audit/audit'
 import AuditActor from '../../components/audit/AuditActor.vue'
 import AuditChanges from '../../components/audit/AuditChanges.vue'
@@ -34,18 +35,26 @@ const { t, tc, locale } = useI18n()
 const uid = useId()
 const rows = computed(() => (Array.isArray(props.entries?.data) ? props.entries.data : []))
 const activeFilters = computed(() => activeFilterValues(props.query))
+// Edits still in flight win over the server's state (a second filter changed before the first visit answered).
+const filterVisits = useFilterVisits(() => activeFilters.value)
 const hasActiveFilters = computed(() => Object.keys(filterQuery(activeFilters.value)).length > 0)
 const indexUrl = computed(() => page.props.larsadmin?.audit?.url ?? url('audit'))
 
 const processing = ref(false)
 
 function setFilters(values) {
+    const visit = filterVisits.track(values)
+
     router.get(indexUrl.value, filterQuery(values, props.filters), {
         preserveState: true,
         preserveScroll: true,
         replace: true,
         onStart: () => (processing.value = true),
-        onFinish: () => (processing.value = false),
+        onCancel: visit.onCancel,
+        onFinish: () => {
+            processing.value = false
+            visit.onFinish()
+        },
     })
 }
 
@@ -80,7 +89,7 @@ const pagerBtn = 'inline-flex items-center gap-1 rounded-md border border-transp
 
     <div class="larsadmin-box">
         <div v-if="filters.length" class="larsadmin-box-header flex flex-wrap items-center justify-end gap-2">
-            <FilterMenu :filters="filters" :model-value="activeFilters" @update:model-value="setFilters" />
+            <FilterMenu :filters="filters" :model-value="filterVisits.current.value" @update:model-value="setFilters" />
         </div>
 
         <div :aria-busy="processing || undefined" :class="{ 'opacity-60': processing }">

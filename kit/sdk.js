@@ -41,6 +41,7 @@ var uk_default = {
 	breadcrumb: "Навігаційний шлях",
 	dismiss: "Закрити",
 	log_out: "Вийти",
+	network_error: "Немає зв'язку із сервером. Перевірте з'єднання та спробуйте ще раз.",
 	login_title: "Вхід",
 	sign_in_to: "Вхід до :name",
 	email: "Електронна пошта",

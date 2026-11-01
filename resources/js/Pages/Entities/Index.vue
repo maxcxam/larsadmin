@@ -10,6 +10,7 @@ import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import ColumnMenu from '../../components/ColumnMenu.vue'
 import FilterMenu from '../../components/FilterMenu.vue'
 import { useColumnPreferences } from '../../composables/useColumnPreferences'
+import { useFilterVisits } from '../../composables/useFilterVisits'
 import { cleanFilters } from '../../filters'
 import CardGrid from '../../components/cards/CardGrid.vue'
 import EntityTable from '../../components/EntityTable.vue'
@@ -45,6 +46,10 @@ const activeFilters = computed(() => {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 })
 
+// What the filter menu shows and every reload builds on: edits still in flight win over the server's state, so a
+// filter changed before the previous filter visit answered is merged with it instead of replacing it.
+const filterVisits = useFilterVisits(() => activeFilters.value)
+
 const hasActions = computed(() => (props.actions ?? []).length > 0)
 const hasSelectable = computed(() => (props.actions ?? []).some((a) => a.showOnIndex && !a.standalone))
 const inlineActions = computed(() => (props.actions ?? []).filter((a) => a.showInline && !a.standalone))
@@ -76,15 +81,16 @@ function closeAction() {
 
 function reload(params) {
     // Always build from the local search ref so a sort/per-page click never drops typed text.
-    const query = { ...props.query, search: search.value, filters: activeFilters.value, ...params }
+    const query = { ...props.query, search: search.value, filters: filterVisits.current.value, ...params }
     // Cleared filters that have a default are sent as explicit empties, otherwise the server re-applies the default.
     query.filters = cleanFilters(query.filters, props.filters)
+    const visit = filterVisits.track('filters' in params ? query.filters : undefined)
     if (Object.keys(query.filters).length === 0) delete query.filters
 
     router.get(
         entityUrl(props.entity.uriKey),
         Object.fromEntries(Object.entries(query).filter(([, value]) => value !== null && value !== '')),
-        { preserveState: true, preserveScroll: true, replace: true },
+        { preserveState: true, preserveScroll: true, replace: true, ...visit },
     )
 }
 
@@ -175,7 +181,7 @@ const actionFilters = computed(() => {
                 <FilterMenu
                     v-if="filters.length > 0"
                     :filters="filters"
-                    :model-value="activeFilters"
+                    :model-value="filterVisits.current.value"
                     @update:model-value="reload({ filters: $event, page: null })"
                 />
 
