@@ -13,6 +13,7 @@ return [
     'breadcrumb' => 'Breadcrumb',
     'dismiss' => 'Dismiss',
     'log_out' => 'Log out',
+    'network_error' => 'Could not reach the server. Check your connection and try again.',
 
     // Auth
     'login_title' => 'Log in',

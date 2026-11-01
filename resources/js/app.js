@@ -8,6 +8,8 @@ import { createLoader } from './extensions/loader'
 import { useToasts } from './composables/useToasts'
 import { flatten, replace } from './composables/useI18n'
 import ukMessages from './i18n/uk.json'
+import { syncDocumentLocale } from './runtime/documentLocale'
+import { handleNetworkErrors } from './runtime/networkErrors'
 
 // `import: 'default'`: the components themselves, not module namespace objects, which would need a Rolldown runtime
 // helper chunk and one more sequential request before boot (CRX-05).
@@ -55,7 +57,14 @@ const loader = createLoader({
 // The first sign-in (login -> dashboard) is an Inertia visit, not a page load: pick up extensions listed later.
 router.on('navigate', (event) => {
     currentPage = event.detail.page
+    // <html lang> follows the panel locale without a reload (the in-panel language switch is an Inertia visit).
+    syncDocumentLocale(currentPage)
     loader.load(larsadmin().extensions)
+})
+
+// A save (or any visit) that gets no response at all: the error toast instead of an uncaught "Network error".
+handleNetworkErrors(router, {
+    notify: () => useToasts().push({ type: 'error', message: translate('network_error'), timeout: 8000 }),
 })
 
 function boot() {

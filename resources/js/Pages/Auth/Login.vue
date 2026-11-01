@@ -5,6 +5,7 @@ export default {
 </script>
 
 <script setup>
+import { ref } from 'vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import IconAlert from '../../components/icons/IconAlert.vue'
 import IconDatabase from '../../components/icons/IconDatabase.vue'
@@ -21,8 +22,17 @@ const form = useForm({
     remember: false,
 })
 
+// The login page has no layout and so no toast stack: a request without a response is reported inline.
+const networkError = ref(false)
+
 function submit() {
+    networkError.value = false
     form.post(`${page.props.larsadmin.path}/login`, {
+        onNetworkError: () => {
+            networkError.value = true
+
+            return false
+        },
         onFinish: () => form.reset('password'),
     })
 }
@@ -81,6 +91,10 @@ function submit() {
                     <input v-model="form.remember" type="checkbox" class="larsadmin-checkbox">
                     {{ t('remember_me') }}
                 </label>
+
+                <p v-if="networkError" class="flex items-center gap-1 text-xs text-danger-fg" role="alert">
+                    <IconAlert />{{ t('network_error') }}
+                </p>
 
                 <button type="submit" :disabled="form.processing" class="larsadmin-btn-primary larsadmin-btn-block">
                     {{ t('sign_in') }}
