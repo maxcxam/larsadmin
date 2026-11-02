@@ -1,5 +1,5 @@
 # 12. Field blocks
-🇺🇦 [Українська](../12-layout.md)
+🇺🇦 [Українська](../12-layout.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/layout)
 
 On the create and edit forms and on the detail page, fields can be grouped into **panels** with a
 heading and into **tabs**. Blocks affect only the presentation: validation, saving, the list (index)

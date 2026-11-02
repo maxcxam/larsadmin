@@ -1,5 +1,5 @@
 # 04. Relations
-🇺🇦 [Українська](../04-relations.md)
+🇺🇦 [Українська](../04-relations.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/relations)
 
 Three fields work with Eloquent relations:
 

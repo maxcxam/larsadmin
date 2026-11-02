@@ -1,5 +1,5 @@
 # 07. Actions
-🇺🇦 [Українська](../07-actions.md)
+🇺🇦 [Українська](../07-actions.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/actions)
 
 An action runs an operation on the selected records (or on all records matching the current filters and
 search). Actions are available from the list (index) menu, from the "⋯" menu of a single list row, and

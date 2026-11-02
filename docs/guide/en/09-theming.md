@@ -1,5 +1,5 @@
 # 09. Themes
-🇺🇦 [Українська](../09-theming.md)
+🇺🇦 [Українська](../09-theming.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/theming)
 
 The panel interface is styled after GitHub (Primer) and has three theme modes: **light**, **dark**
 and **system**.

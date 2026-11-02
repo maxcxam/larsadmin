@@ -1,5 +1,5 @@
 # 10. Розширення: огляд
-🇬🇧 [English](en/10-extending.md)
+🇬🇧 [English](en/10-extending.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/extending)
 
 Панель розширюється на двох рівнях:
 

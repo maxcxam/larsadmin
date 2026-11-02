@@ -1,5 +1,5 @@
 # 13. Metrics
-🇺🇦 [Українська](../13-metrics.md)
+🇺🇦 [Українська](../13-metrics.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/metrics)
 
 A metric is a card with a number or a chart that the panel shows on a [dashboard](14-dashboards.md) or
 above an Entity list. Each card loads its data with a separate JSON request, so a slow or broken metric

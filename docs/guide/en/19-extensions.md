@@ -1,5 +1,5 @@
 # 19. Extensions: the public API
-🇺🇦 [Українська](../19-extensions.md)
+🇺🇦 [Українська](../19-extensions.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/extensions)
 
 Since 1.5 the panel has a public extension API. An extension is a regular Composer package with PHP
 classes and built Vue components. It adds your own **fields**, dashboard **cards**, **filters**, sidebar

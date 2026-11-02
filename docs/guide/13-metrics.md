@@ -1,5 +1,5 @@
 # 13. Метрики
-🇬🇧 [English](en/13-metrics.md)
+🇬🇧 [English](en/13-metrics.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/metrics)
 
 Метрика це картка з числом або графіком, яку панель показує на [дашборді](14-dashboards.md) або над
 списком Entity. Кожна картка завантажує дані окремим JSON-запитом, тож повільна чи зламана метрика

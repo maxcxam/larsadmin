@@ -1,5 +1,5 @@
 # 20. AI-асистенти: скіли й MCP-сервер
-🇬🇧 [English](en/20-ai-assistants.md)
+🇬🇧 [English](en/20-ai-assistants.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/ai-assistants)
 
 З версії 1.6 пакет постачає матеріали для AI-асистентів, які пишуть код застосунку (Claude Code, Cursor,
 VS Code тощо): **guideline** з правилами пакета, **15 скілів** з рецептами для кожного напряму і локальний

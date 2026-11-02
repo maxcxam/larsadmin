@@ -1,5 +1,5 @@
 # 21. Тестування
-🇬🇧 [English](en/21-testing.md)
+🇬🇧 [English](en/21-testing.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/testing)
 
 Як тестувати панель у власному застосунку: доступ, Entity, policies, дії (зокрема фонові), фільтри, метрики,
 журнал аудиту й сповіщення. Остання частина для авторів розширень: трейт `InteractsWithLarsadmin` і помічники

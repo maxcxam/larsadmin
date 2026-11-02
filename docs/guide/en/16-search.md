@@ -1,5 +1,5 @@
 # 16. Global search
-🇺🇦 [Українська](../16-search.md)
+🇺🇦 [Українська](../16-search.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/search)
 
 The global search finds records across several Entities from any page of the panel. It opens with the
 "Search…" button in the header or the **Ctrl+K** hotkey (**⌘K** on macOS) and shows the results

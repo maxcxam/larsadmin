@@ -1,5 +1,5 @@
 # 06. Фільтри
-🇬🇧 [English](en/06-filters.md)
+🇬🇧 [English](en/06-filters.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/filters)
 
 Фільтри обмежують список записів Entity. Їхній стан зберігається в рядку запиту:
 `?filters[<key>]=<value>`. Фільтри діють на index, на панелі `HasMany`/`BelongsToMany` та на дії

@@ -1,5 +1,5 @@
 # 17. Audit log
-🇺🇦 [Українська](../17-audit-log.md)
+🇺🇦 [Українська](../17-audit-log.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/audit-log)
 
 The audit log records who changed what through the panel, and when: creating, updating and deleting
 records, running actions, attaching and detaching in `BelongsToMany`. Each change stores the field values

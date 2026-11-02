@@ -1,5 +1,5 @@
 # 02. Сутності
-🇬🇧 [English](en/02-entities.md)
+🇬🇧 [English](en/02-entities.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/entities)
 
 Entity описує, як модель показується в панелі: які поля, за чим шукати, які записи бачить користувач.
 Клас розширює `Maxcxam\Larsadmin\Entity`.

@@ -1,5 +1,5 @@
 # 15. Файли й зображення
-🇬🇧 [English](en/15-files.md)
+🇬🇧 [English](en/15-files.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/files)
 
 Поля `File` і `Image` завантажують файли на диск Laravel (`config/filesystems.php`) і зберігають
 шлях у колонці моделі. `Image` показує мініатюру в списку, попередній перегляд на сторінці запису й

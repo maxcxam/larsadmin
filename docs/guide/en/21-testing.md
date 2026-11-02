@@ -1,5 +1,5 @@
 # 21. Testing
-🇺🇦 [Українська](../21-testing.md)
+🇺🇦 [Українська](../21-testing.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/testing)
 
 How to test the panel in your own application: access, entities, policies, actions (background ones
 included), filters, metrics, the audit log and notifications. The last part is for extension authors: the

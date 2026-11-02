@@ -1,5 +1,5 @@
 # 05. Авторизація
-🇬🇧 [English](en/05-authorization.md)
+🇬🇧 [English](en/05-authorization.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/authorization)
 
 Доступ до панелі й до даних перевіряється на двох рівнях:
 

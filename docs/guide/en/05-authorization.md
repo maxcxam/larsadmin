@@ -1,5 +1,5 @@
 # 05. Authorization
-🇺🇦 [Українська](../05-authorization.md)
+🇺🇦 [Українська](../05-authorization.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/authorization)
 
 Access to the panel and to data is checked on two levels:
 
