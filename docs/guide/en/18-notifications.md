@@ -1,5 +1,5 @@
 # 18. Notifications and background actions
-🇺🇦 [Українська](../18-notifications.md)
+🇺🇦 [Українська](../18-notifications.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/notifications)
 
 A bell in the panel header lists the user's notifications. The application sends them (with the
 `LarsadminNotification` class), and the panel sends one itself when a background action finishes. An

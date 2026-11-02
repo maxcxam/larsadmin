@@ -1,5 +1,5 @@
 # 14. Dashboards
-🇺🇦 [Українська](../14-dashboards.md)
+🇺🇦 [Українська](../14-dashboards.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/dashboards)
 
 A dashboard is a page with [metric](13-metrics.md) cards. The first dashboard the user can see opens on
 the panel home page (`/admin`). The others have their own addresses, `/admin/dashboards/{uriKey}`,

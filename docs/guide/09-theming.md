@@ -1,5 +1,5 @@
 # 09. Теми
-🇬🇧 [English](en/09-theming.md)
+🇬🇧 [English](en/09-theming.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/theming)
 
 Інтерфейс панелі оформлений у стилі GitHub (Primer) і має три режими теми: **світла**, **темна**
 та **системна**.

@@ -1,5 +1,5 @@
 # 06. Filters
-🇺🇦 [Українська](../06-filters.md)
+🇺🇦 [Українська](../06-filters.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/filters)
 
 Filters narrow down an Entity's list of records. Their state is kept in the query string:
 `?filters[<key>]=<value>`. Filters apply on index, in the `HasMany`/`BelongsToMany` panels, and to actions

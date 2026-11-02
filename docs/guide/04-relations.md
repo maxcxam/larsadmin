@@ -1,5 +1,5 @@
 # 04. Зв'язки
-🇬🇧 [English](en/04-relations.md)
+🇬🇧 [English](en/04-relations.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/relations)
 
 Три поля працюють зі зв'язками Eloquent:
 

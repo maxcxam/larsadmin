@@ -1,5 +1,5 @@
 # 02. Entities
-🇺🇦 [Українська](../02-entities.md)
+🇺🇦 [Українська](../02-entities.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/entities)
 
 An Entity describes how a model appears in the panel: its fields, what to search by, and which records
 the user can see. The class extends `Maxcxam\Larsadmin\Entity`.

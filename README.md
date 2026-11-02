@@ -8,6 +8,8 @@ an **Entity** and get lists, forms, filters, actions, metrics and dashboards.
 [![Tests](https://github.com/maxcxam/larsadmin/actions/workflows/tests.yml/badge.svg)](https://github.com/maxcxam/larsadmin/actions/workflows/tests.yml)
 [![License](https://img.shields.io/packagist/l/maxcxam/larsadmin.svg)](LICENSE)
 
+**Website:** [larsadmin.dev](https://larsadmin.dev) · [Documentation](https://larsadmin.dev/en/docs) · [Live demo](https://larsadmin.dev/demo)
+
 ## Features
 
 - **Entities**: one class per model with fields, search (including `relation.column`), sorting,
@@ -361,7 +363,8 @@ the browser. The panel's own theme cannot be changed through an API; the `--la-*
 ## Documentation
 
 Full guides, in English. The Ukrainian originals are in [`docs/guide/`](docs/guide/); every page links to
-its translation.
+its translation and to the same page on [larsadmin.dev/en/docs](https://larsadmin.dev/en/docs), which has
+the guides of the latest release with search ([українською](https://larsadmin.dev/uk/docs)).
 
 | Guide | Topics |
 | --- | --- |

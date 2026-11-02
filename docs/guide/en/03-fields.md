@@ -1,5 +1,5 @@
 # 03. Fields
-🇺🇦 [Українська](../03-fields.md)
+🇺🇦 [Українська](../03-fields.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/fields)
 
 Fields are returned by the `Entity::fields(Request $request): array` method. Every field is created with
 `Field::make(...)` and configured with chained methods.

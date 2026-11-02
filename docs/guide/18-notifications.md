@@ -1,5 +1,5 @@
 # 18. Сповіщення та фонові дії
-🇬🇧 [English](en/18-notifications.md)
+🇬🇧 [English](en/18-notifications.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/notifications)
 
 У шапці панелі з'являється дзвіночок зі сповіщеннями користувача. Сповіщення надсилає застосунок
 (класом `LarsadminNotification`) або сама панель, коли завершується фонова дія. Дія з `$queued`

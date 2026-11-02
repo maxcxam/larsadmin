@@ -1,5 +1,5 @@
 # 19. Розширення: публічний API
-🇬🇧 [English](en/19-extensions.md)
+🇬🇧 [English](en/19-extensions.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/extensions)
 
 З версії 1.5 панель має публічний API розширень. Розширення є звичайним Composer-пакетом з PHP-класами
 та зібраними Vue-компонентами. Воно додає власні **поля**, **картки** дашбордів, **фільтри**, сторінки

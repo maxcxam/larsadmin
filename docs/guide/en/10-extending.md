@@ -1,5 +1,5 @@
 # 10. Extending
-🇺🇦 [Українська](../10-extending.md)
+🇺🇦 [Українська](../10-extending.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/extending)
 
 The panel can be extended on two levels:
 

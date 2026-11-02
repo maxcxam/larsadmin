@@ -1,5 +1,5 @@
 # 20. AI assistants: skills and the MCP server
-🇺🇦 [Українська](../20-ai-assistants.md)
+🇺🇦 [Українська](../20-ai-assistants.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/ai-assistants)
 
 Since 1.6 the package ships material for AI assistants that write your application's code (Claude Code,
 Cursor, VS Code and others): a **guideline** with the package's rules, **15 skills** with recipes for each

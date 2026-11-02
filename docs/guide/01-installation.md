@@ -1,5 +1,5 @@
 # 01. Встановлення
-🇬🇧 [English](en/01-installation.md)
+🇬🇧 [English](en/01-installation.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/installation)
 
 ## Вимоги
 

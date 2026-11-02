@@ -1,5 +1,5 @@
 # 15. Files and images
-🇺🇦 [Українська](../15-files.md)
+🇺🇦 [Українська](../15-files.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/files)
 
 The `File` and `Image` fields upload files to a Laravel disk (`config/filesystems.php`) and store the
 path in a model column. `Image` shows a thumbnail on the index, a preview on the record page and in

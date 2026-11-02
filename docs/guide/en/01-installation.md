@@ -1,5 +1,5 @@
 # 01. Installation
-🇺🇦 [Українська](../01-installation.md)
+🇺🇦 [Українська](../01-installation.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/en/docs/installation)
 
 ## Requirements
 

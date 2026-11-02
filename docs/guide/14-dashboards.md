@@ -1,5 +1,5 @@
 # 14. Дашборди
-🇬🇧 [English](en/14-dashboards.md)
+🇬🇧 [English](en/14-dashboards.md) · 🌐 [larsadmin.dev](https://larsadmin.dev/uk/docs/dashboards)
 
 Дашборд це сторінка з картками [метрик](13-metrics.md). Перший дашборд, який може бачити
 користувач, відкривається на головній сторінці панелі (`/admin`). Решта мають власні адреси
